@@ -16,7 +16,8 @@
 
 using namespace std;
 using namespace cv;
-ComplexObject::ComplexObject(int numberOfParts,PhysicalOrientation physicalOrientation, string id) {
+ComplexObject::ComplexObject(int numberOfParts,
+		PhysicalOrientation physicalOrientation, string id) {
 	orientation = physicalOrientation;
 	this->numberOfParts = numberOfParts;
 	foundObject = false;
@@ -104,12 +105,12 @@ pair<bool, vector<Point2f> > ComplexObject::findMatch(
 		std::sort(points.begin(), points.end(),
 				[](const cv::Point2f &a , const cv::Point2f &b)-> bool {return a.x<b.x;});
 
-		for(auto i = 0 ; i<points.size()-1 ; i++){
-			if(fabs(points[i].x-points[i+1].x)<10){
-				if(points[i].y>points[i+1].y){
+		for (auto i = 0; i < points.size() - 1; i++) {
+			if (fabs(points[i].x - points[i + 1].x) < 10) {
+				if (points[i].y > points[i + 1].y) {
 					auto temp = points[i];
-					points[i]=points[i+1];
-					points[i+1]=temp;
+					points[i] = points[i + 1];
+					points[i + 1] = temp;
 				}
 			}
 		}
@@ -166,26 +167,36 @@ pair<bool, vector<Point2f> > ComplexObject::findMatch(
 	return pair<bool, vector<Point2f> >(false, actualPoints);
 }
 
-int ComplexObject::findIndex(std::vector<Point2f> points, Point2f element){
-	auto res = std::find(points.begin(), points.end(),element);
-	return std::distance(points.begin() , res);
+int ComplexObject::findIndex(std::vector<Point2f> points, Point2f element) {
+	auto res = std::find(points.begin(), points.end(), element);
+	if(res!=points.end()){
+		return std::distance(points.begin(), res);
+	}else{
+		return -1;
+	}
+
 }
 
-std::pair<std::vector<int> ,std::vector<int>> ComplexObject::detect(
+std::pair<std::vector<int>, std::vector<int>> ComplexObject::detect(
 		std::pair<std::vector<cv::Point2f>, std::vector<cv::Point2f> > points) {
 
 	vector<int> left;
 	vector<int> right;
-	std::pair<std::vector<int> ,std::vector<int>> MatchPointIdx;
+	std::pair<std::vector<int>, std::vector<int>> MatchPointIdx;
 	MatchPointIdx.first = left;
 	MatchPointIdx.second = right;
+
+	if(points.first.size()==0 || points.second.size()==0){
+		foundObject = false;
+		return MatchPointIdx;
+	}
 
 	if (foundObject) {
 		int lostCount = 0;
 
 		for (auto i = 0; i < objectIds.size(); i++) {
 			if (parts[objectIds[i]].isLost()) {
-				lostCount++;
+				foundObject = false;
 			}
 		}
 
@@ -195,103 +206,229 @@ std::pair<std::vector<int> ,std::vector<int>> ComplexObject::detect(
 
 	}
 
-	if((points.first.size() > 0 && points.second.size() > 0)) {
-		if (!foundObject) {
-
-			std::pair<bool, vector<Point2f>> leftMatchPoints = findMatch(points.first);
-			std::pair<bool, vector<Point2f>> rightMatchPoints = findMatch(points.second);
-
-			if (leftMatchPoints.first && rightMatchPoints.first) {
-				count++;
+	if (foundObject) {
+		for (auto i = 0; i < objectIds.size(); i++) {
+		parts[objectIds[i]].refreshPosition(points);
+		parts[objectIds[i]].getRealPosition(leftCamMatrix, rightCamMatrix,
+				r1, r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
+		if (!parts[objectIds[i]].isLost()) {
+			MatchPointIdx.second.push_back(
+					findIndex(points.second,
+					parts[objectIds[i]].getPosition().second));
+			MatchPointIdx.first.push_back(
+					findIndex(points.first,
+					parts[objectIds[i]].getPosition().first));
+				}
 			}
+	}else{
+	int c=0;
+	while (!foundObject) {
+		c++;
 
-			if (count == 10) {
-				count = 0;
-				foundObject = true;
+		MatchPointIdx.first.clear();
+		MatchPointIdx.second.clear();
 
-				parts[objectIds[0]].setPosition(
-						std::pair<Point2f, Point2f>(leftMatchPoints.second[0], rightMatchPoints.second[0]));
-				auto refPosition = parts[objectIds[0]].getRealPosition(
+		if(c==20)break;
+
+		auto leftMatchPoints = findMatch(points.first);
+		auto rightMatchPoints = findMatch(points.second);
+
+		if (leftMatchPoints.first && rightMatchPoints.first) {
+			foundObject = true;
+
+			cout<<"foundObject"<<endl;
+
+			parts[objectIds[0]].setPosition(
+					std::pair<Point2f, Point2f>(leftMatchPoints.second[0],
+							rightMatchPoints.second[0]));
+			auto refPosition = parts[objectIds[0]].getRealPosition(
+					leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
+					leftDistCoeffs, rightDistCoeffs);
+
+			MatchPointIdx.second.push_back(
+					findIndex(points.second, rightMatchPoints.second[0]));
+			MatchPointIdx.first.push_back(
+					findIndex(points.first, leftMatchPoints.second[0]));
+
+			for (auto i = 1; i < objectIds.size(); i++) {
+				parts[objectIds[i]].setPosition(
+						std::pair<Point2f, Point2f>(leftMatchPoints.second[i],
+								rightMatchPoints.second[i]));
+
+				auto position = parts[objectIds[i]].getRealPosition(
 						leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
 						leftDistCoeffs, rightDistCoeffs);
+				auto distanceFromRef = sqrtf(
+						powf(position.x - refPosition.x, 2.0)
+								+ powf(position.y - refPosition.y, 2.0)
+								+ powf(position.z - refPosition.z, 2.0));
 
-				MatchPointIdx.second.push_back(findIndex(points.second , rightMatchPoints.second[0]));
-				MatchPointIdx.first.push_back(findIndex(points.first ,  leftMatchPoints.second[0]));
+				if (fabs(
+						distanceFromRef
+								- parts[objectIds[i]].getReferenceDistance())
+						> 3.0f) {
 
-				for (auto i = 1; i < objectIds.size(); i++) {
-					parts[objectIds[i]].setPosition(
-							std::pair<Point2f, Point2f>(leftMatchPoints.second[i],
-									rightMatchPoints.second[i]));
+					auto leftIdx = findIndex(points.first,
+							parts[objectIds[i]].getPosition().first);
+					auto rightIdx = findIndex(points.second,
+							parts[objectIds[i]].getPosition().second);
 
-					auto position = parts[objectIds[i]].getRealPosition(
-							leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
-							leftDistCoeffs, rightDistCoeffs);
-					auto distanceFromRef = sqrtf(
-							powf(position.x - refPosition.x, 2.0)
-									+ powf(position.y - refPosition.y, 2.0)
-									+ powf(position.z - refPosition.z, 2.0));
+					cout<<id<<" "<<rightIdx<<endl;
+					cout<<id<<" "<<leftIdx<<endl;
 
-					if (fabs(distanceFromRef - parts[objectIds[i]].getReferenceDistance()) > 3.0f) {
-						auto leftIdx = findIndex(points.first , parts[objectIds[i]].getPosition().first);
-						auto rightIdx = findIndex(points.second , parts[objectIds[i]].getPosition().second);
-
-						points.first.erase(points.first.begin()+leftIdx);
-						points.second.erase(points.second.begin()+rightIdx);
-
-						cout<<leftIdx<<endl;
-						cout<<rightIdx<<endl;
-
-						foundObject = false;
-					}else{
-						MatchPointIdx.second.push_back(findIndex(points.second , rightMatchPoints.second[i]));
-						MatchPointIdx.first.push_back(findIndex(points.first ,  leftMatchPoints.second[i]));
+					if(leftIdx>-1){
+						if(points.first.size()>leftIdx){
+							points.first.erase(points.first.begin() + leftIdx);
+						}
 					}
+
+					if(rightIdx>-1){
+						if(points.second.size()>rightIdx){
+							points.second.erase(points.second.begin() + rightIdx);
+						}
+					}
+
+					foundObject = false;
+
+					if (points.first.size() == 0 || points.second.size() == 0) {
+						break;
+					}
+
+				} else {
+					MatchPointIdx.second.push_back(
+							findIndex(points.second,
+									rightMatchPoints.second[i]));
+					MatchPointIdx.first.push_back(
+							findIndex(points.first, leftMatchPoints.second[i]));
 				}
 			}
+		}else{
+			foundObject = false;
+		}
+	}
+}
 
-		} else {
+
+
+		/*
+		 if ((points.first.size() > 0 && points.second.size() > 0)) {
+		 if (!foundObject) {
+
+		 std::pair<bool, vector<Point2f>> leftMatchPoints = findMatch(
+		 points.first);
+		 std::pair<bool, vector<Point2f>> rightMatchPoints = findMatch(
+		 points.second);
+
+		 if (leftMatchPoints.first && rightMatchPoints.first) {
+		 count++;
+		 }
+
+		 if (count == 10) {
+		 count = 0;
+		 foundObject = true;
+
+		 parts[objectIds[0]].setPosition(
+		 std::pair<Point2f, Point2f>(leftMatchPoints.second[0],
+		 rightMatchPoints.second[0]));
+		 auto refPosition = parts[objectIds[0]].getRealPosition(
+		 leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
+		 leftDistCoeffs, rightDistCoeffs);
+
+		 MatchPointIdx.second.push_back(
+		 findIndex(points.second, rightMatchPoints.second[0]));
+		 MatchPointIdx.first.push_back(
+		 findIndex(points.first, leftMatchPoints.second[0]));
+
+		 for (auto i = 1; i < objectIds.size(); i++) {
+		 parts[objectIds[i]].setPosition(
+		 std::pair<Point2f, Point2f>(
+		 leftMatchPoints.second[i],
+		 rightMatchPoints.second[i]));
+
+		 auto position = parts[objectIds[i]].getRealPosition(
+		 leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
+		 leftDistCoeffs, rightDistCoeffs);
+		 auto distanceFromRef = sqrtf(
+		 powf(position.x - refPosition.x, 2.0)
+		 + powf(position.y - refPosition.y, 2.0)
+		 + powf(position.z - refPosition.z, 2.0));
+
+		 if (fabs(
+		 distanceFromRef
+		 - parts[objectIds[i]].getReferenceDistance())
+		 > 3.0f) {
+		 auto leftIdx = findIndex(points.first,
+		 parts[objectIds[i]].getPosition().first);
+		 auto rightIdx = findIndex(points.second,
+		 parts[objectIds[i]].getPosition().second);
+
+		 points.first.erase(points.first.begin() + leftIdx);
+		 points.second.erase(points.second.begin() + rightIdx);
+
+		 cout << leftIdx << endl;
+		 cout << rightIdx << endl;
+
+		 foundObject = false;
+		 } else {
+		 MatchPointIdx.second.push_back(
+		 findIndex(points.second,
+		 rightMatchPoints.second[i]));
+		 MatchPointIdx.first.push_back(
+		 findIndex(points.first,
+		 leftMatchPoints.second[i]));
+		 }
+		 }
+		 }
+
+		 } else {
+		 for (auto i = 0; i < objectIds.size(); i++) {
+		 parts[objectIds[i]].refreshPosition(points);
+		 parts[objectIds[i]].getRealPosition(leftCamMatrix,
+		 rightCamMatrix, r1, r2, p1, p2, leftDistCoeffs,
+		 rightDistCoeffs);
+		 if (!parts[objectIds[i]].isLost()) {
+		 MatchPointIdx.second.push_back(
+		 findIndex(points.second,
+		 parts[objectIds[i]].getPosition().second));
+		 MatchPointIdx.first.push_back(
+		 findIndex(points.first,
+		 parts[objectIds[i]].getPosition().first));
+		 }
+
+		 }
+		 }
+		 } else {
+		 foundObject = false;
+		 }
+		 */
+		return MatchPointIdx;
+	}
+
+	void ComplexObject::draw(std::pair<cv::Mat, cv::Mat> frames) {
+		if (foundObject) {
+			stringstream name;
+			name << id;
+
+			//putText(frames.first,name.str() , Point(parts["bal"].getPosition().first.x,parts["bal"].getPosition().first.y-60), FONT_HERSHEY_SIMPLEX , 1.0,Scalar(255,255,255), 2.0);
+
 			for (auto i = 0; i < objectIds.size(); i++) {
-				parts[objectIds[i]].refreshPosition(points);
-				parts[objectIds[i]].getRealPosition(leftCamMatrix,
-						rightCamMatrix, r1, r2, p1, p2, leftDistCoeffs,
-						rightDistCoeffs);
-				if(!parts[objectIds[i]].isLost()){
-					MatchPointIdx.second.push_back(findIndex(points.second , parts[objectIds[i]].getPosition().second));
-					MatchPointIdx.first.push_back(findIndex(points.first , parts[objectIds[i]].getPosition().first));
-				}
-
+				parts[objectIds[i]].draw(frames);
 			}
 		}
-	}else{
-		foundObject=false;
 	}
 
-
-	return MatchPointIdx;
-}
-
-void ComplexObject::draw(std::pair<cv::Mat, cv::Mat> frames) {
-	if (foundObject) {
-		stringstream name;
-		name << id;
-
-		//putText(frames.first,name.str() , Point(parts["bal"].getPosition().first.x,parts["bal"].getPosition().first.y-60), FONT_HERSHEY_SIMPLEX , 1.0,Scalar(255,255,255), 2.0);
-
-		for (auto i = 0; i < objectIds.size(); i++) {
-			parts[objectIds[i]].draw(frames);
-		}
+	int ComplexObject::getNumberofParts() const {
+		return numberOfParts;
 	}
-}
 
-int ComplexObject::getNumberofParts() const{
-	return numberOfParts;
-}
+	std::string
+	ComplexObject::getId()
+	{
+		return id;
+	}
 
-std::string ComplexObject::getId(){
-	return id;
-}
-
-ComplexObject::~ComplexObject() {
-	// TODO Auto-generated destructor stub
-}
+	ComplexObject::~ComplexObject()
+	{
+		// TODO Auto-generated destructor stub
+	}
 
