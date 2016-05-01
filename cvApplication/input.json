@@ -1,0 +1,51 @@
+{
+	"objects": 	[
+				{
+				"name":"robot_arm",
+				"numberofparts":3,
+				"orientation":"OTHER",
+				"parts":[
+						{
+						"id":"left_arm",
+						"orientationfromreference":null,
+						"orientationfromprevious":null,
+						"distancefromreference":0.0
+						},
+						{
+						"id":"middle",
+						"orientationfromreference":"UPPER",
+						"orientationfromprevious":"UPPER",
+						"distancefromreference":13
+						},
+						{
+						"id":"right_arm",
+						"orientationfromreference":"IN_ROW",
+						"orientationfromprevious":"LOWER",
+						"distancefromreference":9.5
+						}
+						]
+						
+				},
+				{
+				"name":"zaj",
+				"numberofparts":2,
+				"orientation":"OTHER",
+				"parts":[
+						{
+						"id":"leftrandom",
+						"orientationfromreference":null,
+						"orientationfromprevious":null,
+						"distancefromreference":0.0
+						},
+						{
+						"id":"rightrandom",
+						"orientationfromreference":"IN_ROW",
+						"orientationfromprevious":"IN_ROW",
+						"distancefromreference":10000000000
+						}
+						
+						]
+				}
+				
+			]		
+}
