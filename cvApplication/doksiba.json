@@ -7,7 +7,7 @@
 	"objects": 	[
 				{
 				"name":"robot_arm",
-				"numberofparts":5,
+				"numberofparts":2,
 				"orientation":"OTHER",
 				"parts":[
 						{

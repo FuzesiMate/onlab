@@ -3,6 +3,7 @@
 	<name>cvApplication</name>
 	<comment></comment>
 	<projects>
+		<project>mqtt</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

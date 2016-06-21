@@ -1,153 +1,312 @@
 /*
- * Object.cpp
+ * ComplexObject.cpp
  *
- *  Created on: 2016. ápr. 13.
+ *  Created on: 2016. ápr. 14.
  *      Author: Máté
  */
 
 #include "Object.h"
-#include <opencv2/core.hpp>
-#include<opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/calib3d.hpp>
+#include "Marker.h"
+
 #include <math.h>
 #include <iostream>
+#include <algorithm>
+#include <string>
+#include <opencv2/highgui.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 
 
 using namespace std;
 using namespace cv;
-
-float getDistance(Point2f point1 , Point2f point2){
-	return sqrtf(powf(point1.x-point2.x , 2.0)+powf(point1.y-point2.y , 2.0));
+Object::Object(){
+	tracked = false;
 }
 
-Object::Object() {
-	id 				= "" ;
-	lost 			= false;
-	lostCount 		= 0;
+void Object::initializeObject(int numberOfParts,PhysicalOrientation physicalOrientation, string id){
+	orientation = physicalOrientation;
+	this->numberOfParts = numberOfParts;
+	tracked = false;
+	this->id = id;
+
+	FileStorage fs;
+	fs.open("matrices.yml", FileStorage::READ);
+	fs["left_camMatrix"] >> leftCamMatrix;
+	fs["right_camMatrix"] >> rightCamMatrix;
+	fs["p1"] >> p1;
+	fs["p2"] >> p2;
+	fs["r1"] >> r1;
+	fs["r2"] >> r2;
+	fs["left_distCoeffs"] >> leftDistCoeffs;
+	fs["right_distCoeffs"] >> rightDistCoeffs;
+	fs.release();
 }
 
-Object::Object(std::string id, float distanceFromRef ,ReferencePosition fromRef , ReferencePosition fromPrev ){
-	lost 					= false;
-	lostCount 				= 0;
-	this->id 				= id;
-	fromReference 			= fromRef;
-	fromPrevious 			= fromPrev;
-	distanceFromReference 	= distanceFromRef;
+string toString(int i) {
+	stringstream s;
+	s << i;
+	return s.str();
 }
 
-
-std::pair<cv::Point2f,cv::Point2f> Object::getPosition(){
-	return screenPosition;
+void Object::addPart(std::string id, float distanceFromRef,
+		ReferencePosition fromRef, ReferencePosition fromPrev) {
+	Marker o(id, distanceFromRef, fromRef, fromPrev);
+	markerIds.push_back(id);
+	markers[id] = o;
 }
 
-Point2f Object::findClosest(vector<Point2f> points, Point2f reference){
+pair<bool, vector<Point2f> > Object::findMatch(
+		vector<cv::Point2f> points) {
 
-	Point2f result;
-	if(points.size()>0){
-		float mindistance = getDistance(points[0] , reference);
+	vector<Point2f> matchPoints;
+	vector<Point2f> actualPoints;
 
-		int minIndex = 0;
-		for(auto i = 0 ; i<points.size() ; i++){
-			float dist = getDistance(points[i],reference);
+	switch (orientation) {
+	case IN_HORIZONTAL_ROW:
+		break;
+	case IN_VERTICAL_ROW:
+		break;
+	case OTHER:
+		std::sort(points.begin(), points.end(),
+				[](const cv::Point2f &a , const cv::Point2f &b)-> bool {return a.x<b.x;});
 
-			if(dist<mindistance){
-				mindistance=dist;
-				minIndex=i;
+		for (auto i = 0; i < points.size() - 1; i++) {
+			if (fabs(points[i].x - points[i + 1].x) < 10) {
+				if (points[i].y < points[i + 1].y) {
+					auto temp = points[i];
+					points[i] = points[i + 1];
+					points[i + 1] = temp;
+				}
 			}
 		}
 
-		if(mindistance<30)
-			result = points[minIndex];
+		for (auto i = 0; i < points.size(); i++) {
+			Point2f reference = points[i];
+			actualPoints.clear();
+
+			int matchNo = 1;
+
+			Point2f lastMatchPoint = points[i];
+
+			for (auto j = i + 1; j < points.size(); j++) {
+
+				bool match = false;
+				auto refPos = markers[markerIds[matchNo]].getReferences();
+
+				switch (refPos.first) {
+				case UPPER:
+					match = (reference.y - points[j].y) > 15;
+					break;
+				case LOWER:
+					match = (points[j].y - reference.y) > 15;
+					break;
+				case IN_ROW:
+					match = fabs(points[j].y - reference.y) < 15;
+					break;
+				}
+				switch (refPos.second) {
+				case UPPER:
+					match = match && (points[j - 1].y - points[j].y) > 15;
+					break;
+				case LOWER:
+					match = match && (points[j].y - points[j - 1].y) > 15;
+					break;
+				case IN_ROW:
+					match = match && fabs(points[j].y - lastMatchPoint.y) < 15;
+					break;
+				}
+				if (match) {
+					lastMatchPoint = points[j];
+					actualPoints.push_back(points[j]);
+					matchNo++;
+					if (matchNo == numberOfParts) {
+						actualPoints.insert(actualPoints.begin(), reference);
+						return pair<bool, vector<Point2f> >(true, actualPoints);
+					}
+				}
+			}
+		}
+		break;
 	}
-	return result;
+
+	return pair<bool, vector<Point2f> >(false, actualPoints);
 }
 
-void Object::refreshPosition(std::pair<vector<Point2f>,vector<Point2f> > points){
+int Object::findIndex(std::vector<Point2f> points, Point2f element) {
+	auto res = std::find(points.begin(), points.end(), element);
+	if(res!=points.end()){
+		return std::distance(points.begin(), res);
+	}else{
+		return -1;
+	}
 
-	Point2f leftClosest;
-	Point2f rightClosest;
+}
 
-	leftClosest=findClosest(points.first,screenPosition.first);
-	rightClosest=findClosest(points.second,screenPosition.second);
+std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points) {
 
-	if((leftClosest.x==0 && leftClosest.y==0)||(rightClosest.x==0 && rightClosest.y==0)){
-		lostCount++;
-		if(lostCount==10){
-			lostCount=0;
-			lost = true;
+	vector<int> left;
+	vector<int> right;
+	std::pair<std::vector<int>, std::vector<int>> MatchPointIdx;
+	MatchPointIdx.first = left;
+	MatchPointIdx.second = right;
+
+	if(points.left.size()==0 || points.right.size()==0){
+		tracked = false;
+		return MatchPointIdx;
+	}
+
+	if (tracked) {
+		int lostCount = 0;
+
+		for (auto i = 0; i < markerIds.size(); i++) {
+			if (markers[markerIds[i]].isLost()) {
+				tracked = false;
+			}
 		}
 
-	}else if(fabs(leftClosest.x-rightClosest.x)<900 && fabs(leftClosest.x-rightClosest.x)>100){
-		lostCount=0;
-		screenPosition.first = leftClosest;
-		screenPosition.second = rightClosest;
-		lost = false;
 	}
-}
 
-bool Object::isLost(){
-	return lost;
-}
-
-void Object::setPosition(std::pair<cv::Point2f,cv::Point2f> position){
-	screenPosition=position;
-	lost = false;
-}
-
-void Object::draw(pair<Mat,Mat> frames){
-	stringstream text;
-	if(!lost){
-		text<<id;
-		circle(frames.first,Point(screenPosition.first.x,screenPosition.first.y) , 10, Scalar(255,255,255), 2.0 );
-		circle(frames.second,Point(screenPosition.second.x,screenPosition.second.y) , 10, Scalar(255,255,255), 2.0 );
+	if (tracked) {
+		for (auto i = 0; i < markerIds.size(); i++) {
+		markers[markerIds[i]].refreshPosition(points);
+		markers[markerIds[i]].getRealPosition(leftCamMatrix, rightCamMatrix,
+				r1, r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
+		if (!markers[markerIds[i]].isLost()) {
+			MatchPointIdx.second.push_back(
+					findIndex(points.left,
+					markers[markerIds[i]].getPosition().left));
+			MatchPointIdx.first.push_back(
+					findIndex(points.right,
+					markers[markerIds[i]].getPosition().right));
+				}
+			}
 	}else{
-		text<<"object "<<id<<" is lost";
+	int c=0;
+	while (!tracked) {
+		c++;
+
+		MatchPointIdx.first.clear();
+		MatchPointIdx.second.clear();
+
+		if(c==20)break;
+
+		auto leftMatchPoints = findMatch(points.left);
+		auto rightMatchPoints = findMatch(points.right);
+
+		if (leftMatchPoints.first && rightMatchPoints.first) {
+
+			tracked = true;
+
+			cout<<"foundObject"<<endl;
+
+			StereoPoint newPosition;
+			newPosition.left = leftMatchPoints.second[0];
+			newPosition.right = rightMatchPoints.second[0];
+
+			markers[markerIds[0]].setPosition(newPosition);
+			auto refPosition = markers[markerIds[0]].getRealPosition(
+					leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
+					leftDistCoeffs, rightDistCoeffs);
+
+			MatchPointIdx.second.push_back(
+					findIndex(points.right, rightMatchPoints.second[0]));
+			MatchPointIdx.first.push_back(
+					findIndex(points.left, leftMatchPoints.second[0]));
+
+			for (auto i = 1; i < markerIds.size(); i++) {
+				StereoPoint newPosition;
+				newPosition.left = leftMatchPoints.second[i];
+				newPosition.right = rightMatchPoints.second[i];
+				markers[markerIds[i]].setPosition(newPosition);
+
+				auto position = markers[markerIds[i]].getRealPosition(
+						leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
+						leftDistCoeffs, rightDistCoeffs);
+				auto distanceFromRef = sqrtf(
+						powf(position.x - refPosition.x, 2.0)
+								+ powf(position.y - refPosition.y, 2.0)
+								+ powf(position.z - refPosition.z, 2.0));
+
+				if (fabs(
+						distanceFromRef
+								- markers[markerIds[i]].getReferenceDistance())
+						> 1.0f) {
+
+					cout<<distanceFromRef<<endl;
+
+					auto leftIdx = findIndex(points.left,
+							markers[markerIds[i]].getPosition().left);
+					auto rightIdx = findIndex(points.right,
+							markers[markerIds[i]].getPosition().right);
+
+						if(points.left.size()>leftIdx){
+							points.left.erase(points.left.begin() + leftIdx);
+						}
+
+						if(points.right.size()>rightIdx){
+							points.right.erase(points.right.begin() + rightIdx);
+						}
+
+
+					tracked = false;
+
+					if (points.left.size() == 0 || points.right.size() == 0) {
+						break;
+					}
+
+				} else {
+					MatchPointIdx.second.push_back(
+							findIndex(points.right,
+									rightMatchPoints.second[i]));
+					MatchPointIdx.first.push_back(
+							findIndex(points.left, leftMatchPoints.second[i]));
+				}
+			}
+			}else{
+				tracked = false;
+			}
+		}
+	}
+		if(!tracked){
+			MatchPointIdx.first.clear();
+			MatchPointIdx.second.clear();
+		}
+		return MatchPointIdx;
 	}
 
-	putText(frames.first,text.str(),Point(screenPosition.first.x , screenPosition.first.y-30),
-			FONT_HERSHEY_SIMPLEX, 1.0 , Scalar(255,255,255) , 2.0);
-	putText(frames.second,text.str(),Point(screenPosition.second.x , screenPosition.second.y-30),
-			FONT_HERSHEY_SIMPLEX, 1.0 , Scalar(255,255,255) , 2.0);
-}
-
-
-cv::Point3f Object::getRealPosition(cv::Mat leftCamMatrix , cv::Mat rightCamMatrix , cv::Mat r1, cv::Mat r2 , cv::Mat p1 , cv::Mat p2,
-		cv::Mat leftDistCoeffs , cv::Mat rightDistCoeffs){
-
-	vector<Point2f> leftPoints;
-	leftPoints.push_back(screenPosition.first);
-
-	vector<Point2f> rightPoints;
-	rightPoints.push_back(screenPosition.second);
-
-	undistortPoints(leftPoints,leftPoints,leftCamMatrix,leftDistCoeffs ,r1,p1);
-	undistortPoints(rightPoints,rightPoints,rightCamMatrix,rightDistCoeffs , r1 ,p1);
-
-	Mat cord;
-	triangulatePoints(p1,p2,leftPoints,rightPoints,cord );
-
-	float x,y,z;
-	for(int i = 0 ; i<cord.cols ; i++){
-
-		float w = cord.at<float>(3,i);
-			  x = cord.at<float>(0,i)/w;
-			  y = cord.at<float>(1,i)/w;
-			  z = cord.at<float>(2,i)/(w);
-			 //cout<<"x: "<< x <<" y: "<<y<<" z: "<<z<<endl;
+	void Object::draw(Frame frames) {
+		if (tracked) {
+			for (auto i = 0; i < markerIds.size(); i++) {
+				markers[markerIds[i]].draw(frames);
+			}
+		}
 	}
 
-	return Point3f(x,y,z);
-}
+	cv::Point3f Object::getMarkerPosition(std::string markerId){
+		return markers[markerId].getRealPosition(leftCamMatrix, rightCamMatrix,
+				  r1 , r2 , p1 , p2, leftDistCoeffs , rightDistCoeffs);
+	}
 
-std::pair<ReferencePosition,ReferencePosition> Object::getReferences(){
-	return std::pair<ReferencePosition,ReferencePosition>(fromReference,fromPrevious);
-}
+	std::vector<std::string> Object::getMarkerIds(){
+		return markerIds;
+	}
 
-float Object::getReferenceDistance(){
-	return distanceFromReference;
-}
+	int Object::getNumberofParts() const {
+		return numberOfParts;
+	}
 
-Object::~Object() {
-}
+	bool Object::isTracked(){
+		return tracked;
+	}
+
+	std::string
+	Object::getId()
+	{
+		return id;
+	}
+
+	Object::~Object()
+	{
+		// TODO Auto-generated destructor stub
+	}
 

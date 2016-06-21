@@ -1,0 +1,16 @@
+{
+    "10.6.17.84":  {
+                       "Free":  2101528,
+                       "Type":  "18",
+                       "Name":  "Microsoft Windows 10 Enterprise|C:\\Windows|\\Device\\Harddisk0\\Partition2",
+                       "Version":  "10.0.10240",
+                       "Total":  3276340
+                   },
+    "10.6.16.113":  {
+                        "Free":  1047548,
+                        "Type":  "36",
+                        "Name":  "Fedora",
+                        "Version":  "3.18.7-200.fc21.x86_64",
+                        "Total":  2065044
+                    }
+}
