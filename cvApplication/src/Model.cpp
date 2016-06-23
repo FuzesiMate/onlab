@@ -73,18 +73,23 @@ void Model::updateModel(PointSet points,std::pair<std::vector< std::vector<cv::P
 
 	for(std::string &objectId : listOfObjectIds){
 
-		auto pointIdxToDelete = objects[objectId].detect(points ,contourSet, frame , prevFrame);
+		if(!objects[objectId].isTracked()){
 
-		for(auto j = 0 ; j<pointIdxToDelete.first.size() ; j++){
-			if(pointIdxToDelete.first[j]<points.left.size()){
-				points.left.erase(points.left.begin()+pointIdxToDelete.first[j]);
-			}
-		}
+			auto pointIdxToDelete = objects[objectId].detect(points ,contourSet);
 
-		for(auto j = 0 ; j<pointIdxToDelete.second.size() ; j++){
-			if(pointIdxToDelete.second[j]<points.right.size()){
-				points.right.erase(points.right.begin()+pointIdxToDelete.second[j]);
+			for(auto j = 0 ; j<pointIdxToDelete.first.size() ; j++){
+				if(pointIdxToDelete.first[j]<points.left.size()){
+					points.left.erase(points.left.begin()+pointIdxToDelete.first[j]);
+				}
 			}
+
+			for(auto j = 0 ; j<pointIdxToDelete.second.size() ; j++){
+				if(pointIdxToDelete.second[j]<points.right.size()){
+					points.right.erase(points.right.begin()+pointIdxToDelete.second[j]);
+				}
+			}
+		}else{
+			objects[objectId].track(frame , prevFrame);
 		}
 	}
 }
@@ -116,9 +121,6 @@ void Model::draw(Frame frame){
 	for(std::string &o : listOfObjectIds){
 		objects[o].draw(frame);
 	}
-
-	imshow("wfwf" , frame.left);
-	imshow("wfwfdqd" , frame.right);
 }
 
 bool Model::isTracked(std::string objectId){

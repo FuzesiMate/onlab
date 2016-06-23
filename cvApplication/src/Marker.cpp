@@ -44,6 +44,11 @@ StereoPoint Marker::getPosition(){
 	return screenPosition;
 }
 
+void Marker::updateReference(ReferencePosition fromPrev, ReferencePosition fromRef){
+	fromPrevious = fromPrev;
+	fromReference = fromRef;
+}
+
 cv::Point2f Marker::findClosest(vector<cv::Point2f> points, cv::Point2f reference){
 
 	cv::Point2f result;
@@ -66,38 +71,46 @@ cv::Point2f Marker::findClosest(vector<cv::Point2f> points, cv::Point2f referenc
 	return result;
 }
 
-void Marker::refreshPosition(PointSet points , Frame currentFrame , Frame prevFrame){
+cv::Point2f Marker::calculateOpticalFlow(std::vector<cv::Point2f> currentPoints,
+		std::vector<cv::Point2f>& nextPosition , cv::Mat currentFrame , cv::Mat prevFrame){
 
-	PointSet nextPosition;
 	std::vector<uchar> status;
 	std::vector<float> error;
 
 	cv::TermCriteria termcrit(cv::TermCriteria::COUNT|cv::TermCriteria::EPS,20,0.03);
 
-	cv::calcOpticalFlowPyrLK(prevFrame.left , currentFrame.left ,currentPosition.left , nextPosition.left,
-			status, error , cv::Size(30,30) , 100 , termcrit);
+	cv::calcOpticalFlowPyrLK(prevFrame , currentFrame ,currentPoints , nextPosition,
+			status, error , cv::Size(10,10) , 1000 , termcrit);
 
-	cv::calcOpticalFlowPyrLK(prevFrame.right , currentFrame.right ,currentPosition.right , nextPosition.right,
-				status, error , cv::Size(30,30) , 100 , termcrit);
+	float averageError=0;
 
-	float averageError=0.0f;
-	for(size_t i = 0 ; i<error.size() ; i++){
-		averageError+= error[i];
+	for(float& e : error){
+		averageError+=e;
 	}
 
 	averageError = averageError/error.size();
 
-	if(averageError>10.0f){
+	if(averageError>5.0f){
 		lost = true;
 	}
 
-	currentPosition = nextPosition;
+	cv::Point2f center;
 
-	if(currentPosition.left.size()>0 && currentPosition.right.size()>0){
-		screenPosition.left = currentPosition.left[0];
-		screenPosition.right = currentPosition.right[0];
+	if(!nextPosition.empty()){
+		float r;
+		cv::minEnclosingCircle(nextPosition , center ,r);
 	}
 
+	return center;
+}
+
+void Marker::refreshPosition(Frame currentFrame , Frame prevFrame){
+	PointSet nextPosition;
+
+	screenPosition.left = calculateOpticalFlow(currentPosition.left , nextPosition.left , currentFrame.left , prevFrame.left);
+	screenPosition.right = calculateOpticalFlow(currentPosition.right , nextPosition.right , currentFrame.right , prevFrame.right);
+
+	currentPosition = nextPosition;
 }
 
 void Marker::setPosition(PointSet position){
@@ -106,7 +119,7 @@ void Marker::setPosition(PointSet position){
 }
 
 void Marker::refreshPosition(PointSet points){
-/*
+
 	cv::Point2f leftClosest;
 	cv::Point2f rightClosest;
 
@@ -126,7 +139,7 @@ void Marker::refreshPosition(PointSet points){
 		screenPosition.right = rightClosest;
 		lost = false;
 	}
-*/
+
 }
 
 bool Marker::isLost(){
@@ -143,11 +156,11 @@ void Marker::draw(Frame frames){
 	if(!lost){
 		text<<id;
 		for(size_t i = 0 ; i<currentPosition.left.size() ; i++){
-			cv::circle(frames.left,cv::Point(currentPosition.left[i].x,currentPosition.left[i].y) , 1, cv::Scalar(255,255,255), 1.0 );
+			cv::circle(frames.left,cv::Point(screenPosition.left.x,screenPosition.left.y) , 10, cv::Scalar(255,255,255), 2.0 );
 		}
 
 		for(size_t i = 0 ; i<currentPosition.right.size() ; i++){
-			cv::circle(frames.right,cv::Point(currentPosition.right[i].x,currentPosition.right[i].y) , 1, cv::Scalar(255,255,255), 1.0 );
+			cv::circle(frames.right,cv::Point(screenPosition.right.x,screenPosition.right.y) , 10, cv::Scalar(255,255,255), 2.0 );
 		}
 	}else{
 		text<<"object "<<id<<" is lost";

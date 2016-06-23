@@ -132,6 +132,13 @@ pair<bool, vector<Point2f> > Object::findMatch(
 	return pair<bool, vector<Point2f> >(false, actualPoints);
 }
 
+void Object::updateState(){
+
+	for(string& markerId : markerIds){
+
+	}
+}
+
 int Object::findIndex(std::vector<Point2f> points, Point2f element) {
 	auto res = std::find(points.begin(), points.end(), element);
 	if(res!=points.end()){
@@ -142,7 +149,56 @@ int Object::findIndex(std::vector<Point2f> points, Point2f element) {
 
 }
 
-std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet, Frame frame , Frame prevFrame) {
+void Object::track(Frame frame , Frame prevFrame){
+
+		if (tracked) {
+			for (auto i = 0; i < markerIds.size(); i++) {
+
+			Marker m = markers[markerIds[i]];
+
+			markers[markerIds[i]].refreshPosition(frame , prevFrame);
+
+			if(markers[markerIds[i]].isLost()){
+				tracked = false;
+			}
+
+			if(i>0 && tracked){
+
+				ReferencePosition fromPrev;
+				ReferencePosition fromRef;
+
+				auto reference = markers[markerIds[0]].getPosition();
+
+				float verticalDistance = reference.left.y - m.getPosition().left.y;
+
+				if(verticalDistance>15){
+					fromRef = UPPER;
+				}else if(verticalDistance < -15){
+					fromRef = LOWER;
+				}else{
+					fromRef = IN_ROW;
+				}
+
+
+				verticalDistance = markers[markerIds[i-1]].getPosition().left.y - m.getPosition().left.y;
+				if(verticalDistance>15){
+					fromPrev = UPPER;
+				}else if(verticalDistance < -15){
+					fromPrev = LOWER;
+				}else{
+					fromPrev = IN_ROW;
+				}
+
+				markers[markerIds[i]].updateReference(fromPrev , fromRef);
+			}
+
+
+		}
+	}
+
+}
+
+std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet) {
 
 	vector<int> left;
 	vector<int> right;
@@ -155,35 +211,7 @@ std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points,std
 		return MatchPointIdx;
 	}
 
-	if (tracked) {
-		int lostCount = 0;
 
-		for (auto i = 0; i < markerIds.size(); i++) {
-			if (markers[markerIds[i]].isLost()) {
-				tracked = false;
-			}
-		}
-
-	}
-
-	if (tracked) {
-		for (auto i = 0; i < markerIds.size(); i++) {
-
-		PointSet p;
-
-		markers[markerIds[i]].refreshPosition(p , frame , prevFrame);
-
-		if (!markers[markerIds[i]].isLost()) {
-			MatchPointIdx.second.push_back(
-					findIndex(points.left,
-					markers[markerIds[i]].getPosition().left));
-			MatchPointIdx.first.push_back(
-					findIndex(points.right,
-					markers[markerIds[i]].getPosition().right));
-				}
-			}
-
-	}else{
 	int c=0;
 	while (!tracked) {
 		c++;
@@ -316,7 +344,7 @@ std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points,std
 				tracked = false;
 			}
 		}
-	}
+
 		if(!tracked){
 			MatchPointIdx.first.clear();
 			MatchPointIdx.second.clear();

@@ -93,44 +93,49 @@ void ComputerVision::processCurrentFrame(){
 	if(initialized){
 
 		std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet;
-		contourSet.first = leftImageProcessor->processImage(frame.left);
-		contourSet.second = rightImageProcessor->processImage(frame.right);
-
 		PointSet points;
 
-		cv::Point2f center;
-		float radius;
+		bool allTracked = true;
 
-		for(auto i = 0 ; i<contourSet.first.size() ; i++){
-
-			//cv::approxPolyDP(contourSet.first[i], contourSet.first[i] , 2 , false);
-
-			if(cv::contourArea(contourSet.first[i])<500){
-				cv::minEnclosingCircle(contourSet.first[i] , center , radius);
-				if(radius>1 && radius<20){
-					points.left.push_back(center);
-				}
+		for(string &oid : getObjectIds()){
+			if(!model.isTracked(oid)){
+				allTracked = false;
 			}
 		}
 
-		for(auto i = 0 ; i<contourSet.second.size() ; i++){
+		if(!allTracked){
+			contourSet.first = leftImageProcessor->processImage(frame.left);
+			contourSet.second = rightImageProcessor->processImage(frame.right);
 
-			//cv::approxPolyDP(contourSet.second[i], contourSet.second[i] , 2 , false);
+			cv::Point2f center;
+			float radius;
 
-			if(cv::contourArea(contourSet.second[i])<500){
-				cv::minEnclosingCircle(contourSet.second[i] , center , radius);
+			for(auto i = 0 ; i<contourSet.first.size() ; i++){
+
+				if(cv::contourArea(contourSet.first[i])<500){
+					cv::minEnclosingCircle(contourSet.first[i] , center , radius);
 					if(radius>1 && radius<20){
-						points.right.push_back(center);
+						points.left.push_back(center);
 					}
+				}
+			}
+
+			for(auto i = 0 ; i<contourSet.second.size() ; i++){
+
+				if(cv::contourArea(contourSet.second[i])<500){
+					cv::minEnclosingCircle(contourSet.second[i] , center , radius);
+						if(radius>1 && radius<20){
+							points.right.push_back(center);
+						}
+				}
 			}
 		}
 
 		model.updateModel(points, contourSet , frame , prevFrame);
 
-		Frame dr;
-		dr.left = frame.left.clone();
-		dr.right = frame.right.clone();
-		model.draw(dr);
+		drawing.left = frame.left.clone();
+		drawing.right = frame.right.clone();
+		model.draw(drawing);
 	}
 }
 
@@ -160,8 +165,8 @@ cv::Point3f ComputerVision::getMarkerPosition(std::string objectId , std::string
 void ComputerVision::showImage(){
 	if(initialized){
 		cv::Mat f1,f2;
-		resize(frame.left,f1,cv::Size(1280/2,1024/2));
-		resize(frame.right,f2,cv::Size(1280/2,1024/2));
+		resize(drawing.left,f1,cv::Size(1280/2,1024/2));
+		resize(drawing.right,f2,cv::Size(1280/2,1024/2));
 		cv::imshow("left" , f1);
 		cv::imshow("right" , f2);
 		cv::waitKey(5);

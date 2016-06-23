@@ -41,6 +41,7 @@ private:
 	MQTTPublisher *publisher;
 	Frame frame;
 	Frame prevFrame;
+	Frame drawing;
 	bool initialized;
 public:
 	ComputerVision();
