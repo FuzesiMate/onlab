@@ -15,7 +15,7 @@
 class IImageProcessor {
 public:
 	IImageProcessor(){}
-	virtual std::vector<cv::Point2f> processImage(cv::Mat frame)=0;
+	virtual std::vector< std::vector<cv::Point> > processImage(cv::Mat frame)=0;
 	virtual void setWindow(std::string)=0;
 	virtual void setFilterValues(boost::property_tree::ptree propertyTree)=0;
 	virtual ~IImageProcessor(){}

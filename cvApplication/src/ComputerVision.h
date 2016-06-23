@@ -40,6 +40,7 @@ private:
 	std::unique_ptr<IImageProcessor> rightImageProcessor;
 	MQTTPublisher *publisher;
 	Frame frame;
+	Frame prevFrame;
 	bool initialized;
 public:
 	ComputerVision();

@@ -1,26 +1,32 @@
 {
 	"typeofprocessing":"IR",
-	"exposure":15000,
-	"gain":18.0,
-	"threshold":190,
+	"exposure":10000,
+	"gain":10.0,
+	"threshold":205,
 	"cameratype":"XIMEA",
 	"objects": 	[
 				{
 				"name":"robot_arm",
-				"numberofparts":2,
+				"numberofparts":3,
 				"orientation":"OTHER",
 				"parts":[
 						{
-						"id":"ref",
+						"id":"l",
 						"orientationfromreference":null,
 						"orientationfromprevious":null,
 						"distancefromreference":0.0
 						},
 						{
-						"id":"l",
+						"id":"mid",
 						"orientationfromreference":"UPPER",
 						"orientationfromprevious":"UPPER",
-						"distancefromreference":5.5
+						"distancefromreference":7.0
+						},
+						{
+						"id":"r",
+						"orientationfromreference":"IN_ROW",
+						"orientationfromprevious":"LOWER",
+						"distancefromreference":11.0
 						}
 						]
 						

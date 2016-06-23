@@ -142,7 +142,7 @@ int Object::findIndex(std::vector<Point2f> points, Point2f element) {
 
 }
 
-std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points) {
+std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet, Frame frame , Frame prevFrame) {
 
 	vector<int> left;
 	vector<int> right;
@@ -168,9 +168,11 @@ std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points) {
 
 	if (tracked) {
 		for (auto i = 0; i < markerIds.size(); i++) {
-		markers[markerIds[i]].refreshPosition(points);
-		markers[markerIds[i]].getRealPosition(leftCamMatrix, rightCamMatrix,
-				r1, r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
+
+		PointSet p;
+
+		markers[markerIds[i]].refreshPosition(p , frame , prevFrame);
+
 		if (!markers[markerIds[i]].isLost()) {
 			MatchPointIdx.second.push_back(
 					findIndex(points.left,
@@ -180,6 +182,7 @@ std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points) {
 					markers[markerIds[i]].getPosition().right));
 				}
 			}
+
 	}else{
 	int c=0;
 	while (!tracked) {
@@ -203,7 +206,30 @@ std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points) {
 			newPosition.left = leftMatchPoints.second[0];
 			newPosition.right = rightMatchPoints.second[0];
 
+			PointSet pointset;
+
+			for(size_t i = 0 ; i<contourSet.first.size() ; i++){
+				if(cv::pointPolygonTest(contourSet.first[i] , newPosition.left , false )>0){
+					for(size_t k = 0 ; k<contourSet.first[i].size() ; k++){
+						pointset.left.push_back(cv::Point2f(contourSet.first[i][k].x,contourSet.first[i][k].y));
+					}
+					break;
+				}
+			}
+
+			for(size_t i = 0 ; i<contourSet.second.size() ; i++){
+				if(cv::pointPolygonTest(contourSet.second[i] , newPosition.right , false )>0){
+					for(size_t k = 0 ; k<contourSet.second[i].size() ; k++){
+						pointset.right.push_back(cv::Point2f(contourSet.second[i][k].x,contourSet.second[i][k].y));
+					}
+					break;
+				}
+			}
+
 			markers[markerIds[0]].setPosition(newPosition);
+
+			markers[markerIds[0]].setPosition(pointset);
+
 			auto refPosition = markers[markerIds[0]].getRealPosition(
 					leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
 					leftDistCoeffs, rightDistCoeffs);
@@ -217,7 +243,30 @@ std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points) {
 				StereoPoint newPosition;
 				newPosition.left = leftMatchPoints.second[i];
 				newPosition.right = rightMatchPoints.second[i];
+
+				PointSet pointset;
+
+				for(size_t j = 0 ; j<contourSet.first.size() ; j++){
+					if(cv::pointPolygonTest(contourSet.first[j] , newPosition.left , false )>0){
+						for(size_t k = 0 ; k<contourSet.first[j].size() ; k++){
+							pointset.left.push_back(cv::Point2f(contourSet.first[j][k].x,contourSet.first[j][k].y));
+						}
+						break;
+					}
+				}
+
+				for(size_t j = 0 ; j<contourSet.second.size() ; j++){
+					if(cv::pointPolygonTest(contourSet.second[j] , newPosition.right , false )>0){
+						for(size_t k = 0 ; k<contourSet.second[j].size() ; k++){
+							pointset.right.push_back(cv::Point2f(contourSet.second[j][k].x,contourSet.second[j][k].y));
+						}
+						break;
+					}
+				}
+
 				markers[markerIds[i]].setPosition(newPosition);
+
+				markers[markerIds[i]].setPosition(pointset);
 
 				auto position = markers[markerIds[i]].getRealPosition(
 						leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
@@ -253,6 +302,7 @@ std::pair<std::vector<int>, std::vector<int>> Object::detect(PointSet points) {
 					if (points.left.size() == 0 || points.right.size() == 0) {
 						break;
 					}
+
 
 				} else {
 					MatchPointIdx.second.push_back(

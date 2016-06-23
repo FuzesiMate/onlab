@@ -43,7 +43,7 @@ private:
 public:
 	Object();
 	void initializeObject(int numberOfParts , PhysicalOrientation physicalOrientation , std::string id);
-	std::pair<std::vector<int> ,std::vector<int>> detect(PointSet points);
+	std::pair<std::vector<int> ,std::vector<int>> detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , Frame frame , Frame prevFrame);
 	void draw(Frame frames);
 	void addPart(std::string id, float distanceFromRef, ReferencePosition fromRef , ReferencePosition fromPrev);
 	int getNumberofParts() const;

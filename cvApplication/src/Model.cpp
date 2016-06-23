@@ -50,12 +50,14 @@ bool Model::buildModel(boost::property_tree::ptree propertyTree){
 
 	//decreasing size of objects
 	//important for detection
+
 	std::sort(listOfObjects.begin(), listOfObjects.end() ,
 				[](const Object &a , const Object &b)-> bool{
 				int ai= a.getNumberofParts();
 				int bi = b.getNumberofParts();
 				return ai>bi;
 				});
+
 
 	//fill the map and store the order
 	//maybe the map is overkill, just makes the query easier
@@ -67,11 +69,11 @@ bool Model::buildModel(boost::property_tree::ptree propertyTree){
 	return true ;
 }
 
-void Model::updateModel(PointSet points){
+void Model::updateModel(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , Frame frame , Frame prevFrame){
 
 	for(std::string &objectId : listOfObjectIds){
 
-		auto pointIdxToDelete = objects[objectId].detect(points);
+		auto pointIdxToDelete = objects[objectId].detect(points ,contourSet, frame , prevFrame);
 
 		for(auto j = 0 ; j<pointIdxToDelete.first.size() ; j++){
 			if(pointIdxToDelete.first[j]<points.left.size()){
@@ -114,6 +116,9 @@ void Model::draw(Frame frame){
 	for(std::string &o : listOfObjectIds){
 		objects[o].draw(frame);
 	}
+
+	imshow("wfwf" , frame.left);
+	imshow("wfwfdqd" , frame.right);
 }
 
 bool Model::isTracked(std::string objectId){

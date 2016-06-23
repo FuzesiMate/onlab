@@ -51,8 +51,10 @@ bool ComputerVision::initialize(std::string configFilePath){
 	leftImageProcessor->setFilterValues(pt);
 
 	rightImageProcessor->setWindow("rightProcessed");
-	rightImageProcessor->setFilterValues(pt);
 
+	cout<<"set filter values"<<endl;
+	rightImageProcessor->setFilterValues(pt);
+	cout<<"build model"<<endl;
 	success = success && model.buildModel(pt);
 
 	if(success){
@@ -75,9 +77,13 @@ void ComputerVision::setupDataSender(std::string brokerURL){
 }
 
 void ComputerVision::captureFrame(){
-	if(initialized)
+
+	if(initialized){
+		prevFrame.left = frame.left.clone();
+		prevFrame.right = frame.right.clone();
 		frame = camera.getNextFrame();
-}
+	}
+ }
 
 Frame ComputerVision::getCurrentFrame(){
 	return frame;
@@ -86,12 +92,45 @@ Frame ComputerVision::getCurrentFrame(){
 void ComputerVision::processCurrentFrame(){
 	if(initialized){
 
-		PointSet contourSet;
-		contourSet.left = leftImageProcessor->processImage(frame.left);
-		contourSet.right = rightImageProcessor->processImage(frame.right);
+		std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet;
+		contourSet.first = leftImageProcessor->processImage(frame.left);
+		contourSet.second = rightImageProcessor->processImage(frame.right);
 
-		model.updateModel(contourSet);
-		model.draw(frame);
+		PointSet points;
+
+		cv::Point2f center;
+		float radius;
+
+		for(auto i = 0 ; i<contourSet.first.size() ; i++){
+
+			//cv::approxPolyDP(contourSet.first[i], contourSet.first[i] , 2 , false);
+
+			if(cv::contourArea(contourSet.first[i])<500){
+				cv::minEnclosingCircle(contourSet.first[i] , center , radius);
+				if(radius>1 && radius<20){
+					points.left.push_back(center);
+				}
+			}
+		}
+
+		for(auto i = 0 ; i<contourSet.second.size() ; i++){
+
+			//cv::approxPolyDP(contourSet.second[i], contourSet.second[i] , 2 , false);
+
+			if(cv::contourArea(contourSet.second[i])<500){
+				cv::minEnclosingCircle(contourSet.second[i] , center , radius);
+					if(radius>1 && radius<20){
+						points.right.push_back(center);
+					}
+			}
+		}
+
+		model.updateModel(points, contourSet , frame , prevFrame);
+
+		Frame dr;
+		dr.left = frame.left.clone();
+		dr.right = frame.right.clone();
+		model.draw(dr);
 	}
 }
 
@@ -120,10 +159,11 @@ cv::Point3f ComputerVision::getMarkerPosition(std::string objectId , std::string
 
 void ComputerVision::showImage(){
 	if(initialized){
-		resize(frame.left,frame.left,cv::Size(1280/2,1024/2));
-		resize(frame.right,frame.right,cv::Size(1280/2,1024/2));
-		cv::imshow("left" , frame.left);
-		cv::imshow("right" , frame.right);
+		cv::Mat f1,f2;
+		resize(frame.left,f1,cv::Size(1280/2,1024/2));
+		resize(frame.right,f2,cv::Size(1280/2,1024/2));
+		cv::imshow("left" , f1);
+		cv::imshow("right" , f2);
 		cv::waitKey(5);
 	}
 }

@@ -7,7 +7,7 @@
 	"objects": 	[
 				{
 				"name":"robot_arm",
-				"numberofparts":5,
+				"numberofparts":1,
 				"orientation":"OTHER",
 				"parts":[
 						{
@@ -15,12 +15,6 @@
 						"orientationfromreference":null,
 						"orientationfromprevious":null,
 						"distancefromreference":0.0
-						},
-						{
-						"id":"l",
-						"orientationfromreference":"UPPER",
-						"orientationfromprevious":"UPPER",
-						"distancefromreference":5.5
 						}
 						]
 						

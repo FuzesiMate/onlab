@@ -19,44 +19,33 @@ void IRImageProcessor::setWindow(std::string winname){
 	createTrackbar("threshold" , windowName , &thresholdValue , 255);
 }
 
-vector<Point2f> IRImageProcessor::processImage(Mat frame){
+std::vector< std::vector<cv::Point> > IRImageProcessor::processImage(Mat frame){
 		vector<Point2f> points;
-		vector< vector<Point> > contours;
+
 		vector<Vec4i> hierarchy;
 		Mat processed;
 
-		//equalizeHist(frame,frame);
+		std::vector< std::vector<cv::Point> > contours;
 
 		threshold(frame , processed  , thresholdValue, 255 , CV_THRESH_BINARY);
 
-		blur(frame,frame, Size(5,5));
+		blur(processed,processed, Size(5,5));
 
 		Mat element = getStructuringElement(MORPH_RECT , Size(5,5));
 		morphologyEx(processed,processed,MORPH_CLOSE,element);
 		morphologyEx(processed,processed,MORPH_OPEN,element);
 
 		Mat cont = Mat::zeros( processed.size(), CV_8UC3 );
-		findContours(processed,contours,hierarchy,CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+		findContours(processed,contours,hierarchy,CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
-		Point2f center;
-		float radius;
-		for(auto i = 0 ; i<contours.size() ; i++){
-
-			approxPolyDP(contours[i], contours[i] , 2 , false);
-
-			if(contourArea(contours[i])<500){
-				minEnclosingCircle(contours[i] , center , radius);
-				if(radius>1 && radius<20){
-					points.push_back(center);
-					cv::drawContours(cont, contours, i , Scalar(0,0,255) , 2);
-				}
-			}
+		for(size_t i = 0 ; i<contours.size() ; i++){
+			drawContours(cont , contours ,  i , Scalar(0,0,255) , 2);
 		}
 
 		resize(cont,cont,Size(640,480));
 		imshow(windowName , cont);
 
-	return points;
+	return contours;
 }
 
 void IRImageProcessor::setFilterValues(boost::property_tree::ptree propertyTree){

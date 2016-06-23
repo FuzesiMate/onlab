@@ -21,7 +21,7 @@ private:
 public:
 	IRImageProcessor();
 	void setWindow(std::string winname);
-	virtual std::vector<cv::Point2f> processImage(cv::Mat frame) override;
+	virtual std::vector< std::vector<cv::Point> > processImage(cv::Mat frame) override;
 	virtual void setFilterValues(boost::property_tree::ptree propertyTree) override;
 	~IRImageProcessor();
 };

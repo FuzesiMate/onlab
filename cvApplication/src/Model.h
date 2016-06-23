@@ -24,7 +24,7 @@ private:
 public:
 	Model();
 	bool buildModel(boost::property_tree::ptree propertyTree);
-	void updateModel(PointSet points);
+	void updateModel(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , Frame frame , Frame prevFrame);
 	cv::Point3f getPosition(std::string objectId , std::string markerId);
 	std::vector<std::string> getObjectIds();
 	std::vector<std::string> getMarkerIds(std::string objectId);

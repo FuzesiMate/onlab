@@ -19,20 +19,32 @@ int main(int argc , char **argv) {
 
 	ComputerVision cvModule;
 
-	if(!cvModule.initialize("input.json")){
-		cout<<"can not initialize computer vision module";
-		return -1;
+	cout<<"init"<<endl;
+	if(!cvModule.initialize("doksiba.json")){
+		cout<<"can not initialize computer vision module"<<endl;
 	}
+
+	cout<<"init done"<<endl;
 	//Set up MQTT publisher
+
+	cout<<"datasender"<<endl;
 	cvModule.setupDataSender(BROKER_URL);
+
+	cout<<"datasender set"<<endl;
 
 	while(true){
 		//Capture stereo frame
+
 		cvModule.captureFrame();
+
 		//Process the captured frames
+
 		cvModule.processCurrentFrame();
+
 		//Show video stream
+
 		cvModule.showImage();
+
 		//send data over MQTT
 		cvModule.sendData(CV_DATA_TOPIC);
 	}
