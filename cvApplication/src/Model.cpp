@@ -12,8 +12,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
+#include "ComputerVision.h"
 
-std::map<std::string,PhysicalOrientation> mapToPhysicalOrientation = boost::assign::map_list_of("IN_HORIZONTAL_ROW" ,IN_HORIZONTAL_ROW)("IN_VERTICAL_ROW",IN_VERTICAL_ROW)("OTHER",OTHER);
 
 std::map<std::string,ReferencePosition> mapToReferencePosition = boost::assign::map_list_of("UPPER",UPPER)("LOWER",LOWER)("IN_ROW",IN_ROW);
 
@@ -24,24 +24,33 @@ Model::Model() {
 
 bool Model::buildModel(boost::property_tree::ptree propertyTree){
 
-	std::vector<Object> listOfObjects;
+	std::vector<std::shared_ptr<Object> > listOfObjects;
+
+	std::string imageProcessingType = propertyTree.get<std::string>("typeofprocessing");
 
 	for (boost::property_tree::ptree::value_type &object : propertyTree.get_child("objects")){
 			auto nameofObject = object.second.get<std::string>("name");
 			auto numberofParts  = object.second.get<int>("numberofparts");
-			auto orientation = object.second.get<std::string>("orientation");
 
-			Object compObject;
-			compObject.initializeObject(numberofParts,mapToPhysicalOrientation[orientation],nameofObject);
+			std::shared_ptr<Object> compObject;
+
+			if(imageProcessingType=="IR"){
+				compObject= std::shared_ptr<Object>(new IRObject());
+			}else if(imageProcessingType=="ARUCO_MARKER"){
+				compObject= std::shared_ptr<Object>(new ArucoObject());
+			}
+
+			compObject->initializeObject(numberofParts,nameofObject);
 
 			boost::property_tree::ptree parts = object.second.get_child("parts");
 
 			for (boost::property_tree::ptree::value_type &part : parts){
-				if(orientation=="OTHER"){
-
-					compObject.addPart(part.second.get<std::string>("id") , part.second.get<float>("distancefromreference"),
+				if(imageProcessingType=="IR"){
+					compObject->addPart(part.second.get<std::string>("id") , part.second.get<float>("distancefromreference"),
 							mapToReferencePosition[part.second.get<std::string>("orientationfromreference")],
 							mapToReferencePosition[part.second.get<std::string>("orientationfromprevious")]);
+				}else if(imageProcessingType =="ARUCO_MARKER"){
+					compObject->addPart(part.second.get<std::string>("id") , 5);
 				}
 			}
 
@@ -52,58 +61,61 @@ bool Model::buildModel(boost::property_tree::ptree propertyTree){
 	//important for detection
 
 	std::sort(listOfObjects.begin(), listOfObjects.end() ,
-				[](const Object &a , const Object &b)-> bool{
-				int ai= a.getNumberofParts();
-				int bi = b.getNumberofParts();
+				[](const shared_ptr<Object> &a , const shared_ptr<Object> &b)-> bool{
+				int ai= a->getNumberofParts();
+				int bi = b->getNumberofParts();
 				return ai>bi;
 				});
 
 
 	//fill the map and store the order
 	//maybe the map is overkill, just makes the query easier
-	for(Object &o : listOfObjects){
-		objects[o.getId()] = o;
-		listOfObjectIds.push_back(o.getId());
+	for(auto &o : listOfObjects){
+		objects[o->getId()] = o;
+		objectIds.push_back(o->getId());
 	}
 
 	return true ;
 }
 
-void Model::updateModel(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , Frame frame , Frame prevFrame){
+void Model::updateModel(std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet,std::pair<std::vector<int> , std::vector<int> > identifiers, Frame frame , Frame prevFrame ){
 
-	for(std::string &objectId : listOfObjectIds){
+	PointSet points;
 
-		if(!objects[objectId].isTracked()){
+	for(auto contour : contourSet.first){
+		cv::Point2f center;
+		float r;
+		cv::minEnclosingCircle(contour , center ,r);
+		points.left.push_back(center);
+	}
 
-			auto pointIdxToDelete = objects[objectId].detect(points ,contourSet);
+	for(auto contour : contourSet.second){
+		cv::Point2f center;
+		float r;
+		cv::minEnclosingCircle(contour , center ,r);
+		points.right.push_back(center);
+	}
 
-			for(auto j = 0 ; j<pointIdxToDelete.first.size() ; j++){
-				if(pointIdxToDelete.first[j]<points.left.size()){
-					points.left.erase(points.left.begin()+pointIdxToDelete.first[j]);
-				}
-			}
+	for(std::string &objectId : objectIds){
 
-			for(auto j = 0 ; j<pointIdxToDelete.second.size() ; j++){
-				if(pointIdxToDelete.second[j]<points.right.size()){
-					points.right.erase(points.right.begin()+pointIdxToDelete.second[j]);
-				}
-			}
+		if(!objects[objectId]->isTracked()){
+			objects[objectId]->detect(points ,contourSet , identifiers);
 		}else{
-			objects[objectId].track(frame , prevFrame);
+			objects[objectId]->track(frame , prevFrame);
 		}
 	}
 }
 
 std::vector<std::string> Model::getObjectIds(){
-	return listOfObjectIds;
+	return objectIds;
 }
 
 std::vector<std::string> Model::getMarkerIds(std::string objectId){
-	return objects[objectId].getMarkerIds();
+	return objects[objectId]->getMarkerIds();
 }
 
 cv::Point3f Model::getPosition(std::string objectId  , std::string markerId){
-	return objects[objectId].getMarkerPosition(markerId);
+	return objects[objectId]->getMarkerPosition(markerId);
 }
 
 void Model::draw(Frame frame){
@@ -118,13 +130,13 @@ void Model::draw(Frame frame){
 		}
 	}
 
-	for(std::string &o : listOfObjectIds){
-		objects[o].draw(frame);
+	for(std::string &o : objectIds){
+		objects[o]->draw(frame);
 	}
 }
 
 bool Model::isTracked(std::string objectId){
-	return objects[objectId].isTracked();
+	return objects[objectId]->isTracked();
 }
 
 void Model::setShowGrid(bool show){
@@ -132,7 +144,5 @@ void Model::setShowGrid(bool show){
 }
 
 
-Model::~Model() {
-	// TODO Auto-generated destructor stub
-}
+Model::~Model() {}
 

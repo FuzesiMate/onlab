@@ -10,6 +10,8 @@
 
 #include "IImageProcessor.h"
 #include "Object.h"
+#include "IRObject.h"
+#include "ArucoObject.h"
 #include "IRImageProcessor.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -18,13 +20,13 @@
 
 class Model {
 private:
-	std::map<std::string,Object> objects;
-	std::vector<std::string> listOfObjectIds;
+	std::map<std::string,std::shared_ptr<Object> > objects;
+	std::vector<std::string> objectIds;
 	bool showGrid;
 public:
 	Model();
 	bool buildModel(boost::property_tree::ptree propertyTree);
-	void updateModel(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , Frame frame , Frame prevFrame);
+	void updateModel(std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet ,std::pair<std::vector<int> , std::vector<int> > identifiers, Frame frame , Frame prevFrame );
 	cv::Point3f getPosition(std::string objectId , std::string markerId);
 	std::vector<std::string> getObjectIds();
 	std::vector<std::string> getMarkerIds(std::string objectId);

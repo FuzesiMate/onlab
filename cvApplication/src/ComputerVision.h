@@ -14,6 +14,7 @@
 #include "Model.h"
 #include "IImageProcessor.h"
 #include "IRImageProcessor.h"
+#include "ArucoImageProcessor.h"
 #include "stereoCamera.h"
 #include <Publisher.h>
 
@@ -29,7 +30,8 @@ enum CameraType{
 
 enum ImageProcessingType{
 	COLOR,
-	IR
+	IR,
+	ARUCO_MARKER
 };
 
 class ComputerVision {

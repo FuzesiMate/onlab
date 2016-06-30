@@ -39,13 +39,25 @@ std::vector< std::vector<cv::Point> > IRImageProcessor::processImage(Mat frame){
 		findContours(processed,contours,hierarchy,CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
 		for(size_t i = 0 ; i<contours.size() ; i++){
-			drawContours(cont , contours ,  i , Scalar(0,0,255) , 2);
+			if(contourArea(contours[i])<400){
+				Point2f center;
+				float r;
+				minEnclosingCircle(contours[i] , center , r);
+				if(r>2 && r<20){
+					markerIdentifiers.push_back(i);
+					drawContours(cont , contours ,  i , Scalar(0,0,255) , 2);
+				}
+			}
 		}
 
 		resize(cont,cont,Size(640,480));
 		imshow(windowName , cont);
 
 	return contours;
+}
+
+std::vector<int> IRImageProcessor::getMarkerIdentifiers(){
+	return markerIdentifiers;
 }
 
 void IRImageProcessor::setFilterValues(boost::property_tree::ptree propertyTree){

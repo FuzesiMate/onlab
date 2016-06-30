@@ -12,7 +12,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-std::map<std::string,ImageProcessingType> mapToImgProcType = boost::assign::map_list_of("COLOR" ,COLOR)("IR",IR);
+std::map<std::string,ImageProcessingType> mapToImgProcType = boost::assign::map_list_of("COLOR" ,COLOR)("IR",IR)("ARUCO_MARKER",ARUCO_MARKER);
 std::map<std::string,CameraType> mapToCamType = boost::assign::map_list_of("XIMEA" , XIMEA);
 
 ComputerVision::ComputerVision() {
@@ -31,7 +31,12 @@ bool ComputerVision::initialize(std::string configFilePath){
 	ImageProcessingType imgProcType = mapToImgProcType[pt.get<std::string>(TYPEOFPROCESSING)];
 	CameraType camType = mapToCamType[pt.get<std::string>(CAMERATYPE)];
 
+
 	success = camera.init(exposure , gain, CV_CAP_XIAPI);
+
+	if(!success){
+		cout<<"camera init failed"<<endl;
+	}
 
 	switch(imgProcType){
 	case IR:
@@ -40,6 +45,10 @@ bool ComputerVision::initialize(std::string configFilePath){
 		break;
 	case COLOR:
 
+		break;
+	case ARUCO_MARKER:
+		leftImageProcessor = std::unique_ptr<IImageProcessor>(new ArucoImageProcessor);
+		rightImageProcessor = std::unique_ptr<IImageProcessor>(new ArucoImageProcessor);
 		break;
 	default:
 		cout<<"unknown processing type"<<endl;
@@ -93,7 +102,6 @@ void ComputerVision::processCurrentFrame(){
 	if(initialized){
 
 		std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet;
-		PointSet points;
 
 		bool allTracked = true;
 
@@ -106,32 +114,13 @@ void ComputerVision::processCurrentFrame(){
 		if(!allTracked){
 			contourSet.first = leftImageProcessor->processImage(frame.left);
 			contourSet.second = rightImageProcessor->processImage(frame.right);
-
-			cv::Point2f center;
-			float radius;
-
-			for(auto i = 0 ; i<contourSet.first.size() ; i++){
-
-				if(cv::contourArea(contourSet.first[i])<500){
-					cv::minEnclosingCircle(contourSet.first[i] , center , radius);
-					if(radius>1 && radius<20){
-						points.left.push_back(center);
-					}
-				}
-			}
-
-			for(auto i = 0 ; i<contourSet.second.size() ; i++){
-
-				if(cv::contourArea(contourSet.second[i])<500){
-					cv::minEnclosingCircle(contourSet.second[i] , center , radius);
-						if(radius>1 && radius<20){
-							points.right.push_back(center);
-						}
-				}
-			}
 		}
 
-		model.updateModel(points, contourSet , frame , prevFrame);
+		std::pair<std::vector<int> , std::vector<int> > identifiers;
+		identifiers.first = leftImageProcessor->getMarkerIdentifiers();
+		identifiers.second = rightImageProcessor->getMarkerIdentifiers();
+
+		model.updateModel(contourSet,identifiers, frame , prevFrame);
 
 		drawing.left = frame.left.clone();
 		drawing.right = frame.right.clone();

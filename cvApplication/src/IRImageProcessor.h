@@ -18,11 +18,13 @@ class IRImageProcessor :public IImageProcessor{
 private:
 	int thresholdValue;
 	std::string windowName;
+	std::vector<int> markerIdentifiers;
 public:
 	IRImageProcessor();
 	void setWindow(std::string winname);
 	virtual std::vector< std::vector<cv::Point> > processImage(cv::Mat frame) override;
 	virtual void setFilterValues(boost::property_tree::ptree propertyTree) override;
+	virtual std::vector<int> getMarkerIdentifiers() override;
 	~IRImageProcessor();
 };
 

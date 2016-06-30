@@ -12,13 +12,20 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+
 class IImageProcessor {
 public:
-	IImageProcessor(){}
+	IImageProcessor(){};
+	//Process the current frame and return the found contours
 	virtual std::vector< std::vector<cv::Point> > processImage(cv::Mat frame)=0;
-	virtual void setWindow(std::string)=0;
+	//set a window to show the processed image
+	virtual void setWindow(std::string winname)=0;
+	//set the processing specific filter values
 	virtual void setFilterValues(boost::property_tree::ptree propertyTree)=0;
-	virtual ~IImageProcessor(){}
+	//get the processing specific additional information to identify contours
+	virtual std::vector<int> getMarkerIdentifiers()=0;
+	//virtual destructor
+	virtual ~IImageProcessor(){};
 };
 
 #endif /* IIMAGEPROCESSOR_H_ */

@@ -12,16 +12,10 @@
 #include <map>
 #include "Marker.h"
 #include "stereoCamera.h"
-
-enum PhysicalOrientation{
-	OTHER,
-	IN_HORIZONTAL_ROW,
-	IN_VERTICAL_ROW
-};
+#include <iostream>
 
 class Object {
-private:
-	PhysicalOrientation orientation;
+protected:
 	int numberOfParts;
 	bool tracked;
 	int count = 0;
@@ -38,18 +32,17 @@ private:
 	cv::Mat r2;
 
 	int findIndex(std::vector<cv::Point2f> points, cv::Point2f element);
-	std::pair<bool,std::vector<cv::Point2f> > findMatch(std::vector<cv::Point2f> points);
 
 public:
 	Object();
-	void initializeObject(int numberOfParts , PhysicalOrientation physicalOrientation , std::string id);
+	void initializeObject(int numberOfParts , std::string id);
 
-	std::pair<std::vector<int> ,std::vector<int>> detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet);
-	void track(Frame frame , Frame prevFrame);
-	void updateState();
+	virtual std::pair<std::vector<int> ,std::vector<int>> detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , std::pair<std::vector<int> , std::vector<int> > identifiers)=0;
+	virtual void track(Frame frame , Frame prevFrame)=0;
 
 	void draw(Frame frames);
 	void addPart(std::string id, float distanceFromRef, ReferencePosition fromRef , ReferencePosition fromPrev);
+	void addPart(std::string id  , int markerIdentifier);
 	int getNumberofParts() const;
 	std::string getId();
 	std::vector<std::string>getMarkerIds();

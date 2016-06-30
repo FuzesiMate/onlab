@@ -26,8 +26,8 @@ Marker::Marker() {
 	id 				= "" ;
 	lost 			= false;
 	lostCount 		= 0;
-	screenPosition.left = cv::Point2f(0,0);
-	screenPosition.right = cv::Point2f(0,0);
+	screenPositionCenter.left = cv::Point2f(0,0);
+	screenPositionCenter.right = cv::Point2f(0,0);
 }
 
 Marker::Marker(std::string id, float distanceFromRef ,ReferencePosition fromRef , ReferencePosition fromPrev ){
@@ -39,14 +39,19 @@ Marker::Marker(std::string id, float distanceFromRef ,ReferencePosition fromRef 
 	distanceFromReference 	= distanceFromRef;
 }
 
-
-StereoPoint Marker::getPosition(){
-	return screenPosition;
+Marker::Marker(std::string id , int markerId){
+	this->id = id;
+	this->markerId = markerId;
 }
 
-void Marker::updateReference(ReferencePosition fromPrev, ReferencePosition fromRef){
+StereoPoint Marker::getPosition(){
+	return screenPositionCenter;
+}
+
+void Marker::updateReference(ReferencePosition fromPrev, ReferencePosition fromRef , float referenceDistance){
 	fromPrevious = fromPrev;
 	fromReference = fromRef;
+	distanceFromReference = referenceDistance;
 }
 
 cv::Point2f Marker::findClosest(vector<cv::Point2f> points, cv::Point2f reference){
@@ -79,8 +84,12 @@ cv::Point2f Marker::calculateOpticalFlow(std::vector<cv::Point2f> currentPoints,
 
 	cv::TermCriteria termcrit(cv::TermCriteria::COUNT|cv::TermCriteria::EPS,20,0.03);
 
-	cv::calcOpticalFlowPyrLK(prevFrame , currentFrame ,currentPoints , nextPosition,
-			status, error , cv::Size(10,10) , 1000 , termcrit);
+	try{
+		cv::calcOpticalFlowPyrLK(prevFrame , currentFrame ,currentPoints , nextPosition,
+					status, error , cv::Size(10,10) , 10 , termcrit);
+	}catch(cv::Exception &e){
+		throw e;
+	}
 
 	float averageError=0;
 
@@ -106,15 +115,18 @@ cv::Point2f Marker::calculateOpticalFlow(std::vector<cv::Point2f> currentPoints,
 
 void Marker::refreshPosition(Frame currentFrame , Frame prevFrame){
 	PointSet nextPosition;
+	try{
+		screenPositionCenter.left = calculateOpticalFlow(screenPosition.left , nextPosition.left , currentFrame.left , prevFrame.left);
+		screenPositionCenter.right = calculateOpticalFlow(screenPosition.right , nextPosition.right , currentFrame.right , prevFrame.right);
+	}catch(cv::Exception &e){
+		return;
+	}
 
-	screenPosition.left = calculateOpticalFlow(currentPosition.left , nextPosition.left , currentFrame.left , prevFrame.left);
-	screenPosition.right = calculateOpticalFlow(currentPosition.right , nextPosition.right , currentFrame.right , prevFrame.right);
-
-	currentPosition = nextPosition;
+	screenPosition = nextPosition;
 }
 
 void Marker::setPosition(PointSet position){
-	currentPosition = position;
+	screenPosition = position;
 	lost = false;
 }
 
@@ -123,8 +135,8 @@ void Marker::refreshPosition(PointSet points){
 	cv::Point2f leftClosest;
 	cv::Point2f rightClosest;
 
-	leftClosest=findClosest(points.left,screenPosition.left);
-	rightClosest=findClosest(points.right,screenPosition.right);
+	leftClosest=findClosest(points.left,screenPositionCenter.left);
+	rightClosest=findClosest(points.right,screenPositionCenter.right);
 
 	if((leftClosest.x==0 && leftClosest.y==0)||(rightClosest.x==0 && rightClosest.y==0)){
 		lostCount++;
@@ -135,8 +147,8 @@ void Marker::refreshPosition(PointSet points){
 
 	}else if(fabs(leftClosest.x-rightClosest.x)<900 && fabs(leftClosest.x-rightClosest.x)>100){
 		lostCount=0;
-		screenPosition.left = leftClosest;
-		screenPosition.right = rightClosest;
+		screenPositionCenter.left = leftClosest;
+		screenPositionCenter.right = rightClosest;
 		lost = false;
 	}
 
@@ -147,7 +159,7 @@ bool Marker::isLost(){
 }
 
 void Marker::setPosition(StereoPoint position){
-	screenPosition=position;
+	screenPositionCenter=position;
 	lost = false;
 }
 
@@ -155,20 +167,20 @@ void Marker::draw(Frame frames){
 	stringstream text;
 	if(!lost){
 		text<<id;
-		for(size_t i = 0 ; i<currentPosition.left.size() ; i++){
-			cv::circle(frames.left,cv::Point(screenPosition.left.x,screenPosition.left.y) , 10, cv::Scalar(255,255,255), 2.0 );
+		for(size_t i = 0 ; i<screenPosition.left.size() ; i++){
+			cv::circle(frames.left,cv::Point(screenPositionCenter.left.x,screenPositionCenter.left.y) , 10, cv::Scalar(255,255,255), 2.0 );
 		}
 
-		for(size_t i = 0 ; i<currentPosition.right.size() ; i++){
-			cv::circle(frames.right,cv::Point(screenPosition.right.x,screenPosition.right.y) , 10, cv::Scalar(255,255,255), 2.0 );
+		for(size_t i = 0 ; i<screenPosition.right.size() ; i++){
+			cv::circle(frames.right,cv::Point(screenPositionCenter.right.x,screenPositionCenter.right.y) , 10, cv::Scalar(255,255,255), 2.0 );
 		}
 	}else{
 		text<<"object "<<id<<" is lost";
 	}
 
-	cv::putText(frames.left,text.str(),cv::Point(screenPosition.left.x , screenPosition.left.y-30),
+	cv::putText(frames.left,text.str(),cv::Point(screenPositionCenter.left.x , screenPositionCenter.left.y-30),
 			cv::FONT_HERSHEY_SIMPLEX, 1.0 , cv::Scalar(255,255,255) , 2.0);
-	cv::putText(frames.right,text.str(),cv::Point(screenPosition.right.x , screenPosition.right.y-30),
+	cv::putText(frames.right,text.str(),cv::Point(screenPositionCenter.right.x , screenPositionCenter.right.y-30),
 			cv::FONT_HERSHEY_SIMPLEX, 1.0 , cv::Scalar(255,255,255) , 2.0);
 }
 
@@ -177,10 +189,10 @@ cv::Point3f Marker::getRealPosition(cv::Mat leftCamMatrix , cv::Mat rightCamMatr
 		cv::Mat leftDistCoeffs , cv::Mat rightDistCoeffs){
 
 	vector<cv::Point2f> leftPoints;
-	leftPoints.push_back(screenPosition.left);
+	leftPoints.push_back(screenPositionCenter.left);
 
 	vector<cv::Point2f> rightPoints;
-	rightPoints.push_back(screenPosition.right);
+	rightPoints.push_back(screenPositionCenter.right);
 
 	undistortPoints(leftPoints,leftPoints,leftCamMatrix,leftDistCoeffs ,r1,p1);
 	undistortPoints(rightPoints,rightPoints,rightCamMatrix,rightDistCoeffs , r1 ,p1);

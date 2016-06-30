@@ -55,6 +55,7 @@
 								</option>
 								<option id="gnu.cpp.link.option.libs.1509366222" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="mqtt"/>
+									<listOptionValue builtIn="false" value="libopencv_aruco310"/>
 									<listOptionValue builtIn="false" value="paho-mqtt3a"/>
 									<listOptionValue builtIn="false" value="paho-mqtt3c"/>
 									<listOptionValue builtIn="false" value="libopencv_core310"/>

@@ -1,8 +1,8 @@
 {
-	"typeofprocessing":"IR",
+	"typeofprocessing":"ARUCO_MARKER",
 	"exposure":10000,
-	"gain":10.0,
-	"threshold":205,
+	"gain":5.0,
+	"threshold":240,
 	"cameratype":"XIMEA",
 	"objects": 	[
 				{
