@@ -1,0 +1,35 @@
+{
+	"typeofprocessing":"ARUCO_MARKER",
+	"exposure":10000,
+	"gain":5.0,
+	"threshold":240,
+	"cameratype":"XIMEA",
+	"objects": 	[
+				{
+				"name":"robot_arm",
+				"numberofparts":3,
+				"orientation":"OTHER",
+				"parts":[
+						{
+						"id":"l",
+						"orientationfromreference":null,
+						"orientationfromprevious":null,
+						"distancefromreference":0.0
+						},
+						{
+						"id":"mid",
+						"orientationfromreference":"UPPER",
+						"orientationfromprevious":"UPPER",
+						"distancefromreference":7.0
+						},
+						{
+						"id":"r",
+						"orientationfromreference":"IN_ROW",
+						"orientationfromprevious":"LOWER",
+						"distancefromreference":11.0
+						}
+						]
+						
+				}
+			]		
+}

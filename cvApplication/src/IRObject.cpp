@@ -8,8 +8,6 @@
 #include "IRObject.h"
 
 IRObject::IRObject() {
-	// TODO Auto-generated constructor stub
-
 }
 
 std::pair<bool, std::vector<cv::Point2f> > IRObject::findMatch(std::vector<cv::Point2f> points) {
