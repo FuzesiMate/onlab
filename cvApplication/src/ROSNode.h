@@ -1,4 +1,5 @@
 #include "ros/ros.h"
+#include "ComputerVision.h"
 //ROS communication messages
 #include <geometry_msgs/Point.h>
 #include <hu_bme_mit_cpp_localsearch_robot/RobotPartsPose.h>
@@ -16,6 +17,6 @@ namespace ROSNode {
 
     void cleanUp();
     void initializeNode();
-    void sendDataOverROS();
+    void sendDataOverROS(ComputerVision& cv);
   }
 }
