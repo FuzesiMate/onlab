@@ -11,19 +11,22 @@
 				"orientation":"OTHER",
 				"parts":[
 						{
-						"id":"l",
+						"name":"arm_bottom",
+						"id": 1,
 						"orientationfromreference":null,
 						"orientationfromprevious":null,
 						"distancefromreference":0.0
 						},
 						{
-						"id":"mid",
+						"name":"arm_top",
+						"id": 2,
 						"orientationfromreference":"UPPER",
 						"orientationfromprevious":"UPPER",
 						"distancefromreference":7.0
 						},
 						{
-						"id":"r",
+						"name":"body",
+						"id": 3,
 						"orientationfromreference":"IN_ROW",
 						"orientationfromprevious":"LOWER",
 						"distancefromreference":11.0
