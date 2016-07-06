@@ -1,6 +1,6 @@
 {
 	"typeofprocessing":"ARUCO_MARKER",
-	"exposure":2000,
+	"exposure":5000,
 	"gain":5.0,
 	"threshold":240,
 	"cameratype":"XIMEA",
@@ -12,27 +12,42 @@
 				"markers":[
 						{
 						"name":"arm_bottom",
-						"id": 7,
+						"id": 9,
 						"orientationfromreference":null,
 						"orientationfromprevious":null,
 						"distancefromreference":0.0
 						},
 						{
 						"name":"arm_top",
-						"id": 3,
+						"id": 10,
 						"orientationfromreference":"UPPER",
 						"orientationfromprevious":"UPPER",
 						"distancefromreference":7.0
 						},
 						{
 						"name":"body",
-						"id": 6,
+						"id": 8,
 						"orientationfromreference":"IN_ROW",
 						"orientationfromprevious":"LOWER",
 						"distancefromreference":11.0
 						}
 						]
 						
-				}
+				},
+				{
+						"name":"train",
+						"numberofparts":1,
+						"orientation":"OTHER",
+						"markers":
+						[
+						{
+						"name":"side",
+						"id": 5,
+						"orientationfromreference":null,
+						"orientationfromprevious":null,
+						"distancefromreference":0.0
+						}
+						]
+						}
 			]		
 }

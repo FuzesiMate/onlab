@@ -84,7 +84,6 @@ void Model::updateModel(std::pair<std::vector< std::vector<cv::Point> > ,std::ve
 
 	PointSet points;
 
-	cout<<"find circles"<<endl;
 	for(auto contour : contourSet.first){
 		cv::Point2f center;
 		float r;
@@ -99,22 +98,18 @@ void Model::updateModel(std::pair<std::vector< std::vector<cv::Point> > ,std::ve
 		points.right.push_back(center);
 	}
 
-	cout<<"find circles end"<<endl;
-
-	cout<<"detect methods"<<endl;
 	for(std::string &objectId : objectIds){
 
 		if(!objects[objectId]->isTracked()){
 			objects[objectId]->detect(points ,contourSet , identifiers);
 		}else{
-			//objects[objectId]->track(frame , prevFrame);
+			objects[objectId]->track(frame , prevFrame);
 			// no tracking currently
-			objects[objectId]->detect(points ,contourSet , identifiers);
+			//objects[objectId]->detect(points ,contourSet , identifiers);
 		}
 
 	}
 
-	cout<<"detect methods end"<<endl;
 }
 
 std::vector<std::string> Model::getObjectNames(){
@@ -144,6 +139,7 @@ void Model::draw(Frame frame){
 	for(std::string &o : objectIds){
 		objects[o]->draw(frame);
 	}
+
 }
 
 bool Model::isTracked(std::string objectId){

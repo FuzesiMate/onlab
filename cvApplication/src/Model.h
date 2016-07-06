@@ -34,6 +34,7 @@ public:
 	void draw(Frame frame);
 	void setShowGrid(bool show);
 	bool isTracked(std::string objectId);
+	bool isTracked(std::string objectId , std::string markerName);
 	virtual ~Model();
 };
 

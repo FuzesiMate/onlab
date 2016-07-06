@@ -17,15 +17,15 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
 
-
 using namespace std;
 using namespace cv;
 
-Object::Object():tracked(false){
+Object::Object() :
+		tracked(false) {
 
 }
 
-void Object::initializeObject(int numberOfParts, string id){
+void Object::initializeObject(int numberOfParts, string id) {
 	this->numberOfParts = numberOfParts;
 	tracked = false;
 	this->name = id;
@@ -56,95 +56,87 @@ void Object::addPart(std::string id, float distanceFromRef,
 	markers[id] = o;
 }
 
-void Object::addPart(std::string id  , int markerIdentifier){
+void Object::addPart(std::string id, int markerIdentifier) {
 	Marker o(id, markerIdentifier);
 	markerIds.push_back(id);
 	markers[id] = o;
 }
 
-
-
 int Object::findIndex(std::vector<Point2f> points, Point2f element) {
 	auto res = std::find(points.begin(), points.end(), element);
-	if(res!=points.end()){
+	if (res != points.end()) {
 		return std::distance(points.begin(), res);
-	}else{
+	} else {
 		return -1;
 	}
 
 }
 
+void Object::draw(Frame frames) {
 
+		for (auto i = 0; i < markerIds.size(); i++) {
 
+			/*
+			 * Augmented reality, just for fun :)
 
-	void Object::draw(Frame frames) {
-		if (tracked) {
-			for (auto i = 0; i < markerIds.size(); i++) {
+			 *
+			 Mat rMat,tVec,camMatrix;
 
-				/*
-				 * Augmented reality, just for fun :)
+			 Point3f mReal = markers[markerIds[i]].getRealPosition(leftCamMatrix, rightCamMatrix,
+			 r1, r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
 
-				 *
-				Mat rMat,tVec,camMatrix;
+			 decomposeProjectionMatrix(p1 , camMatrix , rMat , tVec);
 
-				Point3f mReal = markers[markerIds[i]].getRealPosition(leftCamMatrix, rightCamMatrix,
-										r1, r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
+			 vector<Point3f> realPoints;
+			 vector<Point2f> imagePoints;
 
-								decomposeProjectionMatrix(p1 , camMatrix , rMat , tVec);
+			 for(int i = 0 ; i<15  ; i++){
+			 realPoints.push_back(Point3f(mReal.x, mReal.y+i,mReal.z));
+			 }
 
-								vector<Point3f> realPoints;
-								vector<Point2f> imagePoints;
+			 Mat rotVec;
+			 Rodrigues(r1 , rotVec);
 
-								for(int i = 0 ; i<15  ; i++){
-									realPoints.push_back(Point3f(mReal.x, mReal.y+i,mReal.z));
-								}
+			 vector<float> tv;
 
-								Mat rotVec;
-								Rodrigues(r1 , rotVec);
+			 tv.push_back(0);
+			 tv.push_back(0);
+			 tv.push_back(0);
 
-								vector<float> tv;
+			 projectPoints(realPoints , rotVec , tv , leftCamMatrix , leftDistCoeffs , imagePoints);
 
-								tv.push_back(0);
-								tv.push_back(0);
-								tv.push_back(0);
+			 for(Point2f p : imagePoints){
+			 circle(frames.left , Point(p.x,p.y) , 2 , Scalar(255,255,255) , 2);
+			 }
+			 */
 
-								projectPoints(realPoints , rotVec , tv , leftCamMatrix , leftDistCoeffs , imagePoints);
-
-								for(Point2f p : imagePoints){
-									circle(frames.left , Point(p.x,p.y) , 2 , Scalar(255,255,255) , 2);
-								}
-				*/
-
-				markers[markerIds[i]].draw(frames);
-			}
+			markers[markerIds[i]].draw(frames);
 		}
-	}
 
-	cv::Point3f Object::getMarkerPosition(std::string markerId){
-		return markers[markerId].getRealPosition(leftCamMatrix, rightCamMatrix,
-				  r1 , r2 , p1 , p2, leftDistCoeffs , rightDistCoeffs);
-	}
+}
 
-	std::vector<std::string> Object::getMarkerNames(){
-		return markerIds;
-	}
+cv::Point3f Object::getMarkerPosition(std::string markerId) {
+	return markers[markerId].getRealPosition(leftCamMatrix, rightCamMatrix, r1,
+			r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
+}
 
-	int Object::getNumberofParts() const {
-		return numberOfParts;
-	}
+std::vector<std::string> Object::getMarkerNames() {
+	return markerIds;
+}
 
-	bool Object::isTracked(){
-		return tracked;
-	}
+int Object::getNumberofParts() const {
+	return numberOfParts;
+}
 
-	std::string
-	Object::getId()
-	{
-		return name;
-	}
+bool Object::isTracked() {
+	return tracked;
+}
 
-	Object::~Object()
-	{
-		// TODO Auto-generated destructor stub
-	}
+std::string Object::getId() {
+	return name;
+}
+
+Object::~Object() {
+	// TODO Auto-generated destructor stub
+}
 

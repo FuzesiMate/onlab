@@ -71,10 +71,10 @@ bool ComputerVision::initialize(std::string configFilePath){
 	leftImageProcessor->setMarkerIdentifiers(markerIds);
 	rightImageProcessor->setMarkerIdentifiers(markerIds);
 
-	leftImageProcessor->setWindow("leftProcessed");
+	//leftImageProcessor->setWindow("leftProcessed");
 	leftImageProcessor->setFilterValues(pt);
 
-	rightImageProcessor->setWindow("rightProcessed");
+	//rightImageProcessor->setWindow("rightProcessed");
 	rightImageProcessor->setFilterValues(pt);
 
 	cout<<"build model"<<endl;
@@ -126,38 +126,25 @@ void ComputerVision::processCurrentFrame(){
 			}
 		}
 
-
 		//if(!allTracked){
-		cout<<"process images"<<endl;
 			contourSet.first = leftImageProcessor->processImage(frame.left);
 			contourSet.second = rightImageProcessor->processImage(frame.right);
 		//}
-		cout<<"process images end"<<endl;
 
 		std::pair<std::vector<int> , std::vector<int> > identifiers;
 		identifiers.first = leftImageProcessor->getMarkerIdentifiers();
 		identifiers.second = rightImageProcessor->getMarkerIdentifiers();
 
-		cout<<"update model"<<endl;
-
 		model.updateModel(contourSet,identifiers, frame , prevFrame);
 
-		cout<<"update end"<<endl;
-
-		drawing.left = frame.left.clone();
-		drawing.right = frame.right.clone();
+		cv::cvtColor(frame.left ,drawing.left  , CV_GRAY2RGB);
+		cv::cvtColor(frame.right,drawing.right , CV_GRAY2RGB);
 		model.draw(drawing);
-
-		cout<<"process current frame end"<<endl;
 	}
 }
 
 std::map<std::string , cv::Point3f> ComputerVision::getObjectPosition(std::string objectId){
 	std::map<std::string , cv::Point3f> position;
-
-	if(!model.isTracked(objectId)){
-		return position;
-	}
 
 	auto markerIds = model.getMarkerNames(objectId);
 
@@ -169,10 +156,7 @@ std::map<std::string , cv::Point3f> ComputerVision::getObjectPosition(std::strin
 }
 
 cv::Point3f ComputerVision::getMarkerPosition(std::string objectId , std::string markerId){
-	if(model.isTracked(objectId)){
 		return model.getPosition(objectId , markerId);
-	}
-	else return cv::Point3f(0,0,0);
 }
 
 void ComputerVision::showImage(){
@@ -210,19 +194,21 @@ void ComputerVision::sendData(std::string topic){
 		message<<"{ \"name\":"<<"\""<<objectIds[o]<<"\""<<",";
 		message<<"\"markers\":[";
 
-		auto markerIds = model.getMarkerNames(objectIds[o]);
+		auto markerNames = model.getMarkerNames(objectIds[o]);
 
 		auto position = this->getObjectPosition(objectIds[o]);
 
-		for(auto i = 0 ; i<markerIds.size() ; i++){
-			auto markerpos = position[markerIds[i]];
+		for(auto i = 0 ; i<markerNames.size() ; i++){
+
+			auto markerpos = position[markerNames[i]];
+
 			message<<"{";
-			message<<"\"id\":"<<"\""<<markerIds[i]<<"\""<<",";
+			message<<"\"id\":"<<"\""<<markerNames[i]<<"\""<<",";
 			message<<"\"x\":"<<markerpos.x<<",";
 			message<<"\"y\":"<<markerpos.y<<",";
 			message<<"\"z\":"<<markerpos.z;
 			message<<"}";
-			if(i<markerIds.size()-1){
+			if(i<markerNames.size()-1){
 				message<<",";
 			}
 		}
@@ -246,11 +232,18 @@ void ComputerVision::sendData(std::string topic , std::string objectId){
 	message<<"\""<<objectId<<"\":";
 	message<<"[";
 
+	cout<<">>>>>>>>"<<objectId<<" positions:"<<endl;
+
 	auto position = this->getObjectPosition(objectId);
 	auto markerIds = model.getMarkerNames(objectId);
 
 	for(auto i = 0 ; i<markerIds.size() ; i++){
+
 		auto markerpos = model.getPosition(objectId , markerIds[i]);
+		cout<<markerIds[i]<<":"<<endl;
+		cout<<markerpos<<endl;
+		cout<<endl<<endl;
+
 		message<<"{";
 		message<<"\"id\":";
 		message<<"\""<<markerIds[i]<<"\",";

@@ -34,6 +34,7 @@ private:
 	int id;
 	ReferencePosition fromReference;
 	ReferencePosition fromPrevious;
+	cv::Scalar color;
 
 	float distanceFromReference;
 	bool lost;

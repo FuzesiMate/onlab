@@ -24,14 +24,13 @@ std::vector< std::vector<cv::Point> >ArucoImageProcessor::processImage(cv::Mat f
 
 	cv::aruco::detectMarkers(frame, dictionary, corners, foundMarkerIdentifiers, detectorParams, rejected);
 
-	cv::Mat drawing = frame.clone();
-	cv::aruco::drawDetectedMarkers(drawing , corners , foundMarkerIdentifiers);
-
-	imshow(winname , drawing);
+	//cv::Mat drawing = frame.clone();
+	//cv::aruco::drawDetectedMarkers(drawing , corners , foundMarkerIdentifiers);
+	//cv::resize(drawing , drawing , cv::Size(640,480));
+	//imshow(winname , drawing);
 
 	std::vector< std::vector<cv::Point> > transformed(corners.size());
 
-	std::cout<<"corners"<<std::endl;
 	for(auto i = 0 ; i<corners.size() ; i++){
 			//std::vector<cv::Point> cornerPoints;
 		for(auto j = 0 ; j<corners[i].size() ; j++){
@@ -39,8 +38,6 @@ std::vector< std::vector<cv::Point> >ArucoImageProcessor::processImage(cv::Mat f
 		}
 			//transformed.push_back(cornerPoints);
 	}
-
-	std::cout<<"corners end"<<std::endl;
 
 	return transformed;
 }

@@ -40,8 +40,11 @@ Marker::Marker(std::string id, float distanceFromRef ,ReferencePosition fromRef 
 }
 
 Marker::Marker(std::string id , int markerId){
-	this->name = id;
-	this->id = markerId;
+	lost 					= false;
+	lostCount 				= 0;
+	this->name 				= id;
+	this->id 				= markerId;
+	color = cv::Scalar(rand()%255 , rand()%255 , rand()%255);
 }
 
 StereoPoint Marker::getPosition(){
@@ -86,7 +89,7 @@ cv::Point2f Marker::calculateOpticalFlow(std::vector<cv::Point2f> currentPoints,
 
 	try{
 		cv::calcOpticalFlowPyrLK(prevFrame , currentFrame ,currentPoints , nextPosition,
-					status, error , cv::Size(10,10) , 10 , termcrit);
+					status, error , cv::Size(10,10) , 1500 , termcrit);
 	}catch(cv::Exception &e){
 		throw e;
 	}
@@ -165,23 +168,26 @@ void Marker::setPosition(StereoPoint position){
 
 void Marker::draw(Frame frames){
 	stringstream text;
+
 	if(!lost){
+
 		text<<name;
 		for(size_t i = 0 ; i<screenPosition.left.size() ; i++){
-			cv::circle(frames.left,cv::Point(screenPositionCenter.left.x,screenPositionCenter.left.y) , 10, cv::Scalar(255,255,255), 2.0 );
+			cv::circle(frames.left,cv::Point(screenPositionCenter.left.x,screenPositionCenter.left.y) , 10, color, 2.0 );
 		}
 
 		for(size_t i = 0 ; i<screenPosition.right.size() ; i++){
-			cv::circle(frames.right,cv::Point(screenPositionCenter.right.x,screenPositionCenter.right.y) , 10, cv::Scalar(255,255,255), 2.0 );
+			cv::circle(frames.right,cv::Point(screenPositionCenter.right.x,screenPositionCenter.right.y) , 10, color , 2.0 );
 		}
 	}else{
-		text<<"object "<<name<<" is lost";
+		//text<<"object "<<name<<" is lost";
+		text<<"";
 	}
 
 	cv::putText(frames.left,text.str(),cv::Point(screenPositionCenter.left.x , screenPositionCenter.left.y-30),
-			cv::FONT_HERSHEY_SIMPLEX, 1.0 , cv::Scalar(255,255,255) , 2.0);
+			cv::FONT_HERSHEY_SIMPLEX, 1.0 , color , 2.0);
 	cv::putText(frames.right,text.str(),cv::Point(screenPositionCenter.right.x , screenPositionCenter.right.y-30),
-			cv::FONT_HERSHEY_SIMPLEX, 1.0 , cv::Scalar(255,255,255) , 2.0);
+			cv::FONT_HERSHEY_SIMPLEX, 1.0 , color , 2.0);
 }
 
 
@@ -206,7 +212,7 @@ cv::Point3f Marker::getRealPosition(cv::Mat leftCamMatrix , cv::Mat rightCamMatr
 		float w = cord.at<float>(3,i);
 			  x = cord.at<float>(0,i)/w;
 			  y = cord.at<float>(1,i)/w;
-			  z = cord.at<float>(2,i)/(w);
+			  z = cord.at<float>(2,i)/w;
 			 //cout<<"x: "<< x <<" y: "<<y<<" z: "<<z<<endl;
 	}
 

@@ -33,37 +33,48 @@ std::pair<int,int> ArucoObject::findMatch(std::string markerId , std::pair<std::
 
 std::pair<std::vector<int> ,std::vector<int>> ArucoObject::detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , std::pair<std::vector<int> , std::vector<int> > identifiers){
 
-	for(auto m : markerIds){
-			cout<<"findMatches"<<endl;
-					auto indices = findMatch(m , identifiers);
-					cout<<"finadmatches end"<<endl;
+	int foundMarkers=0;
 
-					cout<<"set positions"<<endl;
-					if(indices.first>=0 && indices.second>=0){
-						StereoPoint pos;
-						pos.left = points.left[indices.first];
-						pos.right = points.right[indices.second];
-						markers[m].setPosition(pos);
-					}else{
-						markers[m].setLost(true);
-						tracked = false;
-					}
-					if(!markers[m].isLost()){
-						tracked = true;
-					}
+	for (auto m : markerIds) {
+		auto indices = findMatch(m, identifiers);
+
+		if (indices.first >= 0 && indices.second >= 0) {
+			StereoPoint pos;
+			pos.left = points.left[indices.first];
+			pos.right = points.right[indices.second];
+			markers[m].setPosition(pos);
+
+			PointSet posSet;
+			for(size_t i = 0 ; i<contourSet.first[indices.first].size() ; i++){
+				posSet.left.push_back(contourSet.first[indices.first][i]);
+			}
+			for(size_t i = 0 ; i<contourSet.second[indices.second].size() ; i++){
+				posSet.right.push_back(contourSet.second[indices.second][i]);
+			}
+
+			markers[m].setPosition(posSet);
+
+			foundMarkers++;
+		} else {
+			markers[m].setLost(true);
+			tracked = false;
+		}
 	}
 
-	std::vector<int> a;
-	std::vector<int> b;
+	if(foundMarkers == markerIds.size()){
+		tracked = true;
+	}
 
-	a.push_back(1);
-	b.push_back(2);
-
-	return std::make_pair(a,b);
+	std::pair<std::vector<int>,std::vector<int> > ret ;
+	return ret;
 }
 
 void ArucoObject::track(Frame frame , Frame prevFrame){
+
 	for(auto m : markerIds){
+		if(markers[m].isLost()){
+			tracked = false;
+		}
 		markers[m].refreshPosition(frame , prevFrame);
 	}
 }
