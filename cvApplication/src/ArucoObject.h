@@ -12,6 +12,7 @@
 
 class ArucoObject: public Object {
 private:
+	std::vector<cv::Rect> markerROI;
 	std::pair<int,int> findMatch(std::string markerId , std::pair<std::vector<int> , std::vector<int> > identifiers);
 public:
 	ArucoObject();

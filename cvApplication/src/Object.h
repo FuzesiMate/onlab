@@ -48,6 +48,7 @@ public:
 	std::vector<std::string>getMarkerNames();
 	std::vector<int> getMarkerIds();
 	cv::Point3f getMarkerPosition(std::string markerId);
+	bool isTracked(std::string markerName);
 	bool isTracked();
 	virtual ~Object();
 };

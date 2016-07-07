@@ -112,6 +112,10 @@ void Model::updateModel(std::pair<std::vector< std::vector<cv::Point> > ,std::ve
 
 }
 
+bool Model::isTracked(std::string objectId , std::string markerName){
+	objects[objectId]->isTracked(markerName);
+}
+
 std::vector<std::string> Model::getObjectNames(){
 	return objectIds;
 }

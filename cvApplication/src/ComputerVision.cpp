@@ -126,10 +126,10 @@ void ComputerVision::processCurrentFrame(){
 			}
 		}
 
-		//if(!allTracked){
+		if(!allTracked){
 			contourSet.first = leftImageProcessor->processImage(frame.left);
 			contourSet.second = rightImageProcessor->processImage(frame.right);
-		//}
+		}
 
 		std::pair<std::vector<int> , std::vector<int> > identifiers;
 		identifiers.first = leftImageProcessor->getMarkerIdentifiers();
@@ -166,6 +166,7 @@ void ComputerVision::showImage(){
 		resize(drawing.right,f2,cv::Size(1280/2,1024/2));
 		cv::imshow("left" , f1);
 		cv::imshow("right" , f2);
+		//cv::imshow("origi" , frame.left);
 		cv::waitKey(5);
 	}
 }
@@ -202,7 +203,18 @@ void ComputerVision::sendData(std::string topic){
 
 			auto markerpos = position[markerNames[i]];
 
+			if(model.isTracked(objectIds[o] , markerNames[i])){
+
+			}
+
 			message<<"{";
+			message<<"\"tracked\":";
+			if(model.isTracked(objectIds[o] , markerNames[i])){
+				message<<"\"true\",";
+			}else{
+				message<<"\"false\",";
+			}
+
 			message<<"\"id\":"<<"\""<<markerNames[i]<<"\""<<",";
 			message<<"\"x\":"<<markerpos.x<<",";
 			message<<"\"y\":"<<markerpos.y<<",";

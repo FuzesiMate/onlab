@@ -128,6 +128,10 @@ int Object::getNumberofParts() const {
 	return numberOfParts;
 }
 
+bool Object::isTracked(std::string markerName){
+	return markers[markerName].isLost();
+}
+
 bool Object::isTracked() {
 	return tracked;
 }

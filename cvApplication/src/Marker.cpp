@@ -130,6 +130,7 @@ void Marker::refreshPosition(Frame currentFrame , Frame prevFrame){
 
 void Marker::setPosition(PointSet position){
 	screenPosition = position;
+
 	lost = false;
 }
 
@@ -173,11 +174,11 @@ void Marker::draw(Frame frames){
 
 		text<<name;
 		for(size_t i = 0 ; i<screenPosition.left.size() ; i++){
-			cv::circle(frames.left,cv::Point(screenPositionCenter.left.x,screenPositionCenter.left.y) , 10, color, 2.0 );
+			cv::circle(frames.left,cv::Point(screenPosition.left[i].x,screenPosition.left[i].y) , 1, color, 2.0 );
 		}
 
 		for(size_t i = 0 ; i<screenPosition.right.size() ; i++){
-			cv::circle(frames.right,cv::Point(screenPositionCenter.right.x,screenPositionCenter.right.y) , 10, color , 2.0 );
+			cv::circle(frames.right,cv::Point(screenPosition.right[i].x,screenPosition.right[i].y) , 1, color , 2.0 );
 		}
 	}else{
 		//text<<"object "<<name<<" is lost";
