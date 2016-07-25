@@ -1,17 +1,19 @@
 {
-	"typeofprocessing":"IR",
-	"exposure":15000,
-	"gain":18.0,
-	"threshold":190,
+"typeofprocessing":"ARUCO_MARKER",
+	"exposure":10000,
+	"gain":5.0,
+	"threshold":240,
 	"cameratype":"XIMEA",
+	"matrices":"matrices.yml",
 	"objects": 	[
 				{
 				"name":"robot_arm",
-				"numberofparts":1,
+				"numberofparts":3,
 				"orientation":"OTHER",
-				"parts":[
+				"markers":[
 						{
-						"id":"ref",
+						"name":"arm_bottom",
+						"id": 40,
 						"orientationfromreference":null,
 						"orientationfromprevious":null,
 						"distancefromreference":0.0

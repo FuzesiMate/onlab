@@ -16,26 +16,20 @@
 
 class Object {
 protected:
+	StereoCamera camera;
+
 	int numberOfParts;
 	bool tracked;
 	int count = 0;
 	std::map<std::string , Marker> markers;
 	std::string name;
 	std::vector<std::string>markerIds;
-	cv::Mat leftCamMatrix;
-	cv::Mat rightCamMatrix;
-	cv::Mat leftDistCoeffs;
-	cv::Mat rightDistCoeffs;
-	cv::Mat p1;
-	cv::Mat p2;
-	cv::Mat r1;
-	cv::Mat r2;
 
 	int findIndex(std::vector<cv::Point2f> points, cv::Point2f element);
 
 public:
 	Object();
-	void initializeObject(int numberOfParts , std::string id);
+	void initializeObject(int numberOfParts , std::string id );
 
 	virtual std::pair<std::vector<int> ,std::vector<int>> detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , std::pair<std::vector<int> , std::vector<int> > identifiers)=0;
 	virtual void track(Frame frame , Frame prevFrame)=0;
@@ -43,6 +37,8 @@ public:
 	void draw(Frame frames);
 	void addPart(std::string id, float distanceFromRef, ReferencePosition fromRef , ReferencePosition fromPrev);
 	void addPart(std::string id  , int markerIdentifier);
+
+	void setCamera(StereoCamera cam);
 	int getNumberofParts() const;
 	std::string getId();
 	std::vector<std::string>getMarkerNames();

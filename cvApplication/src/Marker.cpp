@@ -94,15 +94,27 @@ cv::Point2f Marker::calculateOpticalFlow(std::vector<cv::Point2f> currentPoints,
 		throw e;
 	}
 
-	float averageError=0;
+	float minError = error[0];
 
-	for(float& e : error){
-		averageError+=e;
+	for(auto e : error){
+		if(e<minError && e>0){
+			minError = e;
+		}
 	}
 
-	averageError = averageError/error.size();
+	std::vector<cv::Point2f> toDelete;
 
-	if(averageError>5.0f){
+	for(size_t i = 0 ; i<nextPosition.size() ; i++){
+		if(error[i]>minError*1.5f || error[i]==0){
+			toDelete.push_back(nextPosition[i]);
+		}
+	}
+
+	for(auto p : toDelete){
+		nextPosition.erase(std::find(nextPosition.begin() , nextPosition.end() , p));
+	}
+
+	if(nextPosition.size()<3){
 		lost = true;
 	}
 

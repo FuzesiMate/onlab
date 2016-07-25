@@ -12,6 +12,7 @@
 using namespace std;
 
 ArucoObject::ArucoObject() {
+	firstTrack = false;
 }
 
 std::pair<int,int> ArucoObject::findMatch(std::string markerId , std::pair<std::vector<int> , std::vector<int> > identifiers){
@@ -33,16 +34,12 @@ std::pair<int,int> ArucoObject::findMatch(std::string markerId , std::pair<std::
 	return std::make_pair(leftIdentifier , rightIdentifier);
 }
 
-cv::Point2f findCorner(std::vector<cv::Point2f> rectangle){
-	float minx=rectangle[0].x;
-	float miny=rectangle[0].y;
-
-
-}
 
 std::pair<std::vector<int> ,std::vector<int>> ArucoObject::detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , std::pair<std::vector<int> , std::vector<int> > identifiers){
 
 	int foundMarkers=0;
+	markerROI.first.clear();
+	markerROI.second.clear();
 
 	for (auto m : markerIds) {
 		auto indices = findMatch(m, identifiers);
@@ -54,14 +51,18 @@ std::pair<std::vector<int> ,std::vector<int>> ArucoObject::detect(PointSet point
 			markers[m].setPosition(pos);
 
 			PointSet posSet;
+
+			auto rect = cv::boundingRect(contourSet.first[indices.first]);
+			markerROI.first.push_back(rect);
+
+
+			rect = cv::boundingRect(contourSet.second[indices.second]);
+			markerROI.second.push_back(rect);
+
 			for(size_t i = 0 ; i<contourSet.first[indices.first].size() ; i++){
-				/*
-				float w = fabs(contourSet.first[indices.first][0].x-contourSet.first[indices.first][1].x);
-				float h = fabs(contourSet.first[indices.first][0].y-contourSet.first[indices.first][3].y);
-				markerROI.push_back(cv::Rect(contourSet.first[indices.first][2].x ,contourSet.first[indices.first][2].y,w,h));
-				*/
 				posSet.left.push_back(contourSet.first[indices.first][i]);
 			}
+
 			for(size_t i = 0 ; i<contourSet.second[indices.second].size() ; i++){
 				posSet.right.push_back(contourSet.second[indices.second][i]);
 			}
@@ -77,6 +78,7 @@ std::pair<std::vector<int> ,std::vector<int>> ArucoObject::detect(PointSet point
 
 	if(foundMarkers == markerIds.size()){
 		tracked = true;
+		firstTrack = true;
 	}
 
 	std::pair<std::vector<int>,std::vector<int> > ret ;
@@ -84,17 +86,57 @@ std::pair<std::vector<int> ,std::vector<int>> ArucoObject::detect(PointSet point
 }
 
 void ArucoObject::track(Frame frame , Frame prevFrame){
-	/*
-	for(auto r : markerROI){
-		cv::rectangle(frame.left , r , cv::Scalar(0,0,255) , 2.0);
-	}
-	*/
+
+	int i = 0 ;
+
 	for(auto m : markerIds){
 		if(markers[m].isLost()){
 			tracked = false;
+			return;
 		}
+
+		//if the object was just detected we should find the features of the marker
+		//and set the position of the markers
+
+		if (firstTrack) {
+			cv::Mat ROI = frame.left(markerROI.first[i]);
+			cv::cvtColor(ROI, ROI, CV_RGB2GRAY);
+
+			std::vector<cv::Point2f> features;
+			cv::goodFeaturesToTrack(ROI, features, 10, 0.1, 1);
+
+			PointSet pos;
+
+			for (auto p : features) {
+
+				p.x+=markerROI.first[i].x;
+				p.y+=markerROI.first[i].y;
+
+				pos.left.push_back(p);
+			}
+
+			ROI = frame.right(markerROI.second[i]);
+			cv::cvtColor(ROI, ROI, CV_RGB2GRAY);
+
+			cv::goodFeaturesToTrack(ROI, features, 15, 0.01, 2);
+
+			for (auto p : features) {
+
+				p.x+=markerROI.second[i].x;
+				p.y+=markerROI.second[i].y;
+
+				pos.right.push_back(p);
+			}
+
+			markers[m].setPosition(pos);
+
+		}
+		i++;
 		markers[m].refreshPosition(frame , prevFrame);
 	}
+
+	firstTrack = false;
+
 }
 
 ArucoObject::~ArucoObject() {

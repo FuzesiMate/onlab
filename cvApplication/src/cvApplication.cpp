@@ -19,18 +19,24 @@ int main(int argc , char **argv) {
 
 	ComputerVision cvModule;
 
-	cout<<"init"<<endl;
-	if(!cvModule.initialize("aruco_config.json")){
-		cout<<"can not initialize computer vision module"<<endl;
+	cout<<"Initializing computer vision module..."<<endl;
+
+	if(argc==2){
+		if(!cvModule.initialize(argv[1])){
+			cout<<"Problem occured while initializing"<<endl;
+			return -1;
+		}
+	}else{
+		cout<<"Command line argument is missing!"<<endl;
+		return -1;
 	}
 
-	cout<<"init done"<<endl;
 	//Set up MQTT publisher
 
-	cout<<"datasender"<<endl;
+	cout<<"Setting up MQTT..."<<endl;
 	cvModule.setupDataSender(BROKER_URL);
 
-	cout<<"datasender set"<<endl;
+	cout<<"Start capturing and processing"<<endl;
 
 	while(true){
 		//Capture stereo frame

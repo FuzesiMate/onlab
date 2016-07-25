@@ -11,14 +11,14 @@
 #include<opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/video.hpp>
-
+#include <iostream>
 
 StereoCamera::StereoCamera(){
 	initialized = false;
 }
 
 //initializes the two cameras
-bool StereoCamera::init(int exposure , int gain , int camera){
+bool StereoCamera::init(int exposure , int gain , int camera , std::string matrices){
 	bool success = false;
 
 	if(!initialized){
@@ -41,6 +41,22 @@ bool StereoCamera::init(int exposure , int gain , int camera){
 
 		if(success){
 			initialized = true;
+		}
+
+		cv::FileStorage fs;
+		if(fs.open(matrices, cv::FileStorage::READ)){
+			fs["left_camMatrix"] >> cameraMatrices.leftCamMatrix;
+			fs["right_camMatrix"] >> cameraMatrices.rightCamMatrix;
+			fs["p1"] >> cameraMatrices.p1;
+			fs["p2"] >> cameraMatrices.p2;
+			fs["r1"] >> cameraMatrices.r1;
+			fs["r2"] >> cameraMatrices.r2;
+			fs["left_distCoeffs"] >> cameraMatrices.leftDistCoeffs;
+			fs["right_distCoeffs"] >> cameraMatrices.rightDistCoeffs;
+			fs.release();
+		}else{
+			std::cout<<"Could not read camera matrices!"<<std::endl;
+			success = false;
 		}
 	}
 	return success;
@@ -71,5 +87,9 @@ Frame StereoCamera::getNextFrame(){
 	fr.right = right;
 
 	return fr;
+}
+
+CameraMatrices StereoCamera::getCameraMatrices(){
+	return cameraMatrices;
 }
 

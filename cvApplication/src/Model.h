@@ -35,6 +35,7 @@ public:
 	void setShowGrid(bool show);
 	bool isTracked(std::string objectId);
 	bool isTracked(std::string objectId , std::string markerName);
+	void setCamera(StereoCamera cam);
 	virtual ~Model();
 };
 

@@ -23,19 +23,31 @@ bool ComputerVision::initialize(std::string configFilePath){
 	bool success = false;
 
 	boost::property_tree::ptree pt;
-	boost::property_tree::read_json(configFilePath, pt);
+	ImageProcessingType imgProcType;
 
-	int exposure = pt.get<int>(EXPOSURE);
-	float gain = pt.get<float>(GAIN);
+	try {
+		boost::property_tree::read_json(configFilePath, pt);
 
-	ImageProcessingType imgProcType = mapToImgProcType[pt.get<std::string>(TYPEOFPROCESSING)];
-	CameraType camType = mapToCamType[pt.get<std::string>(CAMERATYPE)];
+		int exposure = pt.get<int>(EXPOSURE);
+		float gain = pt.get<float>(GAIN);
 
+		imgProcType = mapToImgProcType[pt.get<std::string>(
+				TYPEOFPROCESSING)];
+		CameraType camType = mapToCamType[pt.get<std::string>(CAMERATYPE)];
 
-	success = camera.init(exposure , gain, CV_CAP_XIAPI);
+		cout<<"Initializing cameras..."<<endl;
 
-	if(!success){
-		cout<<"camera init failed"<<endl;
+		success = camera.init(exposure, gain, CV_CAP_XIAPI , pt.get<std::string>("matrices"));
+
+		if (!success) {
+			cout << "Camera initialization failed!" << endl;
+			return false;
+		}
+
+	} catch (exception &e) {
+		cout << "The JSON file is not valid or missing! Error message: "
+				<< e.what() << endl;
+		return false;
 	}
 
 	switch(imgProcType){
@@ -56,29 +68,38 @@ bool ComputerVision::initialize(std::string configFilePath){
 		break;
 	}
 
-	auto objects = pt.get_child("objects");
 	std::vector<int> markerIds;
 
-		for (auto &object : objects){
+	try {
+		auto objects = pt.get_child("objects");
+
+		for (auto &object : objects) {
 			auto markers = object.second.get_child("markers");
 
-			for (auto &marker : markers){
+			for (auto &marker : markers) {
 				int id = marker.second.get<int>("id");
 				markerIds.push_back(id);
 			}
 		}
 
+	}catch(exception &e){
+		cout<<"Problem occured while reading JSON file! Error message: "<<e.what()<<endl;
+		return false;
+	}
+
 	leftImageProcessor->setMarkerIdentifiers(markerIds);
 	rightImageProcessor->setMarkerIdentifiers(markerIds);
 
-	//leftImageProcessor->setWindow("leftProcessed");
+	leftImageProcessor->setWindow("leftProcessed");
 	leftImageProcessor->setFilterValues(pt);
 
-	//rightImageProcessor->setWindow("rightProcessed");
+	rightImageProcessor->setWindow("rightProcessed");
 	rightImageProcessor->setFilterValues(pt);
 
-	cout<<"build model"<<endl;
+	cout<<"Building model..."<<endl;
 	success = success && model.buildModel(pt);
+
+	model.setCamera(camera);
 
 	if(success){
 		initialized = true;
@@ -137,8 +158,11 @@ void ComputerVision::processCurrentFrame(){
 
 		model.updateModel(contourSet,identifiers, frame , prevFrame);
 
-		cv::cvtColor(frame.left ,drawing.left  , CV_GRAY2RGB);
-		cv::cvtColor(frame.right,drawing.right , CV_GRAY2RGB);
+		//cv::cvtColor(frame.left ,drawing.left  , CV_GRAY2RGB);
+		//cv::cvtColor(frame.right,drawing.right , CV_GRAY2RGB);
+		drawing.left = frame.left.clone();
+		drawing.right = frame.right.clone();
+
 		model.draw(drawing);
 	}
 }

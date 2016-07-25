@@ -12,14 +12,14 @@
 
 class ArucoObject: public Object {
 private:
-	std::vector<cv::Rect> markerROI;
+	std::pair<std::vector<cv::Rect> , std::vector<cv::Rect> > markerROI;
+	bool firstTrack;
 	std::pair<int,int> findMatch(std::string markerId , std::pair<std::vector<int> , std::vector<int> > identifiers);
 public:
 	ArucoObject();
 
 	virtual std::pair<std::vector<int> ,std::vector<int>> detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , std::pair<std::vector<int> , std::vector<int> > identifiers);
 	virtual void track(Frame frame , Frame prevFrame);
-
 	virtual ~ArucoObject();
 };
 

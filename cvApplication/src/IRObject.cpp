@@ -120,9 +120,11 @@ void IRObject::track(Frame frame, Frame prevFrame) {
 
 		auto reference = markers[markerIds[0]].getPosition();
 
-		auto refReal = markers[markerIds[0]].getRealPosition(leftCamMatrix,
-				rightCamMatrix, r1, r2, p1, p2, leftDistCoeffs,
-				rightDistCoeffs);
+		auto matrices = camera.getCameraMatrices();
+
+		auto refReal = markers[markerIds[0]].getRealPosition(matrices.leftCamMatrix,
+				matrices.rightCamMatrix, matrices.r1, matrices.r2, matrices.p1, matrices.p2, matrices.leftDistCoeffs,
+				matrices.rightDistCoeffs);
 
 		for (auto i = 1; i < markerIds.size(); i++) {
 			if (tracked) {
@@ -131,8 +133,8 @@ void IRObject::track(Frame frame, Frame prevFrame) {
 				ReferencePosition fromPrev;
 				ReferencePosition fromRef;
 
-				cv::Point3f mReal = m.getRealPosition(leftCamMatrix, rightCamMatrix,
-						r1, r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
+				cv::Point3f mReal = m.getRealPosition(matrices.leftCamMatrix, matrices.rightCamMatrix,
+						matrices.r1, matrices.r2, matrices.p1, matrices.p2, matrices.leftDistCoeffs, matrices.rightDistCoeffs);
 
 
 
@@ -185,6 +187,7 @@ std::pair<std::vector<int>, std::vector<int>> IRObject::detect(PointSet points,s
 		return MatchPointIdx;
 	}
 
+	auto matrices = camera.getCameraMatrices();
 
 	int c=0;
 	while (!tracked) {
@@ -232,9 +235,11 @@ std::pair<std::vector<int>, std::vector<int>> IRObject::detect(PointSet points,s
 
 			markers[markerIds[0]].setPosition(pointset);
 
+
+
 			auto refPosition = markers[markerIds[0]].getRealPosition(
-					leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
-					leftDistCoeffs, rightDistCoeffs);
+					matrices.leftCamMatrix, matrices.rightCamMatrix, matrices.r1, matrices.r2, matrices.p1, matrices.p2,
+					matrices.leftDistCoeffs, matrices.rightDistCoeffs);
 
 			MatchPointIdx.second.push_back(
 					findIndex(points.right, rightMatchPoints.second[0]));
@@ -271,8 +276,8 @@ std::pair<std::vector<int>, std::vector<int>> IRObject::detect(PointSet points,s
 				markers[markerIds[i]].setPosition(pointset);
 
 				auto position = markers[markerIds[i]].getRealPosition(
-						leftCamMatrix, rightCamMatrix, r1, r2, p1, p2,
-						leftDistCoeffs, rightDistCoeffs);
+						matrices.leftCamMatrix, matrices.rightCamMatrix, matrices.r1, matrices.r2, matrices.p1, matrices.p2,
+						matrices.leftDistCoeffs, matrices.rightDistCoeffs);
 				auto distanceFromRef = sqrtf(
 						powf(position.x - refPosition.x, 2.0)
 								+ powf(position.y - refPosition.y, 2.0)
@@ -323,7 +328,9 @@ std::pair<std::vector<int>, std::vector<int>> IRObject::detect(PointSet points,s
 			MatchPointIdx.first.clear();
 			MatchPointIdx.second.clear();
 		}
+
 		return MatchPointIdx;
+
 	}
 
 

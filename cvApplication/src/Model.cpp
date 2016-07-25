@@ -26,38 +26,44 @@ bool Model::buildModel(boost::property_tree::ptree propertyTree){
 
 	std::vector<std::shared_ptr<Object> > listOfObjects;
 
-	auto imageProcessingType = propertyTree.get<std::string>("typeofprocessing");
+	try{
+		auto imageProcessingType = propertyTree.get<std::string>("typeofprocessing");
 
-	auto InputObjects = propertyTree.get_child("objects");
+			auto InputObjects = propertyTree.get_child("objects");
 
-	for (auto &object : InputObjects){
-			auto nameofObject = object.second.get<std::string>("name");
-			auto numberofParts  = object.second.get<int>("numberofparts");
+			for (auto &object : InputObjects){
+					auto nameofObject = object.second.get<std::string>("name");
+					auto numberofParts  = object.second.get<int>("numberofparts");
 
-			std::shared_ptr<Object> compObject;
+					std::shared_ptr<Object> compObject;
 
-			if(imageProcessingType=="IR"){
-				compObject= std::shared_ptr<Object>(new IRObject());
-			}else if(imageProcessingType=="ARUCO_MARKER"){
-				compObject= std::shared_ptr<Object>(new ArucoObject());
-			}
+					if(imageProcessingType=="IR"){
+						compObject= std::shared_ptr<Object>(new IRObject());
+					}else if(imageProcessingType=="ARUCO_MARKER"){
+						compObject= std::shared_ptr<Object>(new ArucoObject());
+					}
 
-			compObject->initializeObject(numberofParts,nameofObject);
+					compObject->initializeObject(numberofParts,nameofObject);
 
-			auto markers = object.second.get_child("markers");
+					auto markers = object.second.get_child("markers");
 
-			for (auto &marker : markers){
-				if(imageProcessingType=="IR"){
-					compObject->addPart(marker.second.get<std::string>("name") , marker.second.get<float>("distancefromreference"),
-							mapToReferencePosition[marker.second.get<std::string>("orientationfromreference")],
-							mapToReferencePosition[marker.second.get<std::string>("orientationfromprevious")]);
-				}else if(imageProcessingType =="ARUCO_MARKER"){
-					compObject->addPart(marker.second.get<std::string>("name") , marker.second.get<int>("id"));
+					for (auto &marker : markers){
+						if(imageProcessingType=="IR"){
+							compObject->addPart(marker.second.get<std::string>("name") , marker.second.get<float>("distancefromreference"),
+									mapToReferencePosition[marker.second.get<std::string>("orientationfromreference")],
+									mapToReferencePosition[marker.second.get<std::string>("orientationfromprevious")]);
+						}else if(imageProcessingType =="ARUCO_MARKER"){
+							compObject->addPart(marker.second.get<std::string>("name") , marker.second.get<int>("id"));
+						}
+					}
+
+					listOfObjects.push_back(compObject);
 				}
-			}
+	}catch(exception &e){
+		cout<<"Problem occured while building model. Error message:"<<e.what()<<endl;
+		return false;
+	}
 
-			listOfObjects.push_back(compObject);
-		}
 
 	//decreasing size of objects
 	//important for detection
@@ -104,12 +110,14 @@ void Model::updateModel(std::pair<std::vector< std::vector<cv::Point> > ,std::ve
 			objects[objectId]->detect(points ,contourSet , identifiers);
 		}else{
 			objects[objectId]->track(frame , prevFrame);
-			// no tracking currently
-			//objects[objectId]->detect(points ,contourSet , identifiers);
 		}
-
 	}
+}
 
+void Model::setCamera(StereoCamera cam){
+	for(auto o : objectIds){
+		objects[o]->setCamera(cam);
+	}
 }
 
 bool Model::isTracked(std::string objectId , std::string markerName){

@@ -29,18 +29,6 @@ void Object::initializeObject(int numberOfParts, string id) {
 	this->numberOfParts = numberOfParts;
 	tracked = false;
 	this->name = id;
-
-	FileStorage fs;
-	fs.open("matrices.yml", FileStorage::READ);
-	fs["left_camMatrix"] >> leftCamMatrix;
-	fs["right_camMatrix"] >> rightCamMatrix;
-	fs["p1"] >> p1;
-	fs["p2"] >> p2;
-	fs["r1"] >> r1;
-	fs["r2"] >> r2;
-	fs["left_distCoeffs"] >> leftDistCoeffs;
-	fs["right_distCoeffs"] >> rightDistCoeffs;
-	fs.release();
 }
 
 string toString(int i) {
@@ -80,22 +68,25 @@ void Object::draw(Frame frames) {
 			 * Augmented reality, just for fun :)
 
 			 *
+
 			 Mat rMat,tVec,camMatrix;
 
-			 Point3f mReal = markers[markerIds[i]].getRealPosition(leftCamMatrix, rightCamMatrix,
-			 r1, r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
+			 auto matrices = camera.getCameraMatrices();
 
-			 decomposeProjectionMatrix(p1 , camMatrix , rMat , tVec);
+			 Point3f mReal = markers[markerIds[i]].getRealPosition(matrices.leftCamMatrix, matrices.rightCamMatrix,
+			 matrices.r1, matrices.r2, matrices.p1, matrices.p2, matrices.leftDistCoeffs, matrices.rightDistCoeffs);
+
+			 decomposeProjectionMatrix(matrices.p1 , camMatrix , rMat , tVec);
 
 			 vector<Point3f> realPoints;
 			 vector<Point2f> imagePoints;
 
 			 for(int i = 0 ; i<15  ; i++){
-			 realPoints.push_back(Point3f(mReal.x, mReal.y+i,mReal.z));
+				 realPoints.push_back(Point3f(mReal.x, mReal.y,mReal.z+i));
 			 }
 
 			 Mat rotVec;
-			 Rodrigues(r1 , rotVec);
+			 Rodrigues(matrices.r1 , rotVec);
 
 			 vector<float> tv;
 
@@ -103,21 +94,27 @@ void Object::draw(Frame frames) {
 			 tv.push_back(0);
 			 tv.push_back(0);
 
-			 projectPoints(realPoints , rotVec , tv , leftCamMatrix , leftDistCoeffs , imagePoints);
+			 projectPoints(realPoints , rotVec , tv , matrices.leftCamMatrix , matrices.leftDistCoeffs , imagePoints);
 
 			 for(Point2f p : imagePoints){
 			 circle(frames.left , Point(p.x,p.y) , 2 , Scalar(255,255,255) , 2);
 			 }
-			 */
+			*/
 
 			markers[markerIds[i]].draw(frames);
 		}
 
 }
 
+void Object::setCamera(StereoCamera cam){
+	camera = cam;
+}
+
 cv::Point3f Object::getMarkerPosition(std::string markerId) {
-	return markers[markerId].getRealPosition(leftCamMatrix, rightCamMatrix, r1,
-			r2, p1, p2, leftDistCoeffs, rightDistCoeffs);
+	auto matrices = camera.getCameraMatrices();
+
+	return markers[markerId].getRealPosition(matrices.leftCamMatrix, matrices.rightCamMatrix, matrices.r1,
+			matrices.r2, matrices.p1, matrices.p2, matrices.leftDistCoeffs, matrices.rightDistCoeffs);
 }
 
 std::vector<std::string> Object::getMarkerNames() {
