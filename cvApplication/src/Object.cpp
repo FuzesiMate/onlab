@@ -7,14 +7,14 @@
 
 #include "Object.h"
 
-int Object::getCallCounter(){
+template<typename CONFIG>
+int Object<CONFIG>::getCallCounter(){
 	return callCounter;
 }
 
-void Object::update(ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > data){
+template<typename CONFIG>
+void Object<CONFIG>::update(ImageProcessingData<typename CONFIG::dataType , typename CONFIG::identifierType > data){
 	callCounter++;
-
-	bool allTracked = true;
 
 	for(auto m : markers){
 		int id = m.second->getId();
@@ -40,7 +40,7 @@ void Object::update(ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tb
 			m.second->setPosition(position);
 		}else{
 			m.second->lost();
-			allTracked = false;
+
 		}
 	}
 
@@ -48,11 +48,13 @@ void Object::update(ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tb
 	frameIndex = data.frameIndex;
 }
 
-tbb::concurrent_vector<cv::Point2f>& Object::getMarkerPosition(std::string name){
+template<typename CONFIG>
+tbb::concurrent_vector<cv::Point2f>& Object<CONFIG>::getMarkerPosition(std::string name){
 	return markers[name]->getPosition();
 }
 
-std::vector<std::string> Object::getMarkerNames(){
+template<typename CONFIG>
+std::vector<std::string> Object<CONFIG>::getMarkerNames(){
 	std::vector<std::string> names;
 	for(auto m : markers){
 		names.push_back(m.first);
@@ -60,15 +62,18 @@ std::vector<std::string> Object::getMarkerNames(){
 	return names;
 }
 
-int64_t Object::getFrameIndex(){
+template<typename CONFIG>
+int64_t Object<CONFIG>::getFrameIndex(){
 	return frameIndex;
 }
 
-int64_t Object::getTimestamp(){
+template<typename CONFIG>
+int64_t Object<CONFIG>::getTimestamp(){
 	return timestamp;
 }
 
-void Object::addMarker(std::string name , int id){
+template<typename CONFIG>
+void Object<CONFIG>::addMarker(std::string name , int id){
 	markers[name] = std::shared_ptr<Marker>(new Marker(name, id));
 }
 

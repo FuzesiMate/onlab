@@ -14,20 +14,22 @@
 #include "ImageProcessor.h"
 #include "Marker.h"
 
-class Object :public tbb::flow::function_node<ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > , tbb::flow::continue_msg , tbb::flow::queueing> {
+template <typename CONFIG>
+class Object :public tbb::flow::function_node<ImageProcessingData<typename CONFIG::dataType ,typename CONFIG::identifierType > , tbb::flow::continue_msg , tbb::flow::queueing> {
 private:
 	std::string name;
-	bool tracked;
+	std::atomic_bool tracked;
 	int numberOfMarkers;
-	int64_t frameIndex;
-	int64_t timestamp;
-	int callCounter;
+	std::atomic<int64_t> frameIndex;
+	std::atomic<int64_t> timestamp;
+	std::atomic_int callCounter;
 	tbb::concurrent_unordered_map<std::string, std::shared_ptr<Marker> > markers;
 
 public:
-	//Object(tbb::flow::graph& g):tbb::flow::function_node<ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> >(g , 1 , std::bind(&Object::update , this , std::placeholders::_1)){};
-	Object(std::string name , int numberOfMarkers , tbb::flow::graph& g):tbb::flow::function_node<ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > , tbb::flow::continue_msg , tbb::flow::queueing>(g , tbb::flow::serial , std::bind(&Object::update , this , std::placeholders::_1)),name(name),tracked(false),numberOfMarkers(numberOfMarkers){callCounter=0;timestamp =0 ; frameIndex=0;};
-	void update(ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > data);
+	Object(std::string name , int numberOfMarkers , tbb::flow::graph& g):tbb::flow::function_node<ImageProcessingData<typename CONFIG::dataType , typename CONFIG::identifierType > , tbb::flow::continue_msg , tbb::flow::queueing>(g , tbb::flow::serial , std::bind(&Object::update , this , std::placeholders::_1)),
+			name(name),tracked(false),numberOfMarkers(numberOfMarkers),frameIndex(0),timestamp(0),callCounter(0){};
+
+	void update(ImageProcessingData<typename CONFIG::dataType ,typename CONFIG::identifierType > data);
 	void addMarker(std::string name , int id );
 	tbb::concurrent_vector<cv::Point2f>& getMarkerPosition(std::string name);
 	std::vector<std::string> getMarkerNames();

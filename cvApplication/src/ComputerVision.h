@@ -33,7 +33,6 @@ typedef tbb::concurrent_vector<int> defaultIdentifier;
 class ComputerVision :public tbb::flow::graph{
 private:
 	std::unique_ptr<Camera> camera;
-	std::shared_ptr<Model> model;
 
 	boost::property_tree::ptree config;
 	std::atomic_bool initialized;

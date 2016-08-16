@@ -25,7 +25,7 @@ int main(int argc , char *argv[]) {
 
 	ComputerVision cvModule;
 
-	if(!cvModule.initialize(argv[1])){
+	if(!cvModule.initialize("input.json")){
 		cout<<"failed to init"<<endl;
 		return -1;
 	}
@@ -53,44 +53,6 @@ int main(int argc , char *argv[]) {
 			break;
 		}
 	}
-
-	//cvModule.startProcessing();
-
-/*
-	if(argc==2){
-		if(!cvModule.initialize(argv[1])){
-			cout<<"Problem occured while initializing"<<endl;
-			return -1;
-		}
-	}else{
-		cout<<"Command line argument is missing!"<<endl;
-		return -1;
-	}
-
-	//Set up MQTT publisher
-
-	cout<<"Setting up MQTT..."<<endl;
-	cvModule.setupDataSender(BROKER_URL);
-
-	cout<<"Start capturing and processing"<<endl;
-
-	while(true){
-		//Capture stereo frame
-
-		cvModule.captureFrame();
-
-		//Process the captured frames
-
-		cvModule.processCurrentFrame();
-
-		//Show video stream
-
-		cvModule.showImage();
-
-		//send data over MQTT
-		cvModule.sendData(CV_DATA_TOPIC);
-	}
-	*/
 
 	return 0;
 }

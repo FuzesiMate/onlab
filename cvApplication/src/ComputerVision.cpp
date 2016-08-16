@@ -8,6 +8,8 @@
 #include "ComputerVision.h"
 #include "ArucoImageProcessor.h"
 #include "ArucoImageProcessor.cpp"
+#include "Object.cpp"
+#include "Model.cpp"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <cstdio>
@@ -15,16 +17,14 @@
 
 bool ComputerVision::initialize(std::string configFilePath) {
 
+	boost::property_tree::ptree config;
 	try{
-		boost::property_tree::ptree config;
 		boost::property_tree::read_json(configFilePath, config);
 	}catch(std::exception& e){
 		std::cout<<"JSON file is missing or invalid!"<<std::endl;
 		initialized = false;
 		return initialized;
 	}
-
-	model = std::unique_ptr<Model>(new Model());
 
 	camera = std::unique_ptr<Camera>(
 			new Camera(config.get<int>(FPS) , config.get<int>(EXPOSURE) , config.get<int>(GAIN) , config.get<int>(NUMBEROFCAMERAS) , *this));
@@ -37,10 +37,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		initialized = camera->init(0);
 	}
 
-	initialized = initialized && model->build(config , *this);
-
 	processing = false;
-
 	this->config = config;
 
 	return initialized;
@@ -51,15 +48,20 @@ void ComputerVision::startProcessing() {
 
 	using cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
 
+	tbb::concurrent_unordered_map<std::string , std::shared_ptr<ImageProcessor<cfg> > imageprocessors;
+
 	ArucoImageProcessor <cfg> imageProcessor(*this);
+	std::shared_ptr<Model<cfg> > model = std::make_shared<Model<cfg> >();
+
+	std::cout<<"build"<<std::endl;
+	model->build(config , *this);
+	std::cout<<"build end"<<std::endl;
 
 	if(initialized){
 
 		processing = true;
 
-		tbb::flow::function_node<tbb::flow::tuple<Frame , tbb::flow::continue_msg> ,tbb::flow::continue_msg ,tbb::flow::queueing > drawer(*this , 1 , [&](tbb::flow::tuple<Frame , tbb::flow::continue_msg> data){
-
-			auto frame = std::get<0>(data);
+		tbb::flow::function_node<Frame ,tbb::flow::continue_msg ,tbb::flow::queueing > drawer(*this , 1 , [&](Frame frame){
 
 			auto time = std::chrono::steady_clock::now();
 			auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
@@ -67,7 +69,7 @@ void ComputerVision::startProcessing() {
 			auto diff = 500 -(currentTime-frame.timestamp);
 
 			if(diff>0){
-				//Sleep(diff);
+				Sleep(diff);
 			}
 
 			auto objects = model->getObjectNames();
@@ -201,21 +203,17 @@ void ComputerVision::startProcessing() {
 
 		make_edge(*camera , imageProcessor);
 		make_edge(imageProcessor , dataSequencer);
-		make_edge(*camera , tbb::flow::input_port<0>(join));
-		make_edge(cont ,  tbb::flow::input_port<1>(join));
-		make_edge(join , drawer);
+		//make_edge(*camera , tbb::flow::input_port<0>(join));
+		//make_edge(cont ,  tbb::flow::input_port<1>(join));
+		make_edge(*camera , drawer);
 		make_edge(dataSequencer , broadcaster);
 		make_edge(sender , sink);
 
 		auto objects = model->getObjectNames();
 
-		//std::vector<std::shared_ptr<tbb::flow::buffer_node<tbb::flow::continue_msg> > > buffers(objects.size());
-
 		for(auto o : objects){
-		//	buffers[index] = std::shared_ptr<tbb::flow::buffer_node<tbb::flow::continue_msg> > (new tbb::flow::buffer_node<tbb::flow::continue_msg>(*this)) ;
 			make_edge(broadcaster , *model->getObject(o));
 			make_edge(*model->getObject(o) , cont);
-			//make_edge(*buffers[index] , cont);
 		}
 
 		camera->startRecording();

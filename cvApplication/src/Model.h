@@ -12,19 +12,24 @@
 #include <boost/property_tree/ptree.hpp>
 #include "ImageProcessor.h"
 #include "Object.h"
+#include "TemplateConfiguration.h"
+
+template<typename CONFIG>
 
 class Model {
 private:
-	tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object> > objects;
+
+	tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<CONFIG> > > objects;
+
 public:
 	Model() = default;
 	bool build(boost::property_tree::ptree config , tbb::flow::graph& g);
 	tbb::concurrent_vector<cv::Point2f> const & getPosition(std::string objectName , std::string markerName);
 	std::vector<std::string> const getObjectNames();
 	std::vector<std::string> const getMarkerNames(std::string objectName);
-	std::shared_ptr<Object> const getObject(std::string objectName);
+	std::shared_ptr<Object<CONFIG> > const getObject(std::string objectName);
 	int getCallCounter(std::string objectName){
-		return objects[objectName]->getCallCounter();
+		return objects.at(objectName)->getCallCounter();
 	}
 	virtual ~Model() = default;
 };

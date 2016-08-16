@@ -1,7 +1,7 @@
 {
-	"cameratype" : "default",
+	"cameratype" : "ximea",
 	"numberofcameras" : 1,
-	"exposure" 	 : 15000,
+	"exposure" 	 : 5000,
 	"gain" 		 : 5,
 	"fps" 		 : 30,
 	"objects": 	[
