@@ -1,63 +1,51 @@
 /*
  * ArucoImageProcessor.cpp
  *
- *  Created on: 2016. jún. 30.
+ *  Created on: 2016. aug. 9.
  *      Author: Máté
  */
 
 #include "ArucoImageProcessor.h"
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+#include "tbb/parallel_for.h"
+#include "tbb/concurrent_vector.h"
+#include <opencv2/aruco.hpp>
+#include <chrono>
 
-ArucoImageProcessor::ArucoImageProcessor() {
-	detectorParams =  cv::aruco::DetectorParameters::create();
-	dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(0));
-}
+template <typename CONFIG>
+ImageProcessingData< typename CONFIG::dataType ,typename CONFIG::identifierType >ArucoImageProcessor<CONFIG>::ProcessNextFrame(Frame frame){
 
-std::vector< std::vector<cv::Point> >ArucoImageProcessor::processImage(cv::Mat frame){
+	ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > foundMarkers;
 
-	std::vector< std::vector< cv::Point2f > > corners, rejected;
+	foundMarkers.data = tbb::concurrent_vector<tbb::concurrent_vector<cv::Point2f> >(frame.images.size());
+	foundMarkers.identifiers = tbb::concurrent_vector<tbb::concurrent_vector<int> >(frame.images.size());
 
-	foundMarkerIdentifiers.clear();
+	tbb::parallel_for(size_t(0) , frame.images.size() , [&](size_t i){
 
-	cv::aruco::detectMarkers(frame, dictionary, corners, foundMarkerIdentifiers, detectorParams, rejected);
+		std::vector< std::vector< cv::Point2f > > corners, rejected;
+		std::vector<int> identifiers;
+		cv::aruco::detectMarkers(frame.images[i] , dictionary , corners , identifiers , detectorParams , rejected) ;
 
-	cv::Mat drawing = frame.clone();
-	cv::aruco::drawDetectedMarkers(drawing , corners , foundMarkerIdentifiers);
-	cv::resize(drawing , drawing , cv::Size(640,480));
-	imshow(winname , drawing);
+		cv::Point2f center;
+		float r;
 
-	std::vector< std::vector<cv::Point> > transformed(corners.size());
+		tbb::concurrent_vector<cv::Point2f> markerPosition(corners.size());
+		tbb::concurrent_vector<int> 		markerIdentifier(identifiers.size());
 
-	for(auto i = 0 ; i<corners.size() ; i++){
-			//std::vector<cv::Point> cornerPoints;
-		for(auto j = 0 ; j<corners[i].size() ; j++){
-			transformed[i].push_back(cv::Point(corners[i][j].x , corners[i][j].y));
+		int j = 0 ;
+		for(auto& corner : corners){
+			cv::minEnclosingCircle(corner , center , r);
+			markerPosition[j] = center;
+			markerIdentifier[j]=identifiers[j];
+			j++;
 		}
-			//transformed.push_back(cornerPoints);
-	}
 
-	return transformed;
-}
-	//set a window to show the processed image
-void ArucoImageProcessor::setWindow(std::string winname){
-	this->winname = winname;
-	cv::namedWindow(winname , CV_WINDOW_AUTOSIZE);
-}
-	//set the processing specific filter values
-void ArucoImageProcessor::setFilterValues(boost::property_tree::ptree propertyTree){
+		foundMarkers.data[i]=(markerPosition);
+		foundMarkers.identifiers[i]=(markerIdentifier);
+	});
 
-}
-	//get the processing specific additional information to identify contours
-std::vector<int> ArucoImageProcessor::getMarkerIdentifiers(){
-	return foundMarkerIdentifiers;
-}
+	foundMarkers.timestamp = frame.timestamp;
+	foundMarkers.frameIndex = frame.frameIndex;
+	prevFrameIdx = frame.frameIndex;
 
-void ArucoImageProcessor::setMarkerIdentifiers(std::vector<int> identifiers){
-	markerIdentifiers = identifiers;
+	return foundMarkers;
 }
-
-ArucoImageProcessor::~ArucoImageProcessor(){}
-

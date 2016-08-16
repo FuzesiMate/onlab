@@ -1,143 +1,75 @@
 /*
- * ComplexObject.cpp
+ * Object.cpp
  *
- *  Created on: 2016. ápr. 14.
+ *  Created on: 2016. aug. 11.
  *      Author: Máté
  */
 
 #include "Object.h"
-#include "Marker.h"
 
-#include <math.h>
-#include <iostream>
-#include <algorithm>
-#include <string>
-#include <opencv2/highgui.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/calib3d.hpp>
-
-using namespace std;
-using namespace cv;
-
-Object::Object() :
-		tracked(false) {
-
+int Object::getCallCounter(){
+	return callCounter;
 }
 
-void Object::initializeObject(int numberOfParts, string id) {
-	this->numberOfParts = numberOfParts;
-	tracked = false;
-	this->name = id;
-}
+void Object::update(ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > data){
+	callCounter++;
 
-string toString(int i) {
-	stringstream s;
-	s << i;
-	return s.str();
-}
+	bool allTracked = true;
 
-void Object::addPart(std::string id, float distanceFromRef,
-		ReferencePosition fromRef, ReferencePosition fromPrev) {
-	Marker o(id, distanceFromRef, fromRef, fromPrev);
-	markerIds.push_back(id);
-	markers[id] = o;
-}
+	for(auto m : markers){
+		int id = m.second->getId();
+		bool found = true;
 
-void Object::addPart(std::string id, int markerIdentifier) {
-	Marker o(id, markerIdentifier);
-	markerIds.push_back(id);
-	markers[id] = o;
-}
+		tbb::concurrent_vector<cv::Point2f> position;
 
-int Object::findIndex(std::vector<Point2f> points, Point2f element) {
-	auto res = std::find(points.begin(), points.end(), element);
-	if (res != points.end()) {
-		return std::distance(points.begin(), res);
-	} else {
-		return -1;
-	}
+		int i = 0 ;
+		for(auto identifier : data.identifiers){
 
-}
+			auto index = std::find(identifier.begin() , identifier.end() , id);
 
-void Object::draw(Frame frames) {
-
-		for (auto i = 0; i < markerIds.size(); i++) {
-
-			/*
-			 * Augmented reality, just for fun :)
-
-			 *
-
-			 Mat rMat,tVec,camMatrix;
-
-			 auto matrices = camera.getCameraMatrices();
-
-			 Point3f mReal = markers[markerIds[i]].getRealPosition(matrices.leftCamMatrix, matrices.rightCamMatrix,
-			 matrices.r1, matrices.r2, matrices.p1, matrices.p2, matrices.leftDistCoeffs, matrices.rightDistCoeffs);
-
-			 decomposeProjectionMatrix(matrices.p1 , camMatrix , rMat , tVec);
-
-			 vector<Point3f> realPoints;
-			 vector<Point2f> imagePoints;
-
-			 for(int i = 0 ; i<15  ; i++){
-				 realPoints.push_back(Point3f(mReal.x, mReal.y,mReal.z+i));
-			 }
-
-			 Mat rotVec;
-			 Rodrigues(matrices.r1 , rotVec);
-
-			 vector<float> tv;
-
-			 tv.push_back(0);
-			 tv.push_back(0);
-			 tv.push_back(0);
-
-			 projectPoints(realPoints , rotVec , tv , matrices.leftCamMatrix , matrices.leftDistCoeffs , imagePoints);
-
-			 for(Point2f p : imagePoints){
-			 circle(frames.left , Point(p.x,p.y) , 2 , Scalar(255,255,255) , 2);
-			 }
-			*/
-
-			markers[markerIds[i]].draw(frames);
+			if(index==identifier.end()){
+				found = false;
+			}else{
+				auto posIndex = std::distance(identifier.begin() , index);
+				position.push_back(data.data[i][posIndex]);
+			}
+			i++;
 		}
 
+		if(found){
+			m.second->setPosition(position);
+		}else{
+			m.second->lost();
+			allTracked = false;
+		}
+	}
+
+	//std::cout<<"update object "<<name<<std::endl;
+	frameIndex = data.frameIndex;
 }
 
-void Object::setCamera(StereoCamera cam){
-	camera = cam;
+tbb::concurrent_vector<cv::Point2f>& Object::getMarkerPosition(std::string name){
+	return markers[name]->getPosition();
 }
 
-cv::Point3f Object::getMarkerPosition(std::string markerId) {
-	auto matrices = camera.getCameraMatrices();
-
-	return markers[markerId].getRealPosition(matrices.leftCamMatrix, matrices.rightCamMatrix, matrices.r1,
-			matrices.r2, matrices.p1, matrices.p2, matrices.leftDistCoeffs, matrices.rightDistCoeffs);
+std::vector<std::string> Object::getMarkerNames(){
+	std::vector<std::string> names;
+	for(auto m : markers){
+		names.push_back(m.first);
+	}
+	return names;
 }
 
-std::vector<std::string> Object::getMarkerNames() {
-	return markerIds;
+int64_t Object::getFrameIndex(){
+	return frameIndex;
 }
 
-int Object::getNumberofParts() const {
-	return numberOfParts;
+int64_t Object::getTimestamp(){
+	return timestamp;
 }
 
-bool Object::isTracked(std::string markerName){
-	return markers[markerName].isLost();
+void Object::addMarker(std::string name , int id){
+	markers[name] = std::shared_ptr<Marker>(new Marker(name, id));
 }
 
-bool Object::isTracked() {
-	return tracked;
-}
-
-std::string Object::getId() {
-	return name;
-}
-
-Object::~Object() {
-	// TODO Auto-generated destructor stub
-}
 

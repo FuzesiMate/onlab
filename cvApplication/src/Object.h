@@ -1,52 +1,40 @@
 /*
- * ComplexObject.h
+ * Object.h
  *
- *  Created on: 2016. ápr. 14.
+ *  Created on: 2016. aug. 11.
  *      Author: Máté
  */
 
 #ifndef OBJECT_H_
 #define OBJECT_H_
 
-#include <opencv2/core.hpp>
-#include <map>
+#include <tbb/flow_graph.h>
+#include <tbb/concurrent_vector.h>
+#include <tbb/concurrent_unordered_map.h>
+#include "ImageProcessor.h"
 #include "Marker.h"
-#include "stereoCamera.h"
-#include <iostream>
 
-class Object {
-protected:
-	StereoCamera camera;
-
-	int numberOfParts;
-	bool tracked;
-	int count = 0;
-	std::map<std::string , Marker> markers;
+class Object :public tbb::flow::function_node<ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > , tbb::flow::continue_msg , tbb::flow::queueing> {
+private:
 	std::string name;
-	std::vector<std::string>markerIds;
-
-	int findIndex(std::vector<cv::Point2f> points, cv::Point2f element);
+	bool tracked;
+	int numberOfMarkers;
+	int64_t frameIndex;
+	int64_t timestamp;
+	int callCounter;
+	tbb::concurrent_unordered_map<std::string, std::shared_ptr<Marker> > markers;
 
 public:
-	Object();
-	void initializeObject(int numberOfParts , std::string id );
-
-	virtual std::pair<std::vector<int> ,std::vector<int>> detect(PointSet points,std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet , std::pair<std::vector<int> , std::vector<int> > identifiers)=0;
-	virtual void track(Frame frame , Frame prevFrame)=0;
-
-	void draw(Frame frames);
-	void addPart(std::string id, float distanceFromRef, ReferencePosition fromRef , ReferencePosition fromPrev);
-	void addPart(std::string id  , int markerIdentifier);
-
-	void setCamera(StereoCamera cam);
-	int getNumberofParts() const;
-	std::string getId();
-	std::vector<std::string>getMarkerNames();
-	std::vector<int> getMarkerIds();
-	cv::Point3f getMarkerPosition(std::string markerId);
-	bool isTracked(std::string markerName);
-	bool isTracked();
-	virtual ~Object();
+	//Object(tbb::flow::graph& g):tbb::flow::function_node<ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> >(g , 1 , std::bind(&Object::update , this , std::placeholders::_1)){};
+	Object(std::string name , int numberOfMarkers , tbb::flow::graph& g):tbb::flow::function_node<ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > , tbb::flow::continue_msg , tbb::flow::queueing>(g , tbb::flow::serial , std::bind(&Object::update , this , std::placeholders::_1)),name(name),tracked(false),numberOfMarkers(numberOfMarkers){callCounter=0;timestamp =0 ; frameIndex=0;};
+	void update(ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > data);
+	void addMarker(std::string name , int id );
+	tbb::concurrent_vector<cv::Point2f>& getMarkerPosition(std::string name);
+	std::vector<std::string> getMarkerNames();
+	int64_t getFrameIndex();
+	int getCallCounter();
+	int64_t getTimestamp();
+	virtual ~Object() = default;
 };
 
 #endif /* OBJECT_H_ */

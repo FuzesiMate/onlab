@@ -1,312 +1,239 @@
 /*
  * ComputerVision.cpp
  *
- *  Created on: 2016. máj. 13.
+ *  Created on: 2016. aug. 9.
  *      Author: Máté
  */
 
 #include "ComputerVision.h"
+#include "ArucoImageProcessor.h"
+#include "ArucoImageProcessor.cpp"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/assign/list_of.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+#include <cstdio>
+#include <exception>
 
-std::map<std::string,ImageProcessingType> mapToImgProcType = boost::assign::map_list_of("COLOR" ,COLOR)("IR",IR)("ARUCO_MARKER",ARUCO_MARKER);
-std::map<std::string,CameraType> mapToCamType = boost::assign::map_list_of("XIMEA" , XIMEA);
+bool ComputerVision::initialize(std::string configFilePath) {
 
-ComputerVision::ComputerVision() {
-	initialized = false;
-}
-
-bool ComputerVision::initialize(std::string configFilePath){
-	bool success = false;
-
-	boost::property_tree::ptree pt;
-	ImageProcessingType imgProcType;
-
-	try {
-		boost::property_tree::read_json(configFilePath, pt);
-
-		int exposure = pt.get<int>(EXPOSURE);
-		float gain = pt.get<float>(GAIN);
-
-		imgProcType = mapToImgProcType[pt.get<std::string>(
-				TYPEOFPROCESSING)];
-		CameraType camType = mapToCamType[pt.get<std::string>(CAMERATYPE)];
-
-		cout<<"Initializing cameras..."<<endl;
-
-		success = camera.init(exposure, gain, CV_CAP_XIAPI , pt.get<std::string>("matrices"));
-
-		if (!success) {
-			cout << "Camera initialization failed!" << endl;
-			return false;
-		}
-
-	} catch (exception &e) {
-		cout << "The JSON file is not valid or missing! Error message: "
-				<< e.what() << endl;
-		return false;
+	try{
+		boost::property_tree::ptree config;
+		boost::property_tree::read_json(configFilePath, config);
+	}catch(std::exception& e){
+		std::cout<<"JSON file is missing or invalid!"<<std::endl;
+		initialized = false;
+		return initialized;
 	}
 
-	switch(imgProcType){
-	case IR:
-		leftImageProcessor = std::unique_ptr<IImageProcessor>(new IRImageProcessor);
-		rightImageProcessor = std::unique_ptr<IImageProcessor>(new IRImageProcessor);
-		break;
-	case COLOR:
+	model = std::unique_ptr<Model>(new Model());
 
-		break;
-	case ARUCO_MARKER:
-		leftImageProcessor = std::unique_ptr<IImageProcessor>(new ArucoImageProcessor);
-		rightImageProcessor = std::unique_ptr<IImageProcessor>(new ArucoImageProcessor);
-		break;
-	default:
-		cout<<"unknown processing type"<<endl;
-		return false;
-		break;
+	camera = std::unique_ptr<Camera>(
+			new Camera(config.get<int>(FPS) , config.get<int>(EXPOSURE) , config.get<int>(GAIN) , config.get<int>(NUMBEROFCAMERAS) , *this));
+
+	auto cameraType = config.get<std::string>(CAMERATYPE);
+
+	if(cameraType=="ximea"){
+		initialized = camera->init(CV_CAP_XIAPI);
+	}else if(cameraType=="default"){
+		initialized = camera->init(0);
 	}
 
-	std::vector<int> markerIds;
+	initialized = initialized && model->build(config , *this);
 
-	try {
-		auto objects = pt.get_child("objects");
+	processing = false;
 
-		for (auto &object : objects) {
-			auto markers = object.second.get_child("markers");
+	this->config = config;
 
-			for (auto &marker : markers) {
-				int id = marker.second.get<int>("id");
-				markerIds.push_back(id);
-			}
-		}
-
-	}catch(exception &e){
-		cout<<"Problem occured while reading JSON file! Error message: "<<e.what()<<endl;
-		return false;
-	}
-
-	leftImageProcessor->setMarkerIdentifiers(markerIds);
-	rightImageProcessor->setMarkerIdentifiers(markerIds);
-
-	leftImageProcessor->setWindow("leftProcessed");
-	leftImageProcessor->setFilterValues(pt);
-
-	rightImageProcessor->setWindow("rightProcessed");
-	rightImageProcessor->setFilterValues(pt);
-
-	cout<<"Building model..."<<endl;
-	success = success && model.buildModel(pt);
-
-	model.setCamera(camera);
-
-	if(success){
-		initialized = true;
-	}
-
-	return success;
+	return initialized;
 }
 
-void ComputerVision::reConfigure(std::string configFilePath){
-	boost::property_tree::ptree pt;
-	boost::property_tree::read_json(configFilePath, pt);
-	leftImageProcessor->setFilterValues(pt);
-	rightImageProcessor->setFilterValues(pt);
-}
 
-void ComputerVision::setupDataSender(std::string brokerURL){
-	publisher = new MQTTPublisher(brokerURL.c_str() , COMPUTERVISION_ID);
-	publisher->connect(nullptr , nullptr , nullptr);
-}
+void ComputerVision::startProcessing() {
 
-void ComputerVision::captureFrame(){
+	using cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
+
+	ArucoImageProcessor <cfg> imageProcessor(*this);
 
 	if(initialized){
-		prevFrame.left = frame.left.clone();
-		prevFrame.right = frame.right.clone();
-		frame = camera.getNextFrame();
-	}
- }
 
-Frame ComputerVision::getCurrentFrame(){
-	return frame;
-}
+		processing = true;
 
-void ComputerVision::processCurrentFrame(){
-	if(initialized){
+		tbb::flow::function_node<tbb::flow::tuple<Frame , tbb::flow::continue_msg> ,tbb::flow::continue_msg ,tbb::flow::queueing > drawer(*this , 1 , [&](tbb::flow::tuple<Frame , tbb::flow::continue_msg> data){
 
-		std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet;
+			auto frame = std::get<0>(data);
 
+			auto time = std::chrono::steady_clock::now();
+			auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
 
-		bool allTracked = true;
+			auto diff = 500 -(currentTime-frame.timestamp);
 
-		for(string &oid : getObjectNames()){
-			if(!model.isTracked(oid)){
-				allTracked = false;
-			}
-		}
-
-		if(!allTracked){
-			contourSet.first = leftImageProcessor->processImage(frame.left);
-			contourSet.second = rightImageProcessor->processImage(frame.right);
-		}
-
-		std::pair<std::vector<int> , std::vector<int> > identifiers;
-		identifiers.first = leftImageProcessor->getMarkerIdentifiers();
-		identifiers.second = rightImageProcessor->getMarkerIdentifiers();
-
-		model.updateModel(contourSet,identifiers, frame , prevFrame);
-
-		//cv::cvtColor(frame.left ,drawing.left  , CV_GRAY2RGB);
-		//cv::cvtColor(frame.right,drawing.right , CV_GRAY2RGB);
-		drawing.left = frame.left.clone();
-		drawing.right = frame.right.clone();
-
-		model.draw(drawing);
-	}
-}
-
-std::map<std::string , cv::Point3f> ComputerVision::getObjectPosition(std::string objectId){
-	std::map<std::string , cv::Point3f> position;
-
-	auto markerIds = model.getMarkerNames(objectId);
-
-	for(std::string &markerId : markerIds){
-		position[markerId] = model.getPosition(objectId , markerId);
-	}
-
-	return position;
-}
-
-cv::Point3f ComputerVision::getMarkerPosition(std::string objectId , std::string markerId){
-		return model.getPosition(objectId , markerId);
-}
-
-void ComputerVision::showImage(){
-	if(initialized){
-		cv::Mat f1,f2;
-		resize(drawing.left,f1,cv::Size(1280/2,1024/2));
-		resize(drawing.right,f2,cv::Size(1280/2,1024/2));
-		cv::imshow("left" , f1);
-		cv::imshow("right" , f2);
-		//cv::imshow("origi" , frame.left);
-		cv::waitKey(5);
-	}
-}
-
-bool ComputerVision::isTracked(std::string objectId){
-	return model.isTracked(objectId);
-}
-
-std::vector<std::string>ComputerVision::getObjectNames(){
-	return model.getObjectNames();
-}
-
-std::vector<std::string> ComputerVision::getMarkerNames(std::string objectId){
-	return model.getMarkerNames(objectId);
-}
-
-void ComputerVision::sendData(std::string topic){
-	std::stringstream message;
-
-	message<<"{ \"objects\": [";
-
-	auto objectIds = model.getObjectNames();
-
-	for(auto o = 0 ; o<objectIds.size() ; o++){
-
-		message<<"{ \"name\":"<<"\""<<objectIds[o]<<"\""<<",";
-		message<<"\"markers\":[";
-
-		auto markerNames = model.getMarkerNames(objectIds[o]);
-
-		auto position = this->getObjectPosition(objectIds[o]);
-
-		for(auto i = 0 ; i<markerNames.size() ; i++){
-
-			auto markerpos = position[markerNames[i]];
-
-			if(model.isTracked(objectIds[o] , markerNames[i])){
-
+			if(diff>0){
+				//Sleep(diff);
 			}
 
-			message<<"{";
-			message<<"\"tracked\":";
-			if(model.isTracked(objectIds[o] , markerNames[i])){
-				message<<"\"true\",";
-			}else{
-				message<<"\"false\",";
+			auto objects = model->getObjectNames();
+
+			for(auto o : objects){
+				auto markers = model->getMarkerNames(o);
+
+				for(auto m : markers){
+					auto position = model->getPosition(o , m);
+
+					int i = 0 ;
+					for(auto p : position){
+						cv::putText(frame.images[i] , m , cv::Point(p.x,p.y) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2.0);
+						i++;
+					}
+				}
 			}
 
-			message<<"\"id\":"<<"\""<<markerNames[i]<<"\""<<",";
-			message<<"\"x\":"<<markerpos.x<<",";
-			message<<"\"y\":"<<markerpos.y<<",";
-			message<<"\"z\":"<<markerpos.z;
-			message<<"}";
-			if(i<markerNames.size()-1){
-				message<<",";
+			int i = 0;
+			for(auto f : frame.images){
+				std::stringstream frameId;
+				frameId<<i;
+				cv::Mat resized;
+				cv::resize(f , resized , cv::Size(640,480));
+				cv::imshow(frameId.str() , resized);
+				i++;
 			}
-		}
-		message<<"]";
-		message<<"}";
-		if(o<objectIds.size()-1){
-			message<<",";
+			cv::waitKey(5);
+
+		});
+
+		tbb::flow::function_node<int> sink(*this , 1 , [&](int i){
+
+		});
+
+		tbb::flow::join_node<tbb::flow::tuple<Frame , tbb::flow::continue_msg> , tbb::flow::queueing  > join(*this);
+
+/*
+		tbb::flow::function_node<tbb::flow::tuple<Frame , ImageProcessingData<defaultData , defaultIdentifier > > ,
+		tbb::flow::continue_msg , tbb::flow::queueing> draw(*this , 1 , [&](tbb::flow::tuple<Frame , ImageProcessingData<defaultData , defaultIdentifier > > data){
+			auto frame = std::get<0>(data);
+			auto points = std::get<1>(data);
+
+			 auto time = std::chrono::steady_clock::now();
+			 auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
+
+			 auto diff = 500 -(currentTime-frame.timestamp);
+
+			 if(diff>0){
+				 Sleep(diff);
+			 }
+
+			if(frame.frameIndex!=points.frameIndex){
+				std::cout<<"Sequence fail!"<<std::endl;
+			}
+
+			int i = 0 ;
+			for(auto f : frame.images){
+				int j = 0;
+				for(auto p : points.data[i]){
+					cv::circle(f , cv::Point(p.x , p.y) , 5 , cv::Scalar(255,255,255) , 3.0);
+
+					std::stringstream idstr;
+					idstr<<points.identifiers[i][j];
+					cv::putText(f , idstr.str() , cv::Point(p.x,p.y) , cv::FONT_HERSHEY_SIMPLEX , 1.0 , cv::Scalar(255,255,255) , 2.0);
+					j++;
+				}
+
+				cv::resize(f , f , cv::Size(640,480));
+				std::stringstream winname;
+				winname<<"processed ";
+				winname<<i;
+				cv::imshow(winname.str() , f);
+				i++;
+			}
+
+			cv::waitKey(5);
+
+		});
+
+*/
+
+		tbb::flow::sequencer_node<Frame> frameSequencer(*this , [&](Frame f)->size_t{
+			return f.frameIndex;
+		});
+
+		tbb::flow::continue_node<tbb::flow::continue_msg> cont(*this , [&](tbb::flow::continue_msg msg){
+			/*
+			auto objects = model->getObjectNames();
+
+			auto prevO = objects[0];
+
+			for(auto o : objects){
+				auto index = model->getObject(o)->getFrameIndex();
+				auto prevIndex = model->getObject(prevO)->getFrameIndex();
+
+				if(index!=prevIndex){
+					std::cout<<"not good: "<<std::endl;
+					std::cout<<"current: "<<o<<" "<<index<<std::endl;
+					std::cout<<"previous: "<<prevO<<" "<<prevIndex<<std::endl;
+					std::cout<<std::endl<<std::endl;
+				}
+			}
+			*/
+		});
+
+		tbb::flow::sequencer_node<ImageProcessingData<defaultData , defaultIdentifier > > dataSequencer(*this , [&](ImageProcessingData<defaultData , defaultIdentifier > d)->size_t{
+			return d.frameIndex;
+		});
+
+		tbb::flow::broadcast_node<ImageProcessingData<defaultData , defaultIdentifier > > broadcaster(*this);
+
+		int idx = 0;
+				tbb::flow::source_node<int > sender(*this ,[&](int& timestamp)->bool{
+					auto objects = model->getObjectNames();
+					std::cout<<idx<<std::endl;
+
+					for(auto& o : objects){
+						std::cout<<o<<" "<<model->getObject(o)->getFrameIndex()<<std::endl;
+						/*
+						if(model->getCallCounter(o)>100 && o=="train"){
+							remove_edge(*model->getObject(o), cont);
+							remove_edge(broadcaster , *model->getObject(o));
+						}
+						*/
+					}
+					idx++;
+					Sleep(20);
+					return true;
+				},false);
+
+		make_edge(*camera , imageProcessor);
+		make_edge(imageProcessor , dataSequencer);
+		make_edge(*camera , tbb::flow::input_port<0>(join));
+		make_edge(cont ,  tbb::flow::input_port<1>(join));
+		make_edge(join , drawer);
+		make_edge(dataSequencer , broadcaster);
+		make_edge(sender , sink);
+
+		auto objects = model->getObjectNames();
+
+		//std::vector<std::shared_ptr<tbb::flow::buffer_node<tbb::flow::continue_msg> > > buffers(objects.size());
+
+		for(auto o : objects){
+		//	buffers[index] = std::shared_ptr<tbb::flow::buffer_node<tbb::flow::continue_msg> > (new tbb::flow::buffer_node<tbb::flow::continue_msg>(*this)) ;
+			make_edge(broadcaster , *model->getObject(o));
+			make_edge(*model->getObject(o) , cont);
+			//make_edge(*buffers[index] , cont);
 		}
 
+		camera->startRecording();
+		sender.activate();
+
+		this->wait_for_all();
 	}
-
-	message<<"]";
-	message<<"}";
-
-	publisher->publishMessage(topic , 0 , message.str().c_str());
 }
 
-void ComputerVision::sendData(std::string topic , std::string objectId){
-	std::stringstream message;
-	message<<"{";
-	message<<"\""<<objectId<<"\":";
-	message<<"[";
-
-	cout<<">>>>>>>>"<<objectId<<" positions:"<<endl;
-
-	auto position = this->getObjectPosition(objectId);
-	auto markerIds = model.getMarkerNames(objectId);
-
-	for(auto i = 0 ; i<markerIds.size() ; i++){
-
-		auto markerpos = model.getPosition(objectId , markerIds[i]);
-		cout<<markerIds[i]<<":"<<endl;
-		cout<<markerpos<<endl;
-		cout<<endl<<endl;
-
-		message<<"{";
-		message<<"\"id\":";
-		message<<"\""<<markerIds[i]<<"\",";
-		message<<"\"x\":"<<markerpos.x<<",";
-		message<<"\"y\":"<<markerpos.y<<",";
-		message<<"\"z\":"<<markerpos.z;
-		message<<"}";
-		if(i<markerIds.size()-1){
-			message<<",";
-		}
-	}
-
-	message<<"]";
-	message<<"}";
-
-	publisher->publishMessage(topic , 0 , message.str().c_str());
+void ComputerVision::stopProcessing() {
+	processing = false;
+	camera->stopRecording();
 }
 
-void ComputerVision::sendData(std::string topic , std::string objectId , std::string markerId){
+void ComputerVision::reconfigure(std::string configFilePath) {
 
 }
 
-void ComputerVision::showGrid(bool show){
-	model.setShowGrid(show);
+bool ComputerVision::isProcessing(){
+	return processing ;
 }
-
-ComputerVision::~ComputerVision() {
-	delete publisher;
-}
-

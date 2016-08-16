@@ -1,39 +1,29 @@
 /*
  * ArucoImageProcessor.h
  *
- *  Created on: 2016. jún. 30.
+ *  Created on: 2016. aug. 9.
  *      Author: Máté
  */
 
 #ifndef ARUCOIMAGEPROCESSOR_H_
 #define ARUCOIMAGEPROCESSOR_H_
 
-#include <opencv2/core.hpp>
-#include <iostream>
+#include "ImageProcessor.h"
+#include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
-#include "IImageProcessor.h"
+#include <tbb/flow_graph.h>
 
-class ArucoImageProcessor :public IImageProcessor{
+template<typename CONFIG>
+class ArucoImageProcessor: public ImageProcessor<CONFIG> {
 private:
-	std::vector<int> markerIdentifiers;
-	std::vector<int> foundMarkerIdentifiers;
-	std::string winname;
 	cv::Ptr<cv::aruco::Dictionary> dictionary;
 	cv::Ptr<cv::aruco::DetectorParameters> detectorParams;
+	int64_t prevFrameIdx;
 
 public:
-	ArucoImageProcessor();
-	virtual std::vector< std::vector<cv::Point> > processImage(cv::Mat frame) override;
-	//set a window to show the processed image
-	void setWindow(std::string) override;
-	//set the processing specific filter values
-	virtual void setFilterValues(boost::property_tree::ptree propertyTree) override;
-	//get additional parameters to identify contours
-	virtual std::vector<int> getMarkerIdentifiers() override;
-	//set the marker identifiers
-	virtual void setMarkerIdentifiers(std::vector<int> identifiers) override;
-	//virtual destructor
-	virtual ~ArucoImageProcessor();
+	ArucoImageProcessor(tbb::flow::graph &g):ImageProcessor<CONFIG>(g),dictionary(cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(0))),detectorParams(cv::aruco::DetectorParameters::create()),prevFrameIdx(0){};
+	virtual ImageProcessingData<typename CONFIG::dataType , typename CONFIG::identifierType > ProcessNextFrame(Frame frame);
+	virtual ~ArucoImageProcessor() = default;
 };
 
 #endif /* ARUCOIMAGEPROCESSOR_H_ */

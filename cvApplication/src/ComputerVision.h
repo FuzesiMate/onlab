@@ -1,7 +1,7 @@
 /*
  * ComputerVision.h
  *
- *  Created on: 2016. máj. 13.
+ *  Created on: 2016. aug. 9.
  *      Author: Máté
  */
 
@@ -9,62 +9,44 @@
 #define COMPUTERVISION_H_
 
 
-#include <opencv2/core.hpp>
-#include <map>
-#include "Model.h"
-#include "IImageProcessor.h"
-#include "IRImageProcessor.h"
+#include <tbb/flow_graph.h>
+#include <tbb/concurrent_vector.h>
+#include <opencv2/opencv.hpp>
+#include <atomic>
+#include <iostream>
+#include <boost/property_tree/ptree.hpp>
+#include "TemplateConfiguration.h"
+#include "ImageProcessor.h"
 #include "ArucoImageProcessor.h"
-#include "stereoCamera.h"
-#include <Publisher.h>
+#include "Model.h"
+#include "Camera.h"
 
-#define COMPUTERVISION_ID		"computervision"
-#define EXPOSURE				"exposure"
-#define GAIN					"gain"
-#define CAMERATYPE				"cameratype"
-#define TYPEOFPROCESSING		"typeofprocessing"
+#define CAMERATYPE		"cameratype"
+#define NUMBEROFCAMERAS "numberofcameras"
+#define EXPOSURE		"exposure"
+#define GAIN			"gain"
+#define FPS				"fps"
 
-enum CameraType{
-	XIMEA
-};
+typedef tbb::concurrent_vector<cv::Point2f> defaultData;
+typedef tbb::concurrent_vector<int> defaultIdentifier;
 
-enum ImageProcessingType{
-	COLOR,
-	IR,
-	ARUCO_MARKER
-};
-
-class ComputerVision {
+class ComputerVision :public tbb::flow::graph{
 private:
-	Model model;
-	StereoCamera camera;
-	std::unique_ptr<IImageProcessor> leftImageProcessor;
-	std::unique_ptr<IImageProcessor> rightImageProcessor;
-	MQTTPublisher *publisher;
-	Frame frame;
-	Frame prevFrame;
-	Frame drawing;
-	bool initialized;
+	std::unique_ptr<Camera> camera;
+	std::shared_ptr<Model> model;
+
+	boost::property_tree::ptree config;
+	std::atomic_bool initialized;
+	std::atomic_bool processing;
+
 public:
-	ComputerVision();
+	ComputerVision():initialized(false),processing(false){};
 	bool initialize(std::string configFilePath);
-	void reConfigure(std::string configFilePath);
-	void setupDataSender(std::string brokerURL);
-	void captureFrame();
-	Frame getCurrentFrame();
-	void processCurrentFrame();
-	void sendData(std::string topic);
-	void sendData(std::string topic , std::string objectId);
-	void sendData(std::string topic , std::string objectId , std::string markerId);
-	cv::Point3f getMarkerPosition(std::string objectId , std::string markerId);
-	std::map<std::string , cv::Point3f> getObjectPosition(std::string objectId);
-	std::vector<std::string> getObjectNames();
-	std::vector<std::string> getMarkerNames(std::string objectId);
-	std::vector<int> getMarkerIds(std::string objectId);
-	void showImage();
-	void showGrid(bool show);
-	bool isTracked(std::string objectId);
-	virtual ~ComputerVision();
+	void startProcessing();
+	void stopProcessing();
+	void reconfigure(std::string configFilePath);
+	bool isProcessing();
+	virtual ~ComputerVision()=default;
 };
 
 #endif /* COMPUTERVISION_H_ */

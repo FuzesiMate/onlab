@@ -1,25 +1,41 @@
 {
-"typeofprocessing":"ARUCO_MARKER",
-	"exposure":10000,
-	"gain":5.0,
-	"threshold":240,
-	"cameratype":"XIMEA",
-	"matrices":"matrices.yml",
+	"cameratype" : "default",
+	"numberofcameras" : 1,
+	"exposure" 	 : 15000,
+	"gain" 		 : 5,
+	"fps" 		 : 30,
 	"objects": 	[
 				{
 				"name":"robot_arm",
 				"numberofparts":3,
-				"orientation":"OTHER",
+				"markertype":"aruco",
 				"markers":[
 						{
 						"name":"arm_bottom",
-						"id": 40,
-						"orientationfromreference":null,
-						"orientationfromprevious":null,
-						"distancefromreference":0.0
+						"id": 9
+						},
+						{
+						"name":"arm_top",
+						"id": 10
+						},
+						{
+						"name":"body",
+						"id": 8
 						}
 						]
 						
-				}
+				},
+				{
+						"name":"train",
+						"numberofparts":1,
+						"markertype":"aruco",
+						"markers":
+						[
+						{
+						"name":"side",
+						"id": 40
+						}
+						]
+						}
 			]		
 }

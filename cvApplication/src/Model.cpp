@@ -1,167 +1,62 @@
 /*
  * Model.cpp
  *
- *  Created on: 2016. máj. 13.
+ *  Created on: 2016. aug. 11.
  *      Author: Máté
  */
 
 #include "Model.h"
-#include <iostream>
-#include <boost/assign/list_of.hpp>
-#include <map>
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/opencv.hpp>
-#include "ComputerVision.h"
+#include <tbb/parallel_for_each.h>
 
+/*
+void Model::update(ImageProcessingData< defaultData , defaultIdentifier > data){
 
-std::map<std::string,ReferencePosition> mapToReferencePosition = boost::assign::map_list_of("UPPER",UPPER)("LOWER",LOWER)("IN_ROW",IN_ROW);
-
-
-Model::Model() {
-	showGrid = false;
-}
-
-bool Model::buildModel(boost::property_tree::ptree propertyTree){
-
-	std::vector<std::shared_ptr<Object> > listOfObjects;
-
-	try{
-		auto imageProcessingType = propertyTree.get<std::string>("typeofprocessing");
-
-			auto InputObjects = propertyTree.get_child("objects");
-
-			for (auto &object : InputObjects){
-					auto nameofObject = object.second.get<std::string>("name");
-					auto numberofParts  = object.second.get<int>("numberofparts");
-
-					std::shared_ptr<Object> compObject;
-
-					if(imageProcessingType=="IR"){
-						compObject= std::shared_ptr<Object>(new IRObject());
-					}else if(imageProcessingType=="ARUCO_MARKER"){
-						compObject= std::shared_ptr<Object>(new ArucoObject());
-					}
-
-					compObject->initializeObject(numberofParts,nameofObject);
-
-					auto markers = object.second.get_child("markers");
-
-					for (auto &marker : markers){
-						if(imageProcessingType=="IR"){
-							compObject->addPart(marker.second.get<std::string>("name") , marker.second.get<float>("distancefromreference"),
-									mapToReferencePosition[marker.second.get<std::string>("orientationfromreference")],
-									mapToReferencePosition[marker.second.get<std::string>("orientationfromprevious")]);
-						}else if(imageProcessingType =="ARUCO_MARKER"){
-							compObject->addPart(marker.second.get<std::string>("name") , marker.second.get<int>("id"));
-						}
-					}
-
-					listOfObjects.push_back(compObject);
-				}
-	}catch(exception &e){
-		cout<<"Problem occured while building model. Error message:"<<e.what()<<endl;
-		return false;
-	}
-
-
-	//decreasing size of objects
-	//important for detection
-
-	std::sort(listOfObjects.begin(), listOfObjects.end() ,
-				[](const shared_ptr<Object> &a , const shared_ptr<Object> &b)-> bool{
-				int ai= a->getNumberofParts();
-				int bi = b->getNumberofParts();
-				return ai>bi;
-				});
-
-
-	//fill the map and store the order
-	//maybe the map is overkill, just makes the query easier
-	for(auto &o : listOfObjects){
-		objects[o->getId()] = o;
-		objectIds.push_back(o->getId());
-	}
-
-	return true ;
-}
-
-void Model::updateModel(std::pair<std::vector< std::vector<cv::Point> > ,std::vector< std::vector<cv::Point> > > contourSet,std::pair<std::vector<int> , std::vector<int> > identifiers, Frame frame , Frame prevFrame ){
-
-	PointSet points;
-
-	for(auto contour : contourSet.first){
-		cv::Point2f center;
-		float r;
-		cv::minEnclosingCircle(contour , center ,r);
-		points.left.push_back(center);
-	}
-
-	for(auto contour : contourSet.second){
-		cv::Point2f center;
-		float r;
-		cv::minEnclosingCircle(contour , center ,r);
-		points.right.push_back(center);
-	}
-
-	for(std::string &objectId : objectIds){
-
-		if(!objects[objectId]->isTracked()){
-			objects[objectId]->detect(points ,contourSet , identifiers);
-		}else{
-			objects[objectId]->track(frame , prevFrame);
-		}
+	for(auto element : objects){
+		element.second.update(data);
 	}
 }
+*/
 
-void Model::setCamera(StereoCamera cam){
-	for(auto o : objectIds){
-		objects[o]->setCamera(cam);
-	}
-}
+bool Model::build(boost::property_tree::ptree config , tbb::flow::graph& g){
 
-bool Model::isTracked(std::string objectId , std::string markerName){
-	objects[objectId]->isTracked(markerName);
-}
+	auto objectList = config.get_child("objects");
 
-std::vector<std::string> Model::getObjectNames(){
-	return objectIds;
-}
+	for(auto o : objectList){
+		auto name = o.second.get<std::string>("name");
+		auto numberOfMarkers = o.second.get<int>("numberofparts");
+		auto markerType = o.second.get<std::string>("markertype");
 
-std::vector<std::string> Model::getMarkerNames(std::string objectId){
-	return objects[objectId]->getMarkerNames();
-}
+		objects[name] = std::shared_ptr<Object>( new Object(name, numberOfMarkers , g )) ;
 
-cv::Point3f Model::getPosition(std::string objectId  , std::string markerId){
-	return objects[objectId]->getMarkerPosition(markerId);
-}
+		for(auto m : o.second.get_child("markers")){
+			auto markername = m.second.get<std::string>("name");
+			auto id = m.second.get<int>("id");
 
-void Model::draw(Frame frame){
-
-	if(showGrid){
-		for(int i = 0 ; i<1280 ; i+=20){
-			line(frame.left, cv::Point(i,0) , cv::Point(i,1024), cv::Scalar(255,255,255));
-		}
-
-		for(int i = 0 ; i<1024 ; i+=20){
-			line(frame.left, cv::Point(0,i) , cv::Point(1280,i), cv::Scalar(255,255,255));
+			objects[name]->addMarker(markername, id);
 		}
 	}
 
-	for(std::string &o : objectIds){
-		objects[o]->draw(frame);
+	return true;
+}
+
+ tbb::concurrent_vector<cv::Point2f> const& Model::getPosition(std::string objectName , std::string markerName){
+	return objects[objectName]->getMarkerPosition(markerName);
+}
+
+std::vector<std::string> const Model::getObjectNames(){
+	std::vector<std::string> names;
+	for(auto o : objects){
+		names.push_back(o.first);
 	}
-
+	return names;
 }
 
-bool Model::isTracked(std::string objectId){
-	return objects[objectId]->isTracked();
+std::vector<std::string> const Model::getMarkerNames(std::string objectName){
+	return objects[objectName]->getMarkerNames();
 }
 
-void Model::setShowGrid(bool show){
-	showGrid = show;
+std::shared_ptr<Object> const Model::getObject(std::string objectName){
+	return objects[objectName];
 }
 
-
-Model::~Model() {}
 
