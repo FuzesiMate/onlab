@@ -7,6 +7,8 @@
 
 #include "Model.h"
 #include <tbb/parallel_for_each.h>
+#include <string>
+#include "TemplateConfiguration.h"
 
 /*
 void Model::update(ImageProcessingData< defaultData , defaultIdentifier > data){
@@ -26,13 +28,20 @@ bool Model<CONFIG>::build(boost::property_tree::ptree cfg , tbb::flow::graph& g)
 				auto name = o.second.get<std::string>("name");
 				auto numberOfMarkers = o.second.get<int>("numberofparts");
 				auto markerType = o.second.get<std::string>("markertype");
+				auto limit = o.second.get<int>("limit");
+
+				MarkerType type;
+
+				if(markerType == "aruco"){
+					type = MarkerType::ARUCO;
+				}else if (markerType == "circle"){
+					type = MarkerType::CIRCLE;
+				}
 
 				try{
-					objects[name] = std::make_shared< Object<CONFIG> >(name , numberOfMarkers , g);
-					std::cout<<"instant done"<<std::endl;
-
+					objects[name] = std::make_shared< Object<CONFIG> >(name , numberOfMarkers, type , limit , g);
 				}catch(std::exception& e){
-					std::cout<<" tegeg"<<std::endl;
+					std::cout<<"error: "<<e.what()<<std::endl;
 				}
 
 				for(auto m : o.second.get_child("markers")){
@@ -73,6 +82,11 @@ std::vector<std::string> const Model<CONFIG>::getMarkerNames(std::string objectN
 template<typename CONFIG>
 std::shared_ptr<Object<CONFIG> > const Model<CONFIG>::getObject(std::string objectName){
 	return objects.at(objectName);
+}
+
+template<typename CONFIG>
+bool Model<CONFIG>::isDone(std::string objectName){
+	return objects[objectName]->isDone();
 }
 
 

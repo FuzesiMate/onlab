@@ -28,9 +28,7 @@ public:
 	std::vector<std::string> const getObjectNames();
 	std::vector<std::string> const getMarkerNames(std::string objectName);
 	std::shared_ptr<Object<CONFIG> > const getObject(std::string objectName);
-	int getCallCounter(std::string objectName){
-		return objects.at(objectName)->getCallCounter();
-	}
+	bool isDone(std::string objectName);
 	virtual ~Model() = default;
 };
 

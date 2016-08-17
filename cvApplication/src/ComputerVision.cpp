@@ -6,14 +6,14 @@
  */
 
 #include "ComputerVision.h"
-#include "ArucoImageProcessor.h"
-#include "ArucoImageProcessor.cpp"
-#include "Object.cpp"
-#include "Model.cpp"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <cstdio>
 #include <exception>
+#include "ArucoImageProcessor.h"
+#include "ArucoImageProcessor.cpp"
+#include "Object.cpp"
+#include "Model.cpp"
 
 bool ComputerVision::initialize(std::string configFilePath) {
 
@@ -46,16 +46,27 @@ bool ComputerVision::initialize(std::string configFilePath) {
 
 void ComputerVision::startProcessing() {
 
-	using cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
+	using templateConfiguration = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
 
-	tbb::concurrent_unordered_map<std::string , std::shared_ptr<ImageProcessor<cfg> > imageprocessors;
+	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<templateConfiguration> > > imageprocessors;
 
-	ArucoImageProcessor <cfg> imageProcessor(*this);
-	std::shared_ptr<Model<cfg> > model = std::make_shared<Model<cfg> >();
+	tbb::concurrent_unordered_map<MarkerType , int> successorCounter;
 
-	std::cout<<"build"<<std::endl;
+	for(auto& m : config.get_child("markertypes")){
+		auto type = m.second.get<std::string>("");
+
+		if(type=="aruco"){
+			successorCounter[MarkerType::ARUCO] = 0;
+			imageprocessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<templateConfiguration> >(*this);
+		}if(type=="circle"){
+			successorCounter[MarkerType::CIRCLE] = 0;
+			imageprocessors[MarkerType::CIRCLE] = std::make_shared<ArucoImageProcessor<templateConfiguration> >(*this);
+		}
+	}
+
+	std::shared_ptr<Model<templateConfiguration> > model = std::make_shared<Model<templateConfiguration> >();
+
 	model->build(config , *this);
-	std::cout<<"build end"<<std::endl;
 
 	if(initialized){
 
@@ -182,43 +193,60 @@ void ComputerVision::startProcessing() {
 
 		tbb::flow::broadcast_node<ImageProcessingData<defaultData , defaultIdentifier > > broadcaster(*this);
 
-		int idx = 0;
-				tbb::flow::source_node<int > sender(*this ,[&](int& timestamp)->bool{
-					auto objects = model->getObjectNames();
-					std::cout<<idx<<std::endl;
+		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<defaultData, defaultIdentifier> > > > sequencers;
 
-					for(auto& o : objects){
-						std::cout<<o<<" "<<model->getObject(o)->getFrameIndex()<<std::endl;
-						/*
-						if(model->getCallCounter(o)>100 && o=="train"){
-							remove_edge(*model->getObject(o), cont);
-							remove_edge(broadcaster , *model->getObject(o));
+		tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<defaultData, defaultIdentifier> > > > broadcasters;
+
+		for(auto& ip : imageprocessors){
+			auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<defaultData, defaultIdentifier> > >
+										(*this , [](ImageProcessingData<defaultData, defaultIdentifier> data)->size_t{
+											return data.frameIndex;
+										});
+
+			broadcasters[ip.first] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<defaultData, defaultIdentifier> > >(*this);
+
+			sequencers.push_back(sequencer);
+
+			make_edge(*camera , *ip.second);
+			make_edge(*ip.second , *sequencers[sequencers.size()-1]);
+			make_edge(*sequencers[sequencers.size()-1] , *broadcasters[ip.first]);
+		}
+
+		int idx = 0;
+		tbb::flow::source_node<int> controller(*this,
+				[&](int& timestamp)->bool {
+					auto objects = model->getObjectNames();
+
+					for(auto& o : objects) {
+						if(model->isDone(o) && !model->getObject(o)->isRemoved()) {
+							remove_edge(*broadcasters[model->getObject(o)->getMarkerType()] , *model->getObject(o));
+							successorCounter[model->getObject(o)->getMarkerType()]--;
+							model->getObject(o)->remove();
 						}
-						*/
+						if(successorCounter[model->getObject(o)->getMarkerType()]==0){
+							remove_edge(*camera , *imageprocessors[model->getObject(o)->getMarkerType()]);
+						}
+
 					}
 					idx++;
 					Sleep(20);
 					return true;
-				},false);
+				}, false);
 
-		make_edge(*camera , imageProcessor);
-		make_edge(imageProcessor , dataSequencer);
-		//make_edge(*camera , tbb::flow::input_port<0>(join));
-		//make_edge(cont ,  tbb::flow::input_port<1>(join));
+
 		make_edge(*camera , drawer);
-		make_edge(dataSequencer , broadcaster);
-		make_edge(sender , sink);
+		make_edge(controller , sink);
 
 		auto objects = model->getObjectNames();
 
 		for(auto o : objects){
-			make_edge(broadcaster , *model->getObject(o));
+			successorCounter[model->getObject(o)->getMarkerType()]++;
+			make_edge(*broadcasters[model->getObject(o)->getMarkerType()] , *model->getObject(o));
 			make_edge(*model->getObject(o) , cont);
 		}
 
 		camera->startRecording();
 		sender.activate();
-
 		this->wait_for_all();
 	}
 }

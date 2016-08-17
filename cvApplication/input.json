@@ -1,14 +1,19 @@
 {
-	"cameratype" : "ximea",
+	"cameratype" : "default",
 	"numberofcameras" : 1,
 	"exposure" 	 : 5000,
 	"gain" 		 : 5,
 	"fps" 		 : 30,
+	"markertypes": [
+					"aruco",
+					"circle"
+				   ],
 	"objects": 	[
 				{
 				"name":"robot_arm",
 				"numberofparts":3,
 				"markertype":"aruco",
+				"limit" : 1500,
 				"markers":[
 						{
 						"name":"arm_bottom",
@@ -29,6 +34,7 @@
 						"name":"train",
 						"numberofparts":1,
 						"markertype":"aruco",
+						"limit" : 5,
 						"markers":
 						[
 						{

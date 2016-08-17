@@ -13,6 +13,7 @@
 #include <tbb/concurrent_unordered_map.h>
 #include "ImageProcessor.h"
 #include "Marker.h"
+#include "TemplateConfiguration.h"
 
 template <typename CONFIG>
 class Object :public tbb::flow::function_node<ImageProcessingData<typename CONFIG::dataType ,typename CONFIG::identifierType > , tbb::flow::continue_msg , tbb::flow::queueing> {
@@ -23,11 +24,15 @@ private:
 	std::atomic<int64_t> frameIndex;
 	std::atomic<int64_t> timestamp;
 	std::atomic_int callCounter;
+	int limit;
+	std::atomic_bool done;
+	std::atomic_bool removed;
+	MarkerType markerType;
 	tbb::concurrent_unordered_map<std::string, std::shared_ptr<Marker> > markers;
 
 public:
-	Object(std::string name , int numberOfMarkers , tbb::flow::graph& g):tbb::flow::function_node<ImageProcessingData<typename CONFIG::dataType , typename CONFIG::identifierType > , tbb::flow::continue_msg , tbb::flow::queueing>(g , tbb::flow::serial , std::bind(&Object::update , this , std::placeholders::_1)),
-			name(name),tracked(false),numberOfMarkers(numberOfMarkers),frameIndex(0),timestamp(0),callCounter(0){};
+	Object(std::string name , int numberOfMarkers ,MarkerType type , int limit ,tbb::flow::graph& g):tbb::flow::function_node<ImageProcessingData<typename CONFIG::dataType , typename CONFIG::identifierType > , tbb::flow::continue_msg , tbb::flow::queueing>(g , tbb::flow::serial , std::bind(&Object::update , this , std::placeholders::_1)),
+			name(name),tracked(false),numberOfMarkers(numberOfMarkers),frameIndex(0),timestamp(0),callCounter(0),limit(limit),done(false),removed(false) ,markerType(type){};
 
 	void update(ImageProcessingData<typename CONFIG::dataType ,typename CONFIG::identifierType > data);
 	void addMarker(std::string name , int id );
@@ -36,6 +41,10 @@ public:
 	int64_t getFrameIndex();
 	int getCallCounter();
 	int64_t getTimestamp();
+	MarkerType getMarkerType();
+	bool isDone();
+	void remove();
+	bool isRemoved();
 	virtual ~Object() = default;
 };
 

@@ -8,6 +8,11 @@
 #ifndef TEMPLATECONFIGURATION_H_
 #define TEMPLATECONFIGURATION_H_
 
+enum MarkerType{
+	ARUCO,
+	CIRCLE
+};
+
 template<typename data , typename identifier>
 struct TEMPLATE_CONFIG{
 	using dataType = data;

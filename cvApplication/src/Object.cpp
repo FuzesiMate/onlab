@@ -16,6 +16,10 @@ template<typename CONFIG>
 void Object<CONFIG>::update(ImageProcessingData<typename CONFIG::dataType , typename CONFIG::identifierType > data){
 	callCounter++;
 
+	if(callCounter == limit){
+			done = true;
+	}
+
 	for(auto m : markers){
 		int id = m.second->getId();
 		bool found = true;
@@ -44,7 +48,6 @@ void Object<CONFIG>::update(ImageProcessingData<typename CONFIG::dataType , type
 		}
 	}
 
-	//std::cout<<"update object "<<name<<std::endl;
 	frameIndex = data.frameIndex;
 }
 
@@ -75,6 +78,26 @@ int64_t Object<CONFIG>::getTimestamp(){
 template<typename CONFIG>
 void Object<CONFIG>::addMarker(std::string name , int id){
 	markers[name] = std::shared_ptr<Marker>(new Marker(name, id));
+}
+
+template <typename CONFIG>
+MarkerType Object<CONFIG>::getMarkerType(){
+	return markerType;
+}
+
+template <typename CONFIG>
+bool Object<CONFIG>::isDone(){
+	return done;
+}
+
+template <typename CONFIG>
+void Object<CONFIG>::remove(){
+	removed = true;
+}
+
+template<typename CONFIG>
+bool Object<CONFIG>::isRemoved(){
+	return removed;
 }
 
 
