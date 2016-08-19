@@ -29,6 +29,10 @@ public:
 	std::vector<std::string> const getMarkerNames(std::string objectName);
 	std::shared_ptr<Object<CONFIG> > const getObject(std::string objectName);
 	bool isDone(std::string objectName);
+	bool isRemoved(std::string objectName);
+	int64_t getFrameIndex(std::string objectName);
+	MarkerType getMarkerType(std::string objectName);
+	void remove(std::string objectName);
 	virtual ~Model() = default;
 };
 

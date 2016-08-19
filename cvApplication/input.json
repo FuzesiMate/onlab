@@ -1,7 +1,7 @@
 {
 	"cameratype" : "default",
 	"numberofcameras" : 1,
-	"exposure" 	 : 5000,
+	"exposure" 	 : 15000,
 	"gain" 		 : 5,
 	"fps" 		 : 30,
 	"markertypes": [
@@ -13,7 +13,7 @@
 				"name":"robot_arm",
 				"numberofparts":3,
 				"markertype":"aruco",
-				"limit" : 1500,
+				"limit" : -1,
 				"markers":[
 						{
 						"name":"arm_bottom",
@@ -34,7 +34,7 @@
 						"name":"train",
 						"numberofparts":1,
 						"markertype":"aruco",
-						"limit" : 5,
+						"limit" : -1,
 						"markers":
 						[
 						{

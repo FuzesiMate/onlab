@@ -12,9 +12,9 @@
 #include <chrono>
 
 template <typename CONFIG>
-ImageProcessingData< typename CONFIG::dataType ,typename CONFIG::identifierType >ArucoImageProcessor<CONFIG>::ProcessNextFrame(Frame frame){
+ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::ProcessNextFrame(Frame frame){
 
-	ImageProcessingData<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int> > foundMarkers;
+	ImageProcessingData<CONFIG> foundMarkers;
 
 	foundMarkers.data = tbb::concurrent_vector<tbb::concurrent_vector<cv::Point2f> >(frame.images.size());
 	foundMarkers.identifiers = tbb::concurrent_vector<tbb::concurrent_vector<int> >(frame.images.size());

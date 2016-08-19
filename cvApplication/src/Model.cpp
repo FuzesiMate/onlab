@@ -89,4 +89,24 @@ bool Model<CONFIG>::isDone(std::string objectName){
 	return objects[objectName]->isDone();
 }
 
+template<typename CONFIG>
+bool Model<CONFIG>::isRemoved(std::string objectName){
+	return objects[objectName]->isRemoved();
+}
+
+template<typename CONFIG>
+int64_t Model<CONFIG>::getFrameIndex(std::string objectName){
+	return objects[objectName]->getFrameIndex();
+}
+
+template<typename CONFIG>
+MarkerType Model<CONFIG>::getMarkerType(std::string objectName){
+	return objects[objectName]->getMarkerType();
+}
+
+template <typename CONFIG>
+void Model<CONFIG>::remove(std::string objectName){
+	objects[objectName]->remove();
+}
+
 

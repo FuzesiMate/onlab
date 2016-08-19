@@ -13,7 +13,7 @@ int Object<CONFIG>::getCallCounter(){
 }
 
 template<typename CONFIG>
-void Object<CONFIG>::update(ImageProcessingData<typename CONFIG::dataType , typename CONFIG::identifierType > data){
+void Object<CONFIG>::update(ImageProcessingData<CONFIG> data){
 	callCounter++;
 
 	if(callCounter == limit){

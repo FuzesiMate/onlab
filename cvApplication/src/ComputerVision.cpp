@@ -11,6 +11,8 @@
 #include <cstdio>
 #include <exception>
 #include "ArucoImageProcessor.h"
+#include "Visualizer.h"
+#include "DataProvider.cpp"
 #include "ArucoImageProcessor.cpp"
 #include "Object.cpp"
 #include "Model.cpp"
@@ -21,7 +23,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	try{
 		boost::property_tree::read_json(configFilePath, config);
 	}catch(std::exception& e){
-		std::cout<<"JSON file is missing or invalid!"<<std::endl;
+		std::cout<<"JSON file is missing or invalid! Error message: "<<e.what()<<std::endl;
 		initialized = false;
 		return initialized;
 	}
@@ -37,173 +39,56 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		initialized = camera->init(0);
 	}
 
+	model = std::make_shared<Model<t_cfg> >();
+
+	initialized = initialized && model->build(config , *this);
+
+	provider = std::make_shared<DataProvider<t_cfg> >(model , *this);
+
 	processing = false;
 	this->config = config;
 
 	return initialized;
 }
 
-
 void ComputerVision::startProcessing() {
 
-	using templateConfiguration = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
+	//instantiate image processors and map them by markertype
+	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageprocessors;
 
-	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<templateConfiguration> > > imageprocessors;
+	//stores the number of active successors of the image processing node
+	//mapped by markertype
+	tbb::concurrent_unordered_map<MarkerType , int> numberOfSuccessors;
 
-	tbb::concurrent_unordered_map<MarkerType , int> successorCounter;
-
-	for(auto& m : config.get_child("markertypes")){
+	for(auto& m : config.get_child(MARKERTYPES)){
 		auto type = m.second.get<std::string>("");
 
 		if(type=="aruco"){
-			successorCounter[MarkerType::ARUCO] = 0;
-			imageprocessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<templateConfiguration> >(*this);
+			numberOfSuccessors[MarkerType::ARUCO] = 0;
+			imageprocessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
 		}if(type=="circle"){
-			successorCounter[MarkerType::CIRCLE] = 0;
-			imageprocessors[MarkerType::CIRCLE] = std::make_shared<ArucoImageProcessor<templateConfiguration> >(*this);
+			numberOfSuccessors[MarkerType::CIRCLE] = 0;
+			imageprocessors[MarkerType::CIRCLE] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
 		}
 	}
-
-	std::shared_ptr<Model<templateConfiguration> > model = std::make_shared<Model<templateConfiguration> >();
-
-	model->build(config , *this);
 
 	if(initialized){
 
 		processing = true;
 
-		tbb::flow::function_node<Frame ,tbb::flow::continue_msg ,tbb::flow::queueing > drawer(*this , 1 , [&](Frame frame){
+		tbb::flow::join_node<tbb::flow::tuple<Frame , ImageProcessingResult> , tbb::flow::queueing  > join(*this);
 
-			auto time = std::chrono::steady_clock::now();
-			auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
+		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > sequencers;
 
-			auto diff = 500 -(currentTime-frame.timestamp);
-
-			if(diff>0){
-				Sleep(diff);
-			}
-
-			auto objects = model->getObjectNames();
-
-			for(auto o : objects){
-				auto markers = model->getMarkerNames(o);
-
-				for(auto m : markers){
-					auto position = model->getPosition(o , m);
-
-					int i = 0 ;
-					for(auto p : position){
-						cv::putText(frame.images[i] , m , cv::Point(p.x,p.y) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2.0);
-						i++;
-					}
-				}
-			}
-
-			int i = 0;
-			for(auto f : frame.images){
-				std::stringstream frameId;
-				frameId<<i;
-				cv::Mat resized;
-				cv::resize(f , resized , cv::Size(640,480));
-				cv::imshow(frameId.str() , resized);
-				i++;
-			}
-			cv::waitKey(5);
-
-		});
-
-		tbb::flow::function_node<int> sink(*this , 1 , [&](int i){
-
-		});
-
-		tbb::flow::join_node<tbb::flow::tuple<Frame , tbb::flow::continue_msg> , tbb::flow::queueing  > join(*this);
-
-/*
-		tbb::flow::function_node<tbb::flow::tuple<Frame , ImageProcessingData<defaultData , defaultIdentifier > > ,
-		tbb::flow::continue_msg , tbb::flow::queueing> draw(*this , 1 , [&](tbb::flow::tuple<Frame , ImageProcessingData<defaultData , defaultIdentifier > > data){
-			auto frame = std::get<0>(data);
-			auto points = std::get<1>(data);
-
-			 auto time = std::chrono::steady_clock::now();
-			 auto currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
-
-			 auto diff = 500 -(currentTime-frame.timestamp);
-
-			 if(diff>0){
-				 Sleep(diff);
-			 }
-
-			if(frame.frameIndex!=points.frameIndex){
-				std::cout<<"Sequence fail!"<<std::endl;
-			}
-
-			int i = 0 ;
-			for(auto f : frame.images){
-				int j = 0;
-				for(auto p : points.data[i]){
-					cv::circle(f , cv::Point(p.x , p.y) , 5 , cv::Scalar(255,255,255) , 3.0);
-
-					std::stringstream idstr;
-					idstr<<points.identifiers[i][j];
-					cv::putText(f , idstr.str() , cv::Point(p.x,p.y) , cv::FONT_HERSHEY_SIMPLEX , 1.0 , cv::Scalar(255,255,255) , 2.0);
-					j++;
-				}
-
-				cv::resize(f , f , cv::Size(640,480));
-				std::stringstream winname;
-				winname<<"processed ";
-				winname<<i;
-				cv::imshow(winname.str() , f);
-				i++;
-			}
-
-			cv::waitKey(5);
-
-		});
-
-*/
-
-		tbb::flow::sequencer_node<Frame> frameSequencer(*this , [&](Frame f)->size_t{
-			return f.frameIndex;
-		});
-
-		tbb::flow::continue_node<tbb::flow::continue_msg> cont(*this , [&](tbb::flow::continue_msg msg){
-			/*
-			auto objects = model->getObjectNames();
-
-			auto prevO = objects[0];
-
-			for(auto o : objects){
-				auto index = model->getObject(o)->getFrameIndex();
-				auto prevIndex = model->getObject(prevO)->getFrameIndex();
-
-				if(index!=prevIndex){
-					std::cout<<"not good: "<<std::endl;
-					std::cout<<"current: "<<o<<" "<<index<<std::endl;
-					std::cout<<"previous: "<<prevO<<" "<<prevIndex<<std::endl;
-					std::cout<<std::endl<<std::endl;
-				}
-			}
-			*/
-		});
-
-		tbb::flow::sequencer_node<ImageProcessingData<defaultData , defaultIdentifier > > dataSequencer(*this , [&](ImageProcessingData<defaultData , defaultIdentifier > d)->size_t{
-			return d.frameIndex;
-		});
-
-		tbb::flow::broadcast_node<ImageProcessingData<defaultData , defaultIdentifier > > broadcaster(*this);
-
-		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<defaultData, defaultIdentifier> > > > sequencers;
-
-		tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<defaultData, defaultIdentifier> > > > broadcasters;
+		tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > > > broadcasters;
 
 		for(auto& ip : imageprocessors){
-			auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<defaultData, defaultIdentifier> > >
-										(*this , [](ImageProcessingData<defaultData, defaultIdentifier> data)->size_t{
+			auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
+										(*this , [](ImageProcessingData<t_cfg> data)->size_t{
 											return data.frameIndex;
 										});
 
-			broadcasters[ip.first] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<defaultData, defaultIdentifier> > >(*this);
+			broadcasters[ip.first] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
 
 			sequencers.push_back(sequencer);
 
@@ -212,48 +97,81 @@ void ComputerVision::startProcessing() {
 			make_edge(*sequencers[sequencers.size()-1] , *broadcasters[ip.first]);
 		}
 
-		int idx = 0;
-		tbb::flow::source_node<int> controller(*this,
-				[&](int& timestamp)->bool {
-					auto objects = model->getObjectNames();
+		tbb::flow::function_node<ImageProcessingResult> sink(
+				*this, 1,
+				[&](ImageProcessingResult data) {
 
-					for(auto& o : objects) {
-						if(model->isDone(o) && !model->getObject(o)->isRemoved()) {
-							remove_edge(*broadcasters[model->getObject(o)->getMarkerType()] , *model->getObject(o));
-							successorCounter[model->getObject(o)->getMarkerType()]--;
-							model->getObject(o)->remove();
-						}
-						if(successorCounter[model->getObject(o)->getMarkerType()]==0){
-							remove_edge(*camera , *imageprocessors[model->getObject(o)->getMarkerType()]);
-						}
 
+					for(auto& o : data) {
+						std::cout<<"object: "<<o.first<<std::endl;
+						for(auto& m : o.second) {
+							std::cout<<"    marker: "<<m.first<<std::endl;
+							for(auto& p : m.second) {
+								std::cout<<"       position: "<<p<<std::endl;
+							}
+						}
 					}
-					idx++;
-					Sleep(20);
-					return true;
-				}, false);
+				});
 
+		Visualizer visualizer(*this);
 
-		make_edge(*camera , drawer);
-		make_edge(controller , sink);
+	//	make_edge(*provider , sink);
+		make_edge(*camera , tbb::flow::input_port<0>(join));
+		make_edge(*provider , tbb::flow::input_port<1>(join));
+		make_edge(join , visualizer);
 
 		auto objects = model->getObjectNames();
 
 		for(auto o : objects){
-			successorCounter[model->getObject(o)->getMarkerType()]++;
-			make_edge(*broadcasters[model->getObject(o)->getMarkerType()] , *model->getObject(o));
-			make_edge(*model->getObject(o) , cont);
+			numberOfSuccessors[model->getMarkerType(o)]++;
+			make_edge(*broadcasters[model->getMarkerType(o)] , *model->getObject(o));
 		}
 
+		provider->start();
 		camera->startRecording();
-		sender.activate();
+
+		tbb::tbb_thread controllerThread(
+						[&]() {
+							while(isProcessing()) {
+								auto objects = model->getObjectNames();
+
+								for(auto& o : objects) {
+									auto type = model->getMarkerType(o);
+
+									if(model->isDone(o) && !model->isRemoved(o)) {
+										remove_edge(*broadcasters[type] , *model->getObject(o));
+										numberOfSuccessors[type]--;
+										model->remove(o);
+									}
+									if(numberOfSuccessors[type]==0) {
+										remove_edge(*camera , *imageprocessors[type]);
+									}
+								}
+								Sleep(20);
+								bool stop = true;
+								for(auto& element : numberOfSuccessors){
+									if(element.second>0){
+										stop = false;
+									}
+								}
+								if(stop){
+									stopProcessing();
+								}
+							}
+						});
+
+		controllerThread.detach();
+
 		this->wait_for_all();
 	}
 }
 
 void ComputerVision::stopProcessing() {
+	//TODO does not stop properly...
+	std::cout<<"stop processing"<<std::endl ;
 	processing = false;
 	camera->stopRecording();
+	provider->stop();
 }
 
 void ComputerVision::reconfigure(std::string configFilePath) {

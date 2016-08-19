@@ -13,20 +13,20 @@
 #include <tbb/concurrent_vector.h>
 #include "Camera.h"
 
-template <typename T , typename V> struct ImageProcessingData{
-	tbb::concurrent_vector<T> data;
-	tbb::concurrent_vector<V> identifiers;
+template <typename CONFIG> struct ImageProcessingData{
+	tbb::concurrent_vector<typename CONFIG::dataType> data;
+	tbb::concurrent_vector<typename CONFIG::identifierType> identifiers;
 	int64_t timestamp;
 	int64_t frameIndex;
 };
 
 template<typename CONFIG>
 
-class ImageProcessor: public tbb::flow::function_node<Frame, ImageProcessingData<typename CONFIG::dataType, typename CONFIG::identifierType>,tbb::flow::queueing> {
+class ImageProcessor: public tbb::flow::function_node<Frame, ImageProcessingData<CONFIG>,tbb::flow::queueing> {
 public:
-	virtual ImageProcessingData<typename CONFIG::dataType,typename CONFIG::identifierType> ProcessNextFrame(Frame frame)=0;
+	virtual ImageProcessingData<CONFIG> ProcessNextFrame(Frame frame)=0;
 
-	ImageProcessor(tbb::flow::graph& g) :tbb::flow::function_node<Frame,ImageProcessingData<typename CONFIG::dataType, typename CONFIG::identifierType>, tbb::flow::queueing>
+	ImageProcessor(tbb::flow::graph& g) :tbb::flow::function_node<Frame,ImageProcessingData<CONFIG>, tbb::flow::queueing>
 					(g, tbb::flow::unlimited ,std::bind(&ImageProcessor::ProcessNextFrame, this,std::placeholders::_1)) {};
 
 	virtual ~ImageProcessor() {};
