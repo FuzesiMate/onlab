@@ -49,6 +49,7 @@ void Object<CONFIG>::update(ImageProcessingData<CONFIG> data){
 	}
 
 	frameIndex = data.frameIndex;
+
 }
 
 template<typename CONFIG>

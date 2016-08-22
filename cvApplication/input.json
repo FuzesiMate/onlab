@@ -1,9 +1,9 @@
 {
 	"cameratype" : "default",
 	"numberofcameras" : 1,
-	"exposure" 	 : 15000,
+	"exposure" 	 : 5000,
 	"gain" 		 : 5,
-	"fps" 		 : 30,
+	"fps" 		 : 20,
 	"markertypes": [
 					"aruco",
 					"circle"
@@ -42,6 +42,31 @@
 						"id": 40
 						}
 						]
+						},
+				{
+						"name":"circle",
+						"numberofparts":4,
+						"markertype":"circle",
+						"limit" : 10,
+						"markers":
+						[
+						{
+						"name":"topleft",
+						"id": 1
+						},
+						{"name":"topright",
+						"id": 2
+						},
+						{
+						"name":"bottomleft",
+						"id": 3
+						},
+						{
+						"name":"bottomright",
+						"id": 4
 						}
+						]
+						}
+				
 			]		
 }

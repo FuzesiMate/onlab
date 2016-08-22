@@ -29,7 +29,7 @@ public:
 	ImageProcessor(tbb::flow::graph& g) :tbb::flow::function_node<Frame,ImageProcessingData<CONFIG>, tbb::flow::queueing>
 					(g, tbb::flow::unlimited ,std::bind(&ImageProcessor::ProcessNextFrame, this,std::placeholders::_1)) {};
 
-	virtual ~ImageProcessor() {};
+	virtual ~ImageProcessor() = default;
 };
 
 #endif /* IMAGEPROCESSOR_H_ */

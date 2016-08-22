@@ -13,7 +13,7 @@
 #include "Camera.h"
 
 class Visualizer: public tbb::flow::function_node<
-		tbb::flow::tuple<Frame, ImageProcessingResult> > {
+		tbb::flow::tuple<Frame, ImageProcessingResult>  , tbb::flow::continue_msg , tbb::flow::queueing> {
 private:
 	std::vector<ImageProcessingResult> dataBuffer;
 	std::vector<Frame> frameBuffer;
@@ -21,7 +21,7 @@ public:
 	void draw(tbb::flow::tuple<Frame, ImageProcessingResult> data);
 	Visualizer(tbb::flow::graph& g) :
 			tbb::flow::function_node<
-					tbb::flow::tuple<Frame, ImageProcessingResult> >(g, 1,
+					tbb::flow::tuple<Frame, ImageProcessingResult>, tbb::flow::continue_msg , tbb::flow::queueing >(g, 1,
 					std::bind(&Visualizer::draw, this ,std::placeholders::_1)) {};
 	virtual ~Visualizer() = default;
 };

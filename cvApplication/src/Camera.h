@@ -19,6 +19,13 @@
 #include <ctime>
 #include <time.h>
 
+struct Matrices{
+	tbb::concurrent_vector<cv::Mat> cameraMatrix;
+	tbb::concurrent_vector<cv::Mat> distCoeffs;
+	tbb::concurrent_vector<cv::Mat> projectionMatrix;
+	tbb::concurrent_vector<cv::Mat> rotationMatrix;
+};
+
 struct Frame{
 	tbb::concurrent_vector<cv::Mat> images;
 	int64_t timestamp;
@@ -32,10 +39,12 @@ class Camera: public tbb::flow::source_node< Frame > {
 	int fps;
 	int frameCounter ;
 
+	bool canTransform;
 	std::atomic_bool recording;
 	std::atomic_bool initialized;
 	int64_t lastTimestamp;
 
+	Matrices matrices;
 	std::vector<cv::VideoCapture> cameras;
 
 public:
@@ -44,11 +53,13 @@ public:
 			tbb::flow::source_node< Frame >(g,
 					std::bind(&Camera::capture, this, std::placeholders::_1),
 					false), numberOfCameras(numberOfCameras), exposure(
-					exposure), gain(gain),fps(fps),frameCounter(0), recording(false),initialized(
+					exposure), gain(gain),fps(fps),frameCounter(0), recording(false),canTransform(false),initialized(
 					false),lastTimestamp(0){};
 
 	bool capture(Frame &images);
 	bool init(int cameraType);
+	bool loadMatrices(std::string path);
+	cv::Point3f getRealPosition(tbb::concurrent_vector<cv::Point2f> screenPosition);
 	void stopRecording();
 	void startRecording();
 

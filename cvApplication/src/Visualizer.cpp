@@ -18,19 +18,20 @@ void Visualizer::draw(tbb::flow::tuple<Frame, ImageProcessingResult> data){
 	auto time = std::chrono::steady_clock::now();
 	auto currentTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
 
-	auto diff = currentTimestamp-frameBuffer[0].timestamp;
+	auto diff = currentTimestamp-frameBuffer.begin()->timestamp;
 
 	if((500-diff)>0){
 		Sleep(500-(diff));
 	}
 
-	int i = 0 ;
-	for(auto& image : frameBuffer[0].images){
+	size_t i = 0 ;
+	for(auto& image : frameBuffer.begin()->images){
 
-		for(auto& o : dataBuffer[0]){
+		for(auto& o : *dataBuffer.begin()){
 				for(auto& m : o.second){
-					for(auto& p : m.second)
-						cv::putText(image , m.first , cv::Point(p.x,p.y) ,cv::FONT_HERSHEY_SIMPLEX ,  1.0 , cv::Scalar(255,255,255) , 2.0);
+					if(i<m.second.size()){
+						cv::putText(image , m.first , cv::Point(m.second[i].x,m.second[i].y) ,cv::FONT_HERSHEY_SIMPLEX ,  1.0 , cv::Scalar(255,255,255) , 2.0);
+					}
 				}
 			}
 

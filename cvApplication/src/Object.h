@@ -25,11 +25,10 @@ private:
 	std::atomic<int64_t> frameIndex;
 	std::atomic<int64_t> timestamp;
 	std::atomic_int callCounter;
-	int limit;
+	std::atomic_int limit;
 	std::atomic_bool done;
 	std::atomic_bool removed;
 	MarkerType markerType;
-
 
 	tbb::concurrent_unordered_map<std::string, std::shared_ptr<Marker> > markers;
 

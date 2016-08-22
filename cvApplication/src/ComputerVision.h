@@ -29,6 +29,8 @@
 #define FPS				"fps"
 #define MARKERTYPES		"markertypes"
 
+#define DEFAULT 		0
+
 using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
 
 class ComputerVision :public tbb::flow::graph{

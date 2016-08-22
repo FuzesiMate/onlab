@@ -66,6 +66,7 @@
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="tbbmalloc_proxy"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_imgcodecs310"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_aruco310"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_calib3d310"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1335480141" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -135,6 +136,7 @@
 								<option id="gnu.cpp.link.option.libs.75129545" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_imencode310"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_aruco310"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_calib3d310"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.45749355" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

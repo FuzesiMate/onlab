@@ -16,7 +16,7 @@ bool DataProvider<CONFIG>::provideData(ImageProcessingResult& data) {
 	//if it looks stupid and it works, it's aint stupid ;)
 
 	while (model->getFrameIndex(objects[0]) == prevFrameIndex) {
-		Sleep(10);
+		Sleep(20);
 	}
 
 	prevFrameIndex++;

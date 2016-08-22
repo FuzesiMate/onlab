@@ -11,9 +11,11 @@
 #include <cstdio>
 #include <exception>
 #include "ArucoImageProcessor.h"
+#include "CircleDetector.h"
 #include "Visualizer.h"
 #include "DataProvider.cpp"
 #include "ArucoImageProcessor.cpp"
+#include "CircleDetector.cpp"
 #include "Object.cpp"
 #include "Model.cpp"
 
@@ -36,7 +38,11 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	if(cameraType=="ximea"){
 		initialized = camera->init(CV_CAP_XIAPI);
 	}else if(cameraType=="default"){
-		initialized = camera->init(0);
+		initialized = camera->init(DEFAULT);
+	}
+
+	if(config.get<int>(NUMBEROFCAMERAS)==2){
+		initialized = initialized && camera->loadMatrices("matrices.yml");
 	}
 
 	model = std::make_shared<Model<t_cfg> >();
@@ -68,7 +74,7 @@ void ComputerVision::startProcessing() {
 			imageprocessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
 		}if(type=="circle"){
 			numberOfSuccessors[MarkerType::CIRCLE] = 0;
-			imageprocessors[MarkerType::CIRCLE] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
+			imageprocessors[MarkerType::CIRCLE] = std::make_shared<CircleDetector<t_cfg> >(*this);
 		}
 	}
 
@@ -106,16 +112,16 @@ void ComputerVision::startProcessing() {
 						std::cout<<"object: "<<o.first<<std::endl;
 						for(auto& m : o.second) {
 							std::cout<<"    marker: "<<m.first<<std::endl;
-							for(auto& p : m.second) {
+								auto p = camera->getRealPosition(m.second);
 								std::cout<<"       position: "<<p<<std::endl;
-							}
+
 						}
 					}
 				});
 
 		Visualizer visualizer(*this);
 
-	//	make_edge(*provider , sink);
+		//make_edge(*provider , sink);
 		make_edge(*camera , tbb::flow::input_port<0>(join));
 		make_edge(*provider , tbb::flow::input_port<1>(join));
 		make_edge(join , visualizer);
@@ -126,9 +132,6 @@ void ComputerVision::startProcessing() {
 			numberOfSuccessors[model->getMarkerType(o)]++;
 			make_edge(*broadcasters[model->getMarkerType(o)] , *model->getObject(o));
 		}
-
-		provider->start();
-		camera->startRecording();
 
 		tbb::tbb_thread controllerThread(
 						[&]() {
@@ -162,7 +165,12 @@ void ComputerVision::startProcessing() {
 
 		controllerThread.detach();
 
+		provider->start();
+		camera->startRecording();
+
 		this->wait_for_all();
+
+		std::cout<<"Processing stopped!"<<std::endl;
 	}
 }
 
