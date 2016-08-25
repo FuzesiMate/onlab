@@ -13,9 +13,9 @@
 #include "ArucoImageProcessor.h"
 #include "CircleDetector.h"
 #include "Visualizer.h"
-#include "DataProvider.cpp"
 #include "ArucoImageProcessor.cpp"
 #include "CircleDetector.cpp"
+#include "DataProvider.h"
 #include "Object.cpp"
 #include "Model.cpp"
 
@@ -42,14 +42,12 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	}
 
 	if(config.get<int>(NUMBEROFCAMERAS)==2){
-		initialized = initialized && camera->loadMatrices("matrices.yml");
+		initialized = initialized && camera->loadMatrices(config.get<std::string>(PATH_TO_MATRICES));
 	}
 
 	model = std::make_shared<Model<t_cfg> >();
 
 	initialized = initialized && model->build(config , *this);
-
-	provider = std::make_shared<DataProvider<t_cfg> >(model , *this);
 
 	processing = false;
 	this->config = config;
@@ -58,6 +56,8 @@ bool ComputerVision::initialize(std::string configFilePath) {
 }
 
 void ComputerVision::startProcessing() {
+
+	std::cout<<"processing thread started"<<std::endl;
 
 	//instantiate image processors and map them by markertype
 	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageprocessors;
@@ -84,7 +84,7 @@ void ComputerVision::startProcessing() {
 
 		tbb::flow::join_node<tbb::flow::tuple<Frame , ImageProcessingResult> , tbb::flow::queueing  > join(*this);
 
-		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > sequencers;
+		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IPsequencers;
 
 		tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > > > broadcasters;
 
@@ -96,17 +96,20 @@ void ComputerVision::startProcessing() {
 
 			broadcasters[ip.first] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
 
-			sequencers.push_back(sequencer);
+			IPsequencers.push_back(sequencer);
 
-			make_edge(*camera , *ip.second);
-			make_edge(*ip.second , *sequencers[sequencers.size()-1]);
-			make_edge(*sequencers[sequencers.size()-1] , *broadcasters[ip.first]);
+			/*
+			 * Camera --> imageProcessor --> Sequencer --> broadcaster --> Object
+			 */
+
+			make_edge(camera->getProviderNode() , ip.second->getProcessorNode());
+			make_edge(ip.second->getProcessorNode() , *IPsequencers[IPsequencers.size()-1]);
+			make_edge(*IPsequencers[IPsequencers.size()-1] , *broadcasters[ip.first]);
 		}
 
-		tbb::flow::function_node<ImageProcessingResult> sink(
+		tbb::flow::function_node<ImageProcessingResult , tbb::flow::continue_msg , tbb::flow::queueing> sink(
 				*this, 1,
 				[&](ImageProcessingResult data) {
-
 
 					for(auto& o : data) {
 						std::cout<<"object: "<<o.first<<std::endl;
@@ -114,23 +117,51 @@ void ComputerVision::startProcessing() {
 							std::cout<<"    marker: "<<m.first<<std::endl;
 								auto p = camera->getRealPosition(m.second);
 								std::cout<<"       position: "<<p<<std::endl;
-
 						}
 					}
 				});
 
+
 		Visualizer visualizer(*this);
 
-		//make_edge(*provider , sink);
-		make_edge(*camera , tbb::flow::input_port<0>(join));
-		make_edge(*provider , tbb::flow::input_port<1>(join));
-		make_edge(join , visualizer);
+
+		provider = std::unique_ptr<DataProvider>(new DataProvider(model->getObjectNames().size() , *this));
+
+		/*
+		 * camera ----|
+		 * 			  |
+		 * 			join node --> Visualizer
+		 * 			  |
+		 * Provider --|--> DataSender
+		 */
+
+		if(config.get<std::string>(SHOW_WINDOW) == "true"){
+			make_edge(camera->getProviderNode() , tbb::flow::input_port<0>(join));
+			make_edge(provider->getProviderNode() , tbb::flow::input_port<1>(join));
+			make_edge(join , visualizer.getProcessorNode());
+		}
 
 		auto objects = model->getObjectNames();
 
-		for(auto o : objects){
+		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< MarkerPosition > > > ObjectSequencers;
+
+		for(auto& o : objects){
 			numberOfSuccessors[model->getMarkerType(o)]++;
-			make_edge(*broadcasters[model->getMarkerType(o)] , *model->getObject(o));
+			make_edge(*broadcasters[model->getMarkerType(o)] , model->getObject(o)->getProcessorNode());
+
+			auto tempSeq = std::make_shared<tbb::flow::sequencer_node< MarkerPosition > >(*this , [](MarkerPosition pos)->size_t{
+				return pos.frameIndex;
+			});
+
+			ObjectSequencers.push_back(tempSeq);
+
+			make_edge(model->getObject(o)->getProcessorNode() , *ObjectSequencers[ObjectSequencers.size()-1]);
+
+			make_edge(*ObjectSequencers[ObjectSequencers.size()-1] , provider->getProcessorNode());
+		}
+
+		if(config.get<std::string>(SEND_DATA)=="true"){
+			make_edge(provider->getProviderNode() , sink);
 		}
 
 		tbb::tbb_thread controllerThread(
@@ -142,15 +173,14 @@ void ComputerVision::startProcessing() {
 									auto type = model->getMarkerType(o);
 
 									if(model->isDone(o) && !model->isRemoved(o)) {
-										remove_edge(*broadcasters[type] , *model->getObject(o));
 										numberOfSuccessors[type]--;
 										model->remove(o);
 									}
 									if(numberOfSuccessors[type]==0) {
-										remove_edge(*camera , *imageprocessors[type]);
+										remove_edge(camera->getProviderNode() , imageprocessors[type]->getProcessorNode());
 									}
 								}
-								Sleep(20);
+
 								bool stop = true;
 								for(auto& element : numberOfSuccessors){
 									if(element.second>0){
@@ -160,25 +190,40 @@ void ComputerVision::startProcessing() {
 								if(stop){
 									stopProcessing();
 								}
+								Sleep(100);
 							}
+							std::cout<<"controller thread stopped!"<<std::endl;
 						});
 
 		controllerThread.detach();
 
-		provider->start();
-		camera->startRecording();
 
+		bool started = false;
+		tbb::flow::continue_node<tbb::flow::continue_msg> cont(*this , [&](tbb::flow::continue_msg out){
+			if(!started){
+				provider->start();
+				started = true;
+			}
+		});
+
+
+		make_edge(provider->getProcessorNode() , cont);
+
+		camera->start();
+
+		std::cout<<"wait for all"<<std::endl;
 		this->wait_for_all();
 
-		std::cout<<"Processing stopped!"<<std::endl;
+		std::cout<<"Processing thread stopped!"<<std::endl;
+	}else{
+		std::cout<<"CV module is not initialized!"<<std::endl;
 	}
 }
 
 void ComputerVision::stopProcessing() {
-	//TODO does not stop properly...
-	std::cout<<"stop processing"<<std::endl ;
+	std::cout<<"stop processing"<<std::endl;
 	processing = false;
-	camera->stopRecording();
+	camera->stop();
 	provider->stop();
 }
 

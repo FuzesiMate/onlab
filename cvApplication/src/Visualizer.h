@@ -11,18 +11,18 @@
 #include <tbb/flow_graph.h>
 #include "TemplateConfiguration.h"
 #include "Camera.h"
+#include "Processor.h"
 
-class Visualizer: public tbb::flow::function_node<
+class Visualizer: public Processor<
 		tbb::flow::tuple<Frame, ImageProcessingResult>  , tbb::flow::continue_msg , tbb::flow::queueing> {
 private:
 	std::vector<ImageProcessingResult> dataBuffer;
 	std::vector<Frame> frameBuffer;
 public:
-	void draw(tbb::flow::tuple<Frame, ImageProcessingResult> data);
+	tbb::flow::continue_msg process(tbb::flow::tuple<Frame, ImageProcessingResult> data);
 	Visualizer(tbb::flow::graph& g) :
-			tbb::flow::function_node<
-					tbb::flow::tuple<Frame, ImageProcessingResult>, tbb::flow::continue_msg , tbb::flow::queueing >(g, 1,
-					std::bind(&Visualizer::draw, this ,std::placeholders::_1)) {};
+			Processor<
+					tbb::flow::tuple<Frame, ImageProcessingResult>, tbb::flow::continue_msg , tbb::flow::queueing >(g ,1) {};
 	virtual ~Visualizer() = default;
 };
 

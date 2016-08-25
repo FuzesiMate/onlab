@@ -1,49 +1,56 @@
 /*
- * DataProvider.cpp
+ * ObjectDataProvider.cpp
  *
- *  Created on: 2016. aug. 19.
+ *  Created on: 2016. aug. 24.
  *      Author: Máté
  */
 
 #include "DataProvider.h"
 
-template<typename CONFIG>
-bool DataProvider<CONFIG>::provideData(ImageProcessingResult& data) {
-	auto objects = model->getObjectNames();
+#include "windows.h"
 
-	//do not send the same data again, wait for the next frame
-	//TODO dummy solution...
-	//if it looks stupid and it works, it's aint stupid ;)
+tbb::flow::continue_msg DataProvider::process(MarkerPosition position){
+	dataBuffer[position.objectName].push_back(position);
+}
 
-	while (model->getFrameIndex(objects[0]) == prevFrameIndex) {
-		Sleep(20);
-	}
+bool DataProvider::provide(ImageProcessingResult& output){
 
-	prevFrameIndex++;
+	if(providing){
 
-	for (auto& o : objects) {
-		auto markers = model->getMarkerNames(o);
+		while(!readyToSend){
 
-		for (auto& m : markers) {
-			data[o][m] = model->getPosition(o, m);
+			readyToSend = true;
+
+			for(auto& element : dataBuffer){
+
+				if((element.second.begin()->frameIndex!= nextFrameIndex || dataBuffer.size()<numberOfObjects )){
+					readyToSend = false;
+				}
+			}
+
+			Sleep(10);
 		}
-	}
 
-	if (providing) {
-		return true;
-	} else {
+		nextFrameIndex++;
+
+				for(auto& object : dataBuffer){
+					for(auto& marker : object.second.front().position){
+						output[object.first][marker.first] = marker.second;
+					}
+				}
+
+			for(auto& object : dataBuffer){
+				auto pos = object.second;
+				object.second.clear();
+				for(size_t i = 1 ; i<pos.size() ; i++){
+					object.second.push_back(pos[i]);
+				}
+			}
+
+			readyToSend = false;
+
+			return true;
+	}else{
 		return false;
 	}
 }
-
-template <typename CONFIG>
-void DataProvider<CONFIG>::stop(){
-	providing = false;
-}
-
-template <typename CONFIG>
-void DataProvider<CONFIG>::start(){
-	providing = true;
-	this->activate();
-}
-

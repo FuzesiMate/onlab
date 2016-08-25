@@ -1,13 +1,16 @@
 {
 	"cameratype" : "default",
 	"numberofcameras" : 1,
-	"exposure" 	 : 5000,
+	"exposure" 	 : 10000,
 	"gain" 		 : 5,
-	"fps" 		 : 20,
+	"fps" 		 : 30,
+	"path_to_matrices":"matrices.yml",
 	"markertypes": [
-					"aruco",
-					"circle"
+					"aruco"
 				   ],
+	"show_window":"true",
+	"send_raw_data":"false",
+	"send_data":"true",
 	"objects": 	[
 				{
 				"name":"robot_arm",
@@ -42,31 +45,6 @@
 						"id": 40
 						}
 						]
-						},
-				{
-						"name":"circle",
-						"numberofparts":4,
-						"markertype":"circle",
-						"limit" : 10,
-						"markers":
-						[
-						{
-						"name":"topleft",
-						"id": 1
-						},
-						{"name":"topright",
-						"id": 2
-						},
-						{
-						"name":"bottomleft",
-						"id": 3
-						},
-						{
-						"name":"bottomright",
-						"id": 4
-						}
-						]
-						}
-				
+				}
 			]		
 }

@@ -7,9 +7,9 @@
 
 #include "Camera.h"
 
-bool Camera::capture(Frame &frame) {
+bool Camera::provide(Frame &frame) {
 
-	if (!recording) {
+	if (!providing) {
 		return false;
 	}
 
@@ -39,10 +39,19 @@ bool Camera::capture(Frame &frame) {
 
 	tbb::parallel_for(size_t(0), cameras.size(), [&](size_t i ) {
 		cameras[i].retrieve(frame.images[i]);
+		//cv::resize(frame.images[i] , frame.images[i]  , cv::Size(640,480));
 	});
 
+	int currentFps;
+
+	if((currentTimestamp-lastTimestamp)>0){
+		currentFps = 1000/(currentTimestamp-lastTimestamp);
+	}
+
 	std::stringstream fpsstring;
-	fpsstring <<1000/(currentTimestamp-lastTimestamp);
+	fpsstring <<currentFps;
+
+	frame.fps = currentFps;
 
 	for(auto& i : frame.images){
 
@@ -98,6 +107,8 @@ bool Camera::loadMatrices(std::string path){
 	file["r2"]>>temp;
 	matrices.rotationMatrix.push_back(temp.clone());
 
+	file.release();
+
 	canTransform = true;
 	return true;
 }
@@ -111,6 +122,7 @@ cv::Point3f Camera::getRealPosition(tbb::concurrent_vector<cv::Point2f> screenPo
 	float z = 0;
 
 	if(screenPosition.size()==2 && canTransform){
+		try{
 		p1.push_back(screenPosition[0]);
 		p2.push_back(screenPosition[1]);
 
@@ -127,19 +139,12 @@ cv::Point3f Camera::getRealPosition(tbb::concurrent_vector<cv::Point2f> screenPo
 					  y = cord.at<float>(1,i)/w;
 					  z = cord.at<float>(2,i)/w;
 			}
+		}catch(std::exception& e){
+			std::cout<<"3D position is not available! Problem: "<<e.what()<<std::endl;
+		}
 	}
 	return cv::Point3f(x,y,z);
 }
-
-void Camera::stopRecording(){
-	recording = false;
-}
-
-void Camera::startRecording(){
-	recording = true;
-	this->activate();
-}
-
 
 Camera::~Camera() {
 	for(auto c : cameras){

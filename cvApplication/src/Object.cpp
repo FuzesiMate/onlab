@@ -13,43 +13,53 @@ int Object<CONFIG>::getCallCounter(){
 }
 
 template<typename CONFIG>
-void Object<CONFIG>::update(ImageProcessingData<CONFIG> data){
-	callCounter++;
+MarkerPosition Object<CONFIG>::process(ImageProcessingData<CONFIG> data){
+
+	MarkerPosition pos;
+	pos.objectName = name;
 
 	if(callCounter == limit){
 			done = true;
-	}
+	}else{
+		for(auto m : markers){
+			int id = m.second->getId();
+			bool found = true;
 
-	for(auto m : markers){
-		int id = m.second->getId();
-		bool found = true;
+			tbb::concurrent_vector<cv::Point2f> position;
 
-		tbb::concurrent_vector<cv::Point2f> position;
+			int i = 0 ;
+			for(auto identifier : data.identifiers){
 
-		int i = 0 ;
-		for(auto identifier : data.identifiers){
+				auto index = std::find(identifier.begin() , identifier.end() , id);
 
-			auto index = std::find(identifier.begin() , identifier.end() , id);
-
-			if(index==identifier.end()){
-				found = false;
-			}else{
-				auto posIndex = std::distance(identifier.begin() , index);
-				position.push_back(data.data[i][posIndex]);
+				if(index==identifier.end()){
+					found = false;
+				}else{
+					auto posIndex = std::distance(identifier.begin() , index);
+					position.push_back(data.data[i][posIndex]);
+				}
+				i++;
 			}
-			i++;
+
+			if(found){
+				m.second->setPosition(position);
+			}else{
+				m.second->lost();
+			}
 		}
 
-		if(found){
-			m.second->setPosition(position);
-		}else{
-			m.second->lost();
-
-		}
+		callCounter++;
 	}
 
+	for(auto& m : markers){
+		pos.position[m.first] = m.second->getPosition();
+		pos.tracked = m.second->isTracked();
+	}
+
+	pos.frameIndex = data.frameIndex;
 	frameIndex = data.frameIndex;
 
+	return pos;
 }
 
 template<typename CONFIG>

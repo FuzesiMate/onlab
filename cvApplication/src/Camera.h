@@ -18,6 +18,7 @@
 #include <windows.h>
 #include <ctime>
 #include <time.h>
+#include "Provider.h"
 
 struct Matrices{
 	tbb::concurrent_vector<cv::Mat> cameraMatrix;
@@ -30,9 +31,10 @@ struct Frame{
 	tbb::concurrent_vector<cv::Mat> images;
 	int64_t timestamp;
 	int64_t frameIndex;
+	int fps;
 };
 
-class Camera: public tbb::flow::source_node< Frame > {
+class Camera:public Provider< Frame > {
 	int numberOfCameras;
 	int exposure;
 	int gain;
@@ -40,7 +42,6 @@ class Camera: public tbb::flow::source_node< Frame > {
 	int frameCounter ;
 
 	bool canTransform;
-	std::atomic_bool recording;
 	std::atomic_bool initialized;
 	int64_t lastTimestamp;
 
@@ -49,19 +50,15 @@ class Camera: public tbb::flow::source_node< Frame > {
 
 public:
 
-	Camera(int fps , int exposure, int gain, int numberOfCameras, tbb::flow::graph& g) :
-			tbb::flow::source_node< Frame >(g,
-					std::bind(&Camera::capture, this, std::placeholders::_1),
-					false), numberOfCameras(numberOfCameras), exposure(
-					exposure), gain(gain),fps(fps),frameCounter(0), recording(false),canTransform(false),initialized(
+	Camera(int fps , int exposure , int gain, int numberOfCameras, tbb::flow::graph& g) :
+			Provider< Frame >(g), numberOfCameras(numberOfCameras), exposure(
+					exposure), gain(gain),fps(fps),frameCounter(0),canTransform(false),initialized(
 					false),lastTimestamp(0){};
 
-	bool capture(Frame &images);
+	bool provide(Frame &images);
 	bool init(int cameraType);
 	bool loadMatrices(std::string path);
 	cv::Point3f getRealPosition(tbb::concurrent_vector<cv::Point2f> screenPosition);
-	void stopRecording();
-	void startRecording();
 
 	virtual ~Camera();
 };

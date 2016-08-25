@@ -13,7 +13,7 @@
 template <typename CONFIG>
 class CircleDetector: public ImageProcessor<CONFIG> {
 public:
-	virtual ImageProcessingData<CONFIG> ProcessNextFrame(Frame frame);
+	ImageProcessingData<CONFIG> process(Frame frame);
 	CircleDetector(tbb::flow::graph& g):ImageProcessor<CONFIG>(g){};
 	virtual ~CircleDetector() = default;
 };

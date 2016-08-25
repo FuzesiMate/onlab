@@ -1,29 +1,31 @@
 /*
- * DataProvider.h
+ * ObjectDataProvider.h
  *
- *  Created on: 2016. aug. 19.
+ *  Created on: 2016. aug. 24.
  *      Author: Máté
  */
 
 #ifndef DATAPROVIDER_H_
 #define DATAPROVIDER_H_
 
-#include <tbb/flow_graph.h>
-#include "Model.h"
+#include "Processor.h"
+#include "Provider.h"
 #include "TemplateConfiguration.h"
 
-template<typename CONFIG>
-class DataProvider : public tbb::flow::source_node<ImageProcessingResult>{
+class DataProvider: public Processor<MarkerPosition , tbb::flow::continue_msg , tbb::flow::queueing> ,public Provider<ImageProcessingResult> {
 private:
-	std::atomic_bool providing;
-	int64_t prevFrameIndex;
-	std::shared_ptr<Model<CONFIG> > model;
+	tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<MarkerPosition> > dataBuffer;
+	std::atomic<int64_t> nextFrameIndex;
+	std::atomic_bool readyToSend;
+	int numberOfObjects;
 public:
-	bool provideData(ImageProcessingResult& data);
-	DataProvider(std::shared_ptr<Model<CONFIG> > model,tbb::flow::graph& g):tbb::flow::source_node<ImageProcessingResult>(g , std::bind(&DataProvider::provideData , this , std::placeholders::_1) , false),providing(false),prevFrameIndex(0),model(model){};
-	void stop();
-	void start();
-	virtual ~DataProvider()=default;
+	tbb::flow::continue_msg process(MarkerPosition position);
+
+	bool provide(ImageProcessingResult& output);
+
+	DataProvider(int numberOfObjects, tbb::flow::graph& g):Processor<MarkerPosition , tbb::flow::continue_msg , tbb::flow::queueing>(g ,1),
+			Provider<ImageProcessingResult>(g),nextFrameIndex(0),readyToSend(false),numberOfObjects(numberOfObjects){};
+	virtual ~DataProvider() = default;
 };
 
 #endif /* DATAPROVIDER_H_ */

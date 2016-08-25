@@ -28,6 +28,10 @@
 #define GAIN			"gain"
 #define FPS				"fps"
 #define MARKERTYPES		"markertypes"
+#define SHOW_WINDOW		"show_window"
+#define SEND_DATA		"send_data"
+#define SEND_RAW_DATA	"send_raw_data"
+#define PATH_TO_MATRICES "path_to_matrices"
 
 #define DEFAULT 		0
 
@@ -36,8 +40,8 @@ using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurr
 class ComputerVision :public tbb::flow::graph{
 private:
 	std::unique_ptr<Camera> camera;
+	std::unique_ptr<DataProvider> provider;
 	std::shared_ptr<Model<t_cfg> > model;
-	std::shared_ptr<DataProvider<t_cfg> > provider;
 
 	boost::property_tree::ptree config;
 	std::atomic_bool initialized;

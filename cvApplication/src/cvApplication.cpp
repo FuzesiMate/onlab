@@ -25,12 +25,7 @@ int main(int argc , char *argv[]) {
 
 	ComputerVision cvModule;
 
-	if(!cvModule.initialize("input.json")){
-		cout<<"failed to init"<<endl;
-		return -1;
-	}
-
-	cout<<"successful init"<<endl;
+	bool in = false;
 
 	char c='a';
 
@@ -39,19 +34,26 @@ int main(int argc , char *argv[]) {
 
 		switch(c){
 		case 's':
-			if(!cvModule.isProcessing()){
+			if(!in){
+				cvModule.initialize("input.json");
+				in = true;
+				cout<<"successful init"<<endl;
+			}else{
 				cout<<"start processing thread..."<<endl;
 				tbb_thread processingThread(std::bind(&ComputerVision::startProcessing, &cvModule));
-
+				processingThread.detach();
 			}
+
 			break;
 		case 'x':
 			cvModule.stopProcessing();
+			in = false;
 			break;
 		default:
 			cout<<"invalid"<<endl;
 			break;
 		}
+		Sleep(100);
 	}
 
 	return 0;

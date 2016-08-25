@@ -22,7 +22,7 @@ private:
 
 public:
 	ArucoImageProcessor(tbb::flow::graph &g):ImageProcessor<CONFIG>(g),dictionary(cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(0))),detectorParams(cv::aruco::DetectorParameters::create()),prevFrameIdx(0){};
-	virtual ImageProcessingData<CONFIG> ProcessNextFrame(Frame frame);
+	ImageProcessingData<CONFIG> process(Frame frame);
 	virtual ~ArucoImageProcessor() = default;
 };
 

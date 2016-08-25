@@ -11,7 +11,7 @@
 #include <chrono>
 #include <iostream>
 
-void Visualizer::draw(tbb::flow::tuple<Frame, ImageProcessingResult> data){
+tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ImageProcessingResult> data){
 	frameBuffer.push_back(std::get<0>(data));
 	dataBuffer.push_back(std::get<1>(data));
 
@@ -35,14 +35,16 @@ void Visualizer::draw(tbb::flow::tuple<Frame, ImageProcessingResult> data){
 				}
 			}
 
+		cv::resize(image,image,cv::Size(640,480));
 		std::stringstream winname;
 		winname<<"cam "<<i;
 		cv::imshow(winname.str() , image);
+		cv::waitKey(5);
 		i++;
 	}
+
 
 	frameBuffer.erase(frameBuffer.begin());
 	dataBuffer.erase(dataBuffer.begin());
 
-	cv::waitKey(5);
 }

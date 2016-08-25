@@ -12,6 +12,7 @@
 #include <opencv2/opencv.hpp>
 #include <tbb/concurrent_vector.h>
 #include "Camera.h"
+#include "Processor.h"
 
 template <typename CONFIG> struct ImageProcessingData{
 	tbb::concurrent_vector<typename CONFIG::dataType> data;
@@ -22,12 +23,11 @@ template <typename CONFIG> struct ImageProcessingData{
 
 template<typename CONFIG>
 
-class ImageProcessor: public tbb::flow::function_node<Frame, ImageProcessingData<CONFIG>,tbb::flow::queueing> {
+class ImageProcessor :public Processor<Frame , ImageProcessingData<CONFIG>  , tbb::flow::queueing>{
 public:
-	virtual ImageProcessingData<CONFIG> ProcessNextFrame(Frame frame)=0;
+	virtual ImageProcessingData<CONFIG> process(Frame frame)=0;
 
-	ImageProcessor(tbb::flow::graph& g) :tbb::flow::function_node<Frame,ImageProcessingData<CONFIG>, tbb::flow::queueing>
-					(g, tbb::flow::unlimited ,std::bind(&ImageProcessor::ProcessNextFrame, this,std::placeholders::_1)) {};
+	ImageProcessor(tbb::flow::graph& g):Processor<Frame , ImageProcessingData<CONFIG>  , tbb::flow::queueing>(g , tbb::flow::unlimited){}
 
 	virtual ~ImageProcessor() = default;
 };

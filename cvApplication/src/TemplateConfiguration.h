@@ -17,8 +17,15 @@ enum MarkerType{
 	CIRCLE
 };
 
-typedef tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point2f> > >
-ImageProcessingResult;
+typedef tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point2f> > > ImageProcessingResult;
+
+struct MarkerPosition{
+	tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point2f> > position;
+	std::string objectName;
+	int64_t frameIndex;
+	bool tracked;
+};
+
 
 template<typename data , typename identifier>
 struct TEMPLATE_CONFIG{
