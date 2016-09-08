@@ -1,0 +1,1 @@
+ -ltbb -ltbbmalloc -ltbbmalloc_proxy -lm3api -llibopencv_core310 -llibopencv_highgui310 -llibopencv_imgcodecs310 -llibopencv_imgproc310 -llibopencv_videoio310 -llibopencv_aruco310 -llibopencv_calib3d310 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 
