@@ -2,7 +2,7 @@
  * Object.h
  *
  *  Created on: 2016. aug. 11.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef OBJECT_H_

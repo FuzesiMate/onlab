@@ -2,17 +2,18 @@
  * LedController.cpp
  *
  *  Created on: 2016. aug. 1.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #include <memory>
 #include <chrono>
 #include <string>
+
 #include "LedController.h"
 
 
 LedController::LedController() {
-	serial = std::unique_ptr<Serial>(new Serial("COM5"));
+	serial = std::unique_ptr<SerialComm>(new SerialComm());
 
 	if(serial->IsConnected()){
 		std::cout<<"connected to arduino"<<std::endl;
@@ -32,7 +33,7 @@ void LedController::flashNext(uint64_t timestamp , uint64_t nextDuration){
 		for(auto v : currentPattern){
 			std::stringstream str;
 			str<<i<<" "<<v<<"\n";
-			serial->WriteData(str.str().c_str() , str.str().length());
+			serial->writeData(str.str().c_str() , str.str().length());
 			i++;
 		}
 
@@ -47,6 +48,18 @@ void LedController::flashNext(uint64_t timestamp , uint64_t nextDuration){
 		}else{
 			iteration++;
 		}
+
+		/*
+		if(history.size()>50){
+			tbb::concurrent_vector<std::tuple<uint64_t , uint64_t , int> > temp;
+
+			for(auto h = history.begin() ; h<history.end()-1 ; h++){
+				temp.push_back(*(h++));
+			}
+
+			history = temp;
+		}
+		*/
 }
 
 

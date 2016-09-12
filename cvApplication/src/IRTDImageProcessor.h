@@ -2,7 +2,7 @@
  * IRTDImageProcessor.h
  *
  *  Created on: 2016. szept. 9.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef IRTDIMAGEPROCESSOR_H_
@@ -12,6 +12,10 @@
 #include "LedController.h"
 #include <atomic>
 #include <tbb/compat/thread>
+
+#define THRESHOLD 	"threshold"
+#define SETUP_TIME 	"setuptime"
+#define DURATION 	"duration"
 
 enum BodyPart{
 	LEFT_HAND,
@@ -47,6 +51,8 @@ template <typename CONFIG>
 class IRTDImageProcessor: public ImageProcessor<CONFIG> {
 private:
 	std::atomic_int threshold;
+	std::atomic_int duration;
+	std::atomic_int setupTime;
 	LedController ledController;
 
 	std::vector<Cluster> clusterContours(std::vector<std::vector<cv::Point> > contours , int distanceThreshold);
@@ -54,7 +60,7 @@ private:
 public:
 	void startLedController();
 
-	IRTDImageProcessor(tbb::flow::graph& g):ImageProcessor<CONFIG>(g),threshold(200){
+	IRTDImageProcessor(tbb::flow::graph& g):ImageProcessor<CONFIG>(g),threshold(200),duration(100),setupTime(15){
 		ledController.addPattern(std::vector<int>{0,255,0,50});
 		ledController.addPattern(std::vector<int>{255,0,50,0});
 

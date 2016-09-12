@@ -2,7 +2,7 @@
  * IRTDImageProcessor.cpp
  *
  *  Created on: 2016. szept. 9.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #include "IRTDImageProcessor.h"
@@ -15,9 +15,11 @@ void IRTDImageProcessor<CONFIG>::startLedController(){
 		auto currentTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
 
 		if(currentTimestamp >= ledController.getLastTimestamp()+ledController.getDuration()){
-				ledController.flashNext(currentTimestamp , 50);
+				ledController.flashNext(currentTimestamp ,duration);
 		}
-		Sleep(10);
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		//usleep(10000);
 	}
 }
 
@@ -173,9 +175,27 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
 		cv::findContours(cont, contours, hierarchy, CV_RETR_EXTERNAL,
 				cv::CHAIN_APPROX_SIMPLE);
 
-		if(contours.size()>1){
-			auto clusters = clusterContours(contours, 10);
+		auto clusters = clusterContours(contours, 10);
 
+		if(contours.size()==1){
+
+			Cluster ctemp;
+			ctemp.allPoints = contours[0];
+			ctemp.area = cv::contourArea(contours[0]);
+			ctemp.boundingRect = cv::boundingRect(contours[0]);
+
+			Contour conttemp;
+			conttemp.area = cv::contourArea(contours[0]);
+			conttemp.clusterId = 0;
+			conttemp.points = contours[0];
+
+			ctemp.contours.push_back(conttemp);
+
+			clusters.clear();
+			clusters.push_back(ctemp);
+		}
+
+		if(contours.size()>0){
 			for (auto& cluster : clusters) {
 				int averageLuminosity = 0;
 
@@ -191,7 +211,7 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
 
 					averageLuminosity /= cluster.area;
 
-					auto iter = ledController.getFrameIteration(frame.timestamp);
+					auto iter = ledController.getFrameIteration(frame.timestamp , setupTime);
 
 					if(iter>=0){
 						BodyPart ankle;
@@ -215,10 +235,10 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
 						}
 				}
 			}
+		}
 
 			foundMarkers.data.push_back(markerPosition);
 			foundMarkers.identifiers.push_back(markerIdentifier);
-		}
 	});
 
 	foundMarkers.frameIndex = frame.frameIndex;
@@ -229,5 +249,7 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
 
 template<typename CONFIG>
 void IRTDImageProcessor<CONFIG>::setProcessingSpecificValues(boost::property_tree::ptree config){
-
+	threshold = config.get<int>(THRESHOLD);
+	duration = config.get<int>(DURATION);
+	setupTime = config.get<int>(SETUP_TIME);
 }

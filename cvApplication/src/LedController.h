@@ -2,7 +2,7 @@
  * LedController.h
  *
  *  Created on: 2016. aug. 1.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef LEDCONTROLLER_H_
@@ -14,12 +14,14 @@
 #include <sstream>
 #include <atomic>
 #include <tbb/concurrent_vector.h>
-#include "SerialCom.h"
+
+#include "SerialComm.h"
+
 #include "Pattern.h"
 
 class LedController {
 private:
-	std::unique_ptr<Serial> serial;
+	std::unique_ptr<SerialComm> serial;
 	std::atomic_int iteration;
 	std::atomic<uint64_t> lastTimestamp;
 	std::atomic<uint64_t> duration;
@@ -34,9 +36,9 @@ public:
 	uint64_t getDuration();
 	int getIteration();
 
-	int getFrameIteration(uint64_t timestamp){
+	int getFrameIteration(uint64_t timestamp , int setupTime){
 
-		if(timestamp > lastTimestamp+20 && timestamp < lastTimestamp+duration){
+		if(timestamp > lastTimestamp+setupTime && timestamp < lastTimestamp+duration){
 			return iteration;
 		}
 
@@ -45,7 +47,7 @@ public:
 			auto durat = std::get<1>(h);
 			auto iter = std::get<2>(h);
 
-			if(timestamp > ts+20 && timestamp < ts+durat){
+			if(timestamp > ts+setupTime && timestamp < ts+durat){
 				return iter;
 			}
 		}

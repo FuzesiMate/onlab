@@ -2,7 +2,7 @@
  * Object.cpp
  *
  *  Created on: 2016. aug. 11.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #include "Object.h"
@@ -45,19 +45,24 @@ MarkerPosition Object<CONFIG>::process(ImageProcessingData<CONFIG> data){
 			}
 
 			if(found){
-				m.second->setPosition(position);
+				//m.second->setPosition(position);
+				pos.position[m.first] = position;
+				pos.tracked = true;
 			}else{
-				m.second->lost();
+				pos.tracked = false;
+				//m.second->lost();
 			}
 		}
 
 		callCounter++;
 	}
 
+	/*
 	for(auto& m : markers){
-		pos.position[m.first] = m.second->getPosition();
-		pos.tracked = m.second->isTracked();
+		//pos.position[m.first] = m.second->getPosition();
+		//pos.tracked = m.second->isTracked();
 	}
+	*/
 
 	pos.frameIndex = data.frameIndex;
 	frameIndex = data.frameIndex;

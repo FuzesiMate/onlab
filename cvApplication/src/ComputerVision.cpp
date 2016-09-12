@@ -2,7 +2,7 @@
  * ComputerVision.cpp
  *
  *  Created on: 2016. aug. 9.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #include "ComputerVision.h"
@@ -49,8 +49,8 @@ void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , t
 		if (stop) {
 			stopProcessing();
 		}
-		Sleep(100);
-		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		//Sleep(100);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	std::cout << "controller thread stopped!" << std::endl;
 }
@@ -106,13 +106,15 @@ void ComputerVision::startProcessing() {
 		if(type=="aruco"){
 			numberOfSuccessors[MarkerType::ARUCO] = 0;
 			imageprocessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
+			imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
 		}if(type=="circle"){
 			numberOfSuccessors[MarkerType::CIRCLE] = 0;
 			imageprocessors[MarkerType::CIRCLE] = std::make_shared<CircleDetector<t_cfg> >(*this);
+			imageprocessors[MarkerType::CIRCLE]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
 		}if(type == "irtd"){
-			std::cout<<"irtd"<<std::endl;
 			numberOfSuccessors[MarkerType::IRTD] = 0;
 			imageprocessors[MarkerType::IRTD] = std::make_shared<IRTDImageProcessor<t_cfg> >(*this);
+			imageprocessors[MarkerType::IRTD]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
 		}
 	}
 
@@ -302,7 +304,25 @@ void ComputerVision::stopProcessing() {
 }
 
 void ComputerVision::reconfigure(std::string configFilePath) {
-	imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(config);
+
+	boost::property_tree::read_json(configFilePath , config);
+
+	for(auto& ip : imageprocessors){
+		auto ipList = config.get_child(IMAGEPROCESSORS);
+
+		for(auto& ipElement : ipList){
+			auto type = ipElement.second.get<std::string>("type");
+			if (type == "aruco") {
+				imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(ipElement.second.get_child("specificvalues"));
+			}
+			if (type == "circle") {
+				imageprocessors[MarkerType::CIRCLE]->setProcessingSpecificValues(ipElement.second.get_child("specificvalues"));
+			}
+			if (type == "irtd") {
+				imageprocessors[MarkerType::IRTD]->setProcessingSpecificValues(ipElement.second.get_child("specificvalues"));
+			}
+		}
+	}
 }
 
 bool ComputerVision::isProcessing(){

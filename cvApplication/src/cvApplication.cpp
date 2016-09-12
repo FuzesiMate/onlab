@@ -35,9 +35,11 @@ int main(int argc , char *argv[]) {
 		switch(c){
 		case 's':
 			if(!in){
-				cvModule.initialize(argv[1]);
-				in = true;
-				cout<<"successful init"<<endl;
+				in = cvModule.initialize(argv[1]);
+				if(in){
+					std::cout<<"init successful!"<<std::endl;
+				}
+
 			}else{
 				cout<<"start processing thread..."<<endl;
 				tbb_thread processingThread(std::bind(&ComputerVision::startProcessing, &cvModule));
@@ -56,7 +58,7 @@ int main(int argc , char *argv[]) {
 			cout<<"invalid"<<endl;
 			break;
 		}
-		Sleep(100);
+		usleep(100000);
 	}
 
 	return 0;

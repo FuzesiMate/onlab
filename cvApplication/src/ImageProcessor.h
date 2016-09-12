@@ -2,7 +2,7 @@
  * ImageProcessor.h
  *
  *  Created on: 2016. aug. 9.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef IMAGEPROCESSOR_H_

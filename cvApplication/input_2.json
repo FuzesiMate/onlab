@@ -3,31 +3,28 @@
 	"numberofcameras": 1,
 	"exposure": 10000,
 	"gain": 5,
-	"fps": 20,
+	"fps": 60,
 	"path_to_matrices": "matrices.yml",
 	"imageprocessors": [{
-		"type": "aruco",
-		"specificvalues": [{
-			"dictionary": 0
-		}]
-	}, {
 		"type": "irtd",
-		"specificvalues": [{
-			"threshold": 200
-		}]
-
-	}],
+		"specificvalues": {
+			"threshold": 200,
+			"duration" : 30,
+			"setuptime": 15
+		}
+	}
+	],
 	"show_window": "true",
 	"send_raw_data": "false",
 	"send_data": "false",
 	"objects": [{
 		"name": "human",
 		"numberofparts": 4,
-		"markertype": "aruco",
+		"markertype": "irtd",
 		"limit": -1,
 		"markers": [{
 			"name": "la",
-			"id": 40
+			"id": 0
 		}, {
 			"name": "ra",
 			"id": 1

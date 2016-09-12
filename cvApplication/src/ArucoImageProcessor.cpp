@@ -2,7 +2,7 @@
  * ArucoImageProcessor.cpp
  *
  *  Created on: 2016. aug. 9.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #include "ArucoImageProcessor.h"

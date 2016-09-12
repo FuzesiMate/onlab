@@ -2,7 +2,7 @@
  * Camera.h
  *
  *  Created on: 2016. aug. 9.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef CAMERA_H_
@@ -17,9 +17,10 @@
 #include <tbb/tbb.h>
 #include <ctime>
 #include <time.h>
+#include <thread>
 #include "Provider.h"
 
-#include <windows.h>
+//#include <windows.h>
 
 struct Matrices{
 	tbb::concurrent_vector<cv::Mat> cameraMatrix;

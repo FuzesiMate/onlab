@@ -2,7 +2,7 @@
  * Visualizer.cpp
  *
  *  Created on: 2016. aug. 19.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #include "Visualizer.h"
@@ -21,7 +21,8 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ImageProcess
 	auto diff = currentTimestamp-frameBuffer.begin()->timestamp;
 
 	if((500-diff)>0){
-		Sleep(500-(diff));
+		//Sleep(500-(diff));
+		//std::this_thread::sleep_for(std::chrono::milliseconds(200-diff));
 	}
 
 	size_t i = 0 ;
@@ -34,6 +35,10 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ImageProcess
 				}
 			}
 		}
+
+		/*
+		 *
+		 * Just for screencast
 
 		auto objects = *dataBuffer.begin();
 		auto human = objects["human"];
@@ -62,13 +67,15 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ImageProcess
 			}
 		}
 
-		cv::resize(drawing,drawing,cv::Size(640,480));
+
+		cv::resize(drawing,drawing,cv::Size(800,600));
 		std::stringstream dname;
 		dname<<"drawing "<<i;
 		cv::imshow(dname.str() , drawing);
 
+*/
 
-		cv::resize(image,image,cv::Size(640,480));
+		cv::resize(image,image,cv::Size(800,600));
 		std::stringstream winname;
 		winname<<"cam "<<i;
 		cv::imshow(winname.str() , image);
