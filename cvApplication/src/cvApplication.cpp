@@ -35,7 +35,7 @@ int main(int argc , char *argv[]) {
 		switch(c){
 		case 's':
 			if(!in){
-				cvModule.initialize("input.json");
+				cvModule.initialize(argv[1]);
 				in = true;
 				cout<<"successful init"<<endl;
 			}else{
@@ -48,6 +48,9 @@ int main(int argc , char *argv[]) {
 		case 'x':
 			cvModule.stopProcessing();
 			in = false;
+			break;
+		case 'r':
+			cvModule.reconfigure(argv[1]);
 			break;
 		default:
 			cout<<"invalid"<<endl;

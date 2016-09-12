@@ -27,3 +27,8 @@ ImageProcessingData<CONFIG> CircleDetector<CONFIG>::process(Frame frame){
 	return ipData;
 }
 
+template <typename CONFIG>
+void CircleDetector<CONFIG>::setProcessingSpecificValues(boost::property_tree::ptree config){
+
+}
+

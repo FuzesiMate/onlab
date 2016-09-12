@@ -21,7 +21,7 @@
 								<option id="gnu.both.asm.option.include.paths.11376395" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;C:\opencv\build2\install\include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\tbb44_20160316oss\include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;C:\BME\rendszertervezés_szakirány\onlab\boost\boost_1_55_0&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\boost\boost_1_55_0&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.52539950" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -33,7 +33,7 @@
 									<listOptionValue builtIn="false" value="&quot;C:\opencv\build2\install\include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\XIMEA\API&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\tbb44_20160316oss\include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;C:\BME\rendszertervezés_szakirány\onlab\boost\boost_1_55_0&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\boost\boost_1_55_0&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1996658436" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -43,7 +43,7 @@
 								<option id="gnu.c.compiler.option.include.paths.201229427" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;C:\opencv\build2\install\include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;C:\tbb44_20160316oss\include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;C:\BME\rendszertervezés_szakirány\onlab\boost\boost_1_55_0&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;C:\boost\boost_1_55_0&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.2068889836" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

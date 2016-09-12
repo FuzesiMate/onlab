@@ -19,8 +19,6 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 	foundMarkers.data = tbb::concurrent_vector<tbb::concurrent_vector<cv::Point2f> >(frame.images.size());
 	foundMarkers.identifiers = tbb::concurrent_vector<tbb::concurrent_vector<int> >(frame.images.size());
 
-	//auto time = std::chrono::steady_clock::now();
-
 	tbb::parallel_for(size_t(0) , frame.images.size() , [&](size_t i){
 
 		std::vector< std::vector< cv::Point2f > > corners, rejected;
@@ -45,17 +43,14 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 		foundMarkers.identifiers[i]=(markerIdentifier);
 	});
 
-	/*
-	auto diff = std::chrono::steady_clock::now()-time;
-
-	auto delay = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
-
-	std::cout<<delay<<std::endl;
-	 */
-
 	foundMarkers.timestamp = frame.timestamp;
 	foundMarkers.frameIndex = frame.frameIndex;
 	prevFrameIdx = frame.frameIndex;
 
 	return foundMarkers;
+}
+
+template <typename CONFIG>
+void ArucoImageProcessor<CONFIG>::setProcessingSpecificValues(boost::property_tree::ptree config){
+	std::cout<<"set aruco values"<<std::endl;
 }

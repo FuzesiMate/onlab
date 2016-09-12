@@ -11,6 +11,7 @@
 #include <tbb/flow_graph.h>
 #include <opencv2/opencv.hpp>
 #include <tbb/concurrent_vector.h>
+#include <boost/property_tree/ptree.hpp>
 #include "Camera.h"
 #include "Processor.h"
 
@@ -28,6 +29,8 @@ public:
 	virtual ImageProcessingData<CONFIG> process(Frame frame)=0;
 
 	ImageProcessor(tbb::flow::graph& g):Processor<Frame , ImageProcessingData<CONFIG>  , tbb::flow::queueing>(g , tbb::flow::unlimited){}
+
+	virtual void setProcessingSpecificValues(boost::property_tree::ptree config) = 0;
 
 	virtual ~ImageProcessor() = default;
 };

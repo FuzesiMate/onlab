@@ -14,7 +14,8 @@
 
 enum MarkerType{
 	ARUCO,
-	CIRCLE
+	CIRCLE,
+	IRTD
 };
 
 typedef tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point2f> > > ImageProcessingResult;

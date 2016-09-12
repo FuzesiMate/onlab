@@ -9,19 +9,56 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <cstdio>
+#include <thread>
 #include <exception>
 #include "ArucoImageProcessor.h"
 #include "CircleDetector.h"
+#include "IRTDImageProcessor.h"
 #include "Visualizer.h"
 #include "ArucoImageProcessor.cpp"
 #include "CircleDetector.cpp"
+#include "IRTDImageProcessor.cpp"
 #include "DataProvider.h"
 #include "Object.cpp"
 #include "Model.cpp"
 
+void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , tbb::concurrent_unordered_map<MarkerType , int>& numberOfSuccessors ){
+	while (isProcessing()) {
+		auto objects = model->getObjectNames();
+
+		for (auto& o : objects) {
+			auto type = model->getMarkerType(o);
+
+			if (model->isDone(o) && !model->isRemoved(o)) {
+				numberOfSuccessors[type]--;
+				model->remove(o);
+				std::cout<<o<<" removed"<<std::endl;
+			}
+			if (numberOfSuccessors[type] == 0) {
+				remove_edge(camera->getProviderNode(),
+						imageprocessors[type]->getProcessorNode());
+			}
+		}
+
+		bool stop = true;
+		for (auto& element : numberOfSuccessors) {
+			if (element.second > 0) {
+				stop = false;
+			}
+		}
+		if (stop) {
+			stopProcessing();
+		}
+		Sleep(100);
+		//std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+	std::cout << "controller thread stopped!" << std::endl;
+}
+
 bool ComputerVision::initialize(std::string configFilePath) {
 
 	boost::property_tree::ptree config;
+
 	try{
 		boost::property_tree::read_json(configFilePath, config);
 	}catch(std::exception& e){
@@ -41,7 +78,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		initialized = camera->init(DEFAULT);
 	}
 
-	if(config.get<int>(NUMBEROFCAMERAS)==2){
+	if(config.get<int>(NUMBEROFCAMERAS)>=2){
 		initialized = initialized && camera->loadMatrices(config.get<std::string>(PATH_TO_MATRICES));
 	}
 
@@ -59,15 +96,12 @@ void ComputerVision::startProcessing() {
 
 	std::cout<<"processing thread started"<<std::endl;
 
-	//instantiate image processors and map them by markertype
-	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageprocessors;
-
 	//stores the number of active successors of the image processing node
 	//mapped by markertype
 	tbb::concurrent_unordered_map<MarkerType , int> numberOfSuccessors;
 
-	for(auto& m : config.get_child(MARKERTYPES)){
-		auto type = m.second.get<std::string>("");
+	for(auto& m : config.get_child(IMAGEPROCESSORS)){
+		auto type = m.second.get<std::string>("type");
 
 		if(type=="aruco"){
 			numberOfSuccessors[MarkerType::ARUCO] = 0;
@@ -75,10 +109,18 @@ void ComputerVision::startProcessing() {
 		}if(type=="circle"){
 			numberOfSuccessors[MarkerType::CIRCLE] = 0;
 			imageprocessors[MarkerType::CIRCLE] = std::make_shared<CircleDetector<t_cfg> >(*this);
+		}if(type == "irtd"){
+			std::cout<<"irtd"<<std::endl;
+			numberOfSuccessors[MarkerType::IRTD] = 0;
+			imageprocessors[MarkerType::IRTD] = std::make_shared<IRTDImageProcessor<t_cfg> >(*this);
 		}
 	}
 
+	std::cout<<"instant ips"<<std::endl;
+
 	if(initialized){
+
+		std::cout<<"make edges"<<std::endl;
 
 		processing = true;
 
@@ -106,6 +148,9 @@ void ComputerVision::startProcessing() {
 			make_edge(ip.second->getProcessorNode() , *IPsequencers[IPsequencers.size()-1]);
 			make_edge(*IPsequencers[IPsequencers.size()-1] , *broadcasters[ip.first]);
 		}
+
+
+		std::cout<<"make edges end"<<std::endl;
 
 		tbb::flow::function_node<ImageProcessingResult , tbb::flow::continue_msg , tbb::flow::queueing> sink(
 				*this, 1,
@@ -141,28 +186,54 @@ void ComputerVision::startProcessing() {
 			make_edge(join , visualizer.getProcessorNode());
 		}
 
+		std::cout<<"make edges end for visualize"<<std::endl;
+
 		auto objects = model->getObjectNames();
 
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< MarkerPosition > > > ObjectSequencers;
 
 		for(auto& o : objects){
+
+			std::cout<<"1"<<std::endl;
+
 			numberOfSuccessors[model->getMarkerType(o)]++;
+
+			std::cout<<"1.5"<<std::endl;
+
+			std::cout<<o<<std::endl;
+
 			make_edge(*broadcasters[model->getMarkerType(o)] , model->getObject(o)->getProcessorNode());
+
+			std::cout<<"2"<<std::endl;
 
 			auto tempSeq = std::make_shared<tbb::flow::sequencer_node< MarkerPosition > >(*this , [](MarkerPosition pos)->size_t{
 				return pos.frameIndex;
 			});
 
+			std::cout<<"3"<<std::endl;
+
 			ObjectSequencers.push_back(tempSeq);
+
+			std::cout<<"4"<<std::endl;
 
 			make_edge(model->getObject(o)->getProcessorNode() , *ObjectSequencers[ObjectSequencers.size()-1]);
 
+			std::cout<<"5"<<std::endl;
+
 			make_edge(*ObjectSequencers[ObjectSequencers.size()-1] , provider->getProcessorNode());
+
+			std::cout<<"6"<<std::endl;
 		}
 
 		if(config.get<std::string>(SEND_DATA)=="true"){
 			make_edge(provider->getProviderNode() , sink);
 		}
+
+		std::cout<<"make edges end for objects"<<std::endl;
+
+		tbb::tbb_thread controllerThread(std::bind(&ComputerVision::workflowController ,this , model , numberOfSuccessors));
+
+		/*
 
 		tbb::tbb_thread controllerThread(
 						[&]() {
@@ -195,6 +266,8 @@ void ComputerVision::startProcessing() {
 							std::cout<<"controller thread stopped!"<<std::endl;
 						});
 
+		*/
+
 		controllerThread.detach();
 
 
@@ -209,6 +282,7 @@ void ComputerVision::startProcessing() {
 
 		make_edge(provider->getProcessorNode() , cont);
 
+		std::cout<<"start the source node "<<std::endl;
 		camera->start();
 
 		std::cout<<"wait for all"<<std::endl;
@@ -228,7 +302,7 @@ void ComputerVision::stopProcessing() {
 }
 
 void ComputerVision::reconfigure(std::string configFilePath) {
-
+	imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(config);
 }
 
 bool ComputerVision::isProcessing(){

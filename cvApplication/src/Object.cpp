@@ -6,6 +6,7 @@
  */
 
 #include "Object.h"
+#include <iostream>
 
 template<typename CONFIG>
 int Object<CONFIG>::getCallCounter(){
@@ -21,9 +22,10 @@ MarkerPosition Object<CONFIG>::process(ImageProcessingData<CONFIG> data){
 	if(callCounter == limit){
 			done = true;
 	}else{
+
 		for(auto m : markers){
 			int id = m.second->getId();
-			bool found = true;
+			bool found = false;
 
 			tbb::concurrent_vector<cv::Point2f> position;
 
@@ -33,10 +35,11 @@ MarkerPosition Object<CONFIG>::process(ImageProcessingData<CONFIG> data){
 				auto index = std::find(identifier.begin() , identifier.end() , id);
 
 				if(index==identifier.end()){
-					found = false;
+					//found = false;
 				}else{
 					auto posIndex = std::distance(identifier.begin() , index);
 					position.push_back(data.data[i][posIndex]);
+					found = true;
 				}
 				i++;
 			}

@@ -27,7 +27,7 @@
 #define EXPOSURE		"exposure"
 #define GAIN			"gain"
 #define FPS				"fps"
-#define MARKERTYPES		"markertypes"
+#define IMAGEPROCESSORS	"imageprocessors"
 #define SHOW_WINDOW		"show_window"
 #define SEND_DATA		"send_data"
 #define SEND_RAW_DATA	"send_raw_data"
@@ -43,9 +43,14 @@ private:
 	std::unique_ptr<DataProvider> provider;
 	std::shared_ptr<Model<t_cfg> > model;
 
+	//image processors mapped by markertype
+	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageprocessors;
+
 	boost::property_tree::ptree config;
 	std::atomic_bool initialized;
 	std::atomic_bool processing;
+
+	void workflowController(std::shared_ptr<Model<t_cfg> > model , tbb::concurrent_unordered_map<MarkerType , int>& numberOfSuccessors );
 
 public:
 	ComputerVision():initialized(false),processing(false){};

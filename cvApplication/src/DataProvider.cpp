@@ -7,6 +7,7 @@
 
 #include "DataProvider.h"
 
+
 #include "windows.h"
 
 tbb::flow::continue_msg DataProvider::process(MarkerPosition position){
@@ -29,6 +30,7 @@ bool DataProvider::provide(ImageProcessingResult& output){
 			}
 
 			Sleep(10);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 
 		nextFrameIndex++;

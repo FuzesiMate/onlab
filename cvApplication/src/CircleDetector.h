@@ -15,6 +15,7 @@ class CircleDetector: public ImageProcessor<CONFIG> {
 public:
 	ImageProcessingData<CONFIG> process(Frame frame);
 	CircleDetector(tbb::flow::graph& g):ImageProcessor<CONFIG>(g){};
+	virtual void setProcessingSpecificValues(boost::property_tree::ptree config);
 	virtual ~CircleDetector() = default;
 };
 

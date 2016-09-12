@@ -1,5 +1,4 @@
 /*
- * Camera.cpp
  *
  *  Created on: 2016. aug. 9.
  *      Author: Máté
@@ -21,6 +20,7 @@ bool Camera::provide(Frame &frame) {
 	auto delay = (1000/fps) - (currentTimestamp - lastTimestamp);
 
 	if (delay > 0 && lastTimestamp!=0) {
+		//std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 		Sleep(delay);
 	}
 
@@ -55,7 +55,7 @@ bool Camera::provide(Frame &frame) {
 
 	for(auto& i : frame.images){
 
-		cv::putText(i , fpsstring.str() , cv::Point(100,100) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2.0);
+		//cv::putText(i , fpsstring.str() , cv::Point(100,100) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2.0);
 	}
 
 

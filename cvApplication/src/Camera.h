@@ -14,11 +14,12 @@
 #include <tbb/concurrent_vector.h>
 #include <chrono>
 #include <atomic>
-#include "tbb/tbb.h"
-#include <windows.h>
+#include <tbb/tbb.h>
 #include <ctime>
 #include <time.h>
 #include "Provider.h"
+
+#include <windows.h>
 
 struct Matrices{
 	tbb::concurrent_vector<cv::Mat> cameraMatrix;
