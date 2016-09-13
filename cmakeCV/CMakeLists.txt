@@ -1,19 +1,15 @@
-cmake_minimum_required(VERSION 3.0)
-project(cvapplication)
+cmake_minimum_required(VERSION 3.4)
+SET(PROJECT_NAME cvApp)
+project(${PROJECT_NAME})
 
-add_definitions(-std=c++11)
+find_package(OpenCV REQUIRED)
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 include_directories("src/")
-include_directories("C:/opencv/build2/install/include/")
-include_directories("C:/tbb44_20160316oss/include/")
-include_directories("C:/boost/boost_1_55_0/")
+include_directories("/home/robot/tbb44_20160316oss/include")
 
-file(GLOB SOURCES "src/*.cpp")
-add_executable(cvapplication ${SOURCES})
+file(GLOB RECURSE SOURCES src/*.cpp)
+add_executable(${PROJECT_NAME} src/cvApplication.cpp)
 
-link_directories("C:/opencv/build2/install/x86/mingw/lib/")
-link_directories("C:/XIMEA/API/x86/")
-link_directories("C:/tbb44_20160316oss/build/windows_ia32_gcc_mingw4.8.1_release/")
-
-target_link_libraries(cvapplication tbb tbbmalloc tbbmalloc_proxy m3api)
-target_link_libraries(cvapplication libopencv_core310 libopencv_highgui310 libopencv_imgcodecs310 libopencv_imgproc310 libopencv_videoio310 libopencv_aruco310 libopencv_calib3d310)
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} tbb tbbmalloc tbbmalloc_proxy m3api)

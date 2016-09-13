@@ -1,3 +1,0 @@
-C:/cvApp/build/CMakeFiles/cvapplication.dir
-C:/cvApp/build/CMakeFiles/edit_cache.dir
-C:/cvApp/build/CMakeFiles/rebuild_cache.dir
