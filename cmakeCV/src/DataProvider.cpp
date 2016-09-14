@@ -2,13 +2,11 @@
  * ObjectDataProvider.cpp
  *
  *  Created on: 2016. aug. 24.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #include "DataProvider.h"
-
-
-#include "windows.h"
+#include <thread>
 
 tbb::flow::continue_msg DataProvider::process(MarkerPosition position){
 	dataBuffer[position.objectName].push_back(position);
@@ -29,13 +27,14 @@ bool DataProvider::provide(ImageProcessingResult& output){
 				}
 			}
 
-			Sleep(10);
-			//std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			//usleep(10000);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(120));
 		}
 
 		nextFrameIndex++;
 
 				for(auto& object : dataBuffer){
+
 					for(auto& marker : object.second.front().position){
 						output[object.first][marker.first] = marker.second;
 					}

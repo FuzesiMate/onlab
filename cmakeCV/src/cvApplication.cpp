@@ -1,10 +1,3 @@
-//============================================================================
-// Name        : cvApplication.cpp
-// Author      : Fuzesi MAte
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
 
 #include <iostream>
 #include <opencv2/highgui.hpp>
@@ -35,9 +28,14 @@ int main(int argc , char *argv[]) {
 		switch(c){
 		case 's':
 			if(!in){
-				cvModule.initialize(argv[1]);
-				in = true;
-				cout<<"successful init"<<endl;
+				std::cout<<"initialize computed vision module!"<<std::endl;
+				in = cvModule.initialize(argv[1]);
+				if(in){
+					std::cout<<"init successful!"<<std::endl;
+				}else{
+					std::cout<<"init failed!"<<std::endl;
+				}
+
 			}else{
 				cout<<"start processing thread..."<<endl;
 				tbb_thread processingThread(std::bind(&ComputerVision::startProcessing, &cvModule));
@@ -56,7 +54,7 @@ int main(int argc , char *argv[]) {
 			cout<<"invalid"<<endl;
 			break;
 		}
-		Sleep(100);
+		usleep(100000);
 	}
 
 	return 0;

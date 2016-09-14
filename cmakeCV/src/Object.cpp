@@ -2,10 +2,11 @@
  * Object.cpp
  *
  *  Created on: 2016. aug. 11.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #include "Object.h"
+#include <iostream>
 
 template<typename CONFIG>
 int Object<CONFIG>::getCallCounter(){
@@ -24,7 +25,7 @@ MarkerPosition Object<CONFIG>::process(ImageProcessingData<CONFIG> data){
 
 		for(auto m : markers){
 			int id = m.second->getId();
-			bool found = true;
+			bool found = false;
 
 			tbb::concurrent_vector<cv::Point2f> position;
 
@@ -34,28 +35,34 @@ MarkerPosition Object<CONFIG>::process(ImageProcessingData<CONFIG> data){
 				auto index = std::find(identifier.begin() , identifier.end() , id);
 
 				if(index==identifier.end()){
-					found = false;
+					//found = false;
 				}else{
 					auto posIndex = std::distance(identifier.begin() , index);
 					position.push_back(data.data[i][posIndex]);
+					found = true;
 				}
 				i++;
 			}
 
 			if(found){
-				m.second->setPosition(position);
+				//m.second->setPosition(position);
+				pos.position[m.first] = position;
+				pos.tracked = true;
 			}else{
-				m.second->lost();
+				pos.tracked = false;
+				//m.second->lost();
 			}
 		}
 
 		callCounter++;
 	}
 
+	/*
 	for(auto& m : markers){
-		pos.position[m.first] = m.second->getPosition();
-		pos.tracked = m.second->isTracked();
+		//pos.position[m.first] = m.second->getPosition();
+		//pos.tracked = m.second->isTracked();
 	}
+	*/
 
 	pos.frameIndex = data.frameIndex;
 	frameIndex = data.frameIndex;

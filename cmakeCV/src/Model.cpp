@@ -36,6 +36,8 @@ bool Model<CONFIG>::build(boost::property_tree::ptree cfg , tbb::flow::graph& g)
 					type = MarkerType::ARUCO;
 				}else if (markerType == "circle"){
 					type = MarkerType::CIRCLE;
+				}else if(markerType == "irtd"){
+					type = MarkerType::IRTD;
 				}
 
 				try{
