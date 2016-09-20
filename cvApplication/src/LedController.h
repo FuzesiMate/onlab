@@ -39,6 +39,13 @@ public:
 	int getFrameIteration(uint64_t timestamp , int setupTime){
 
 		if(timestamp > lastTimestamp+setupTime && timestamp < lastTimestamp+duration){
+
+			//std::cout<<"begin: "<<lastTimestamp+setupTime<<std::endl;
+			//std::cout<<"timestamp: "<<timestamp<<std::endl;
+
+
+			//std::cout<<"end: "<<lastTimestamp+duration<<std::endl;
+
 			return iteration;
 		}
 
@@ -51,6 +58,7 @@ public:
 				return iter;
 			}
 		}
+
 		return -1;
 	}
 

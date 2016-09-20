@@ -1,16 +1,16 @@
 {
 	"cameratype": "ximea",
-	"numberofcameras": 1,
+	"numberofcameras": 2,
 	"exposure": 10000,
 	"gain": 5,
-	"fps": 60,
+	"fps": 40,
 	"path_to_matrices": "matrices.yml",
 	"imageprocessors": [{
 		"type": "irtd",
 		"specificvalues": {
-			"threshold": 200,
-			"duration" : 30,
-			"setuptime": 15
+			"threshold": 150,
+			"duration" : 50,
+			"setuptime": 20
 		}
 	}
 	],

@@ -12,6 +12,7 @@
 #include <thread>
 #include <exception>
 #include "ArucoImageProcessor.h"
+#include "CoordinateTransformer.h"
 #include "CircleDetector.h"
 #include "IRTDImageProcessor.h"
 #include "Visualizer.h"
@@ -23,6 +24,7 @@
 #include "Model.cpp"
 
 void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , tbb::concurrent_unordered_map<MarkerType , int>& numberOfSuccessors ){
+
 	while (isProcessing()) {
 		auto objects = model->getObjectNames();
 
@@ -32,7 +34,7 @@ void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , t
 			if (model->isDone(o) && !model->isRemoved(o)) {
 				numberOfSuccessors[type]--;
 				model->remove(o);
-				std::cout<<o<<" removed"<<std::endl;
+				std::cout<<o<<" is reached it's limit."<<std::endl;
 			}
 			if (numberOfSuccessors[type] == 0) {
 				remove_edge(camera->getProviderNode(),
@@ -49,8 +51,8 @@ void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , t
 		if (stop) {
 			stopProcessing();
 		}
-		//Sleep(100);
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	std::cout << "controller thread stopped!" << std::endl;
 }
@@ -78,9 +80,11 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		initialized = camera->init(DEFAULT);
 	}
 
+	/*
 	if(config.get<int>(NUMBEROFCAMERAS)>=2){
 		initialized = initialized && camera->loadMatrices(config.get<std::string>(PATH_TO_MATRICES));
 	}
+	*/
 
 	model = std::make_shared<Model<t_cfg> >();
 
@@ -126,6 +130,10 @@ void ComputerVision::startProcessing() {
 
 		processing = true;
 
+		tbb::flow::limiter_node<Frame> limiter(*this , 5);
+
+		make_edge(camera->getProviderNode() , limiter);
+
 		tbb::flow::join_node<tbb::flow::tuple<Frame , ImageProcessingResult> , tbb::flow::queueing  > join(*this);
 
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IPsequencers;
@@ -146,27 +154,15 @@ void ComputerVision::startProcessing() {
 			 * Camera --> imageProcessor --> Sequencer --> broadcaster --> Object
 			 */
 
-			make_edge(camera->getProviderNode() , ip.second->getProcessorNode());
+			//make_edge(camera->getProviderNode() , ip.second->getProcessorNode());
+
+			make_edge(limiter , ip.second->getProcessorNode());
 			make_edge(ip.second->getProcessorNode() , *IPsequencers[IPsequencers.size()-1]);
 			make_edge(*IPsequencers[IPsequencers.size()-1] , *broadcasters[ip.first]);
 		}
 
 
 		std::cout<<"make edges end"<<std::endl;
-
-		tbb::flow::function_node<ImageProcessingResult , tbb::flow::continue_msg , tbb::flow::queueing> sink(
-				*this, 1,
-				[&](ImageProcessingResult data) {
-
-					for(auto& o : data) {
-						std::cout<<"object: "<<o.first<<std::endl;
-						for(auto& m : o.second) {
-							std::cout<<"    marker: "<<m.first<<std::endl;
-								auto p = camera->getRealPosition(m.second);
-								std::cout<<"       position: "<<p<<std::endl;
-						}
-					}
-				});
 
 
 		Visualizer visualizer(*this);
@@ -183,7 +179,8 @@ void ComputerVision::startProcessing() {
 		 */
 
 		if(config.get<std::string>(SHOW_WINDOW) == "true"){
-			make_edge(camera->getProviderNode() , tbb::flow::input_port<0>(join));
+			//make_edge(camera->getProviderNode() , tbb::flow::input_port<0>(join));
+			make_edge(limiter , tbb::flow::input_port<0>(join));
 			make_edge(provider->getProviderNode() , tbb::flow::input_port<1>(join));
 			make_edge(join , visualizer.getProcessorNode());
 		}
@@ -196,82 +193,31 @@ void ComputerVision::startProcessing() {
 
 		for(auto& o : objects){
 
-			std::cout<<"1"<<std::endl;
-
 			numberOfSuccessors[model->getMarkerType(o)]++;
 
-			std::cout<<"1.5"<<std::endl;
-
-			std::cout<<o<<std::endl;
-
 			make_edge(*broadcasters[model->getMarkerType(o)] , model->getObject(o)->getProcessorNode());
-
-			std::cout<<"2"<<std::endl;
 
 			auto tempSeq = std::make_shared<tbb::flow::sequencer_node< MarkerPosition > >(*this , [](MarkerPosition pos)->size_t{
 				return pos.frameIndex;
 			});
 
-			std::cout<<"3"<<std::endl;
-
 			ObjectSequencers.push_back(tempSeq);
-
-			std::cout<<"4"<<std::endl;
 
 			make_edge(model->getObject(o)->getProcessorNode() , *ObjectSequencers[ObjectSequencers.size()-1]);
 
-			std::cout<<"5"<<std::endl;
-
 			make_edge(*ObjectSequencers[ObjectSequencers.size()-1] , provider->getProcessorNode());
 
-			std::cout<<"6"<<std::endl;
 		}
 
 		if(config.get<std::string>(SEND_DATA)=="true"){
-			make_edge(provider->getProviderNode() , sink);
+		//	make_edge(provider->getProviderNode() , sink);
 		}
 
 		std::cout<<"make edges end for objects"<<std::endl;
 
 		tbb::tbb_thread controllerThread(std::bind(&ComputerVision::workflowController ,this , model , numberOfSuccessors));
 
-		/*
-
-		tbb::tbb_thread controllerThread(
-						[&]() {
-							while(isProcessing()) {
-								auto objects = model->getObjectNames();
-
-								for(auto& o : objects) {
-									auto type = model->getMarkerType(o);
-
-									if(model->isDone(o) && !model->isRemoved(o)) {
-										numberOfSuccessors[type]--;
-										model->remove(o);
-									}
-									if(numberOfSuccessors[type]==0) {
-										remove_edge(camera->getProviderNode() , imageprocessors[type]->getProcessorNode());
-									}
-								}
-
-								bool stop = true;
-								for(auto& element : numberOfSuccessors){
-									if(element.second>0){
-										stop = false;
-									}
-								}
-								if(stop){
-									stopProcessing();
-								}
-								Sleep(100);
-							}
-							std::cout<<"controller thread stopped!"<<std::endl;
-						});
-
-		*/
-
 		controllerThread.detach();
-
 
 		bool started = false;
 		tbb::flow::continue_node<tbb::flow::continue_msg> cont(*this , [&](tbb::flow::continue_msg out){
@@ -284,8 +230,18 @@ void ComputerVision::startProcessing() {
 
 		make_edge(provider->getProcessorNode() , cont);
 
+		make_edge(provider->getProcessorNode() , limiter.decrement);
+
+		CoordinateTransformer transformer(*this);
+
+		transformer.loadMatrices(config.get<std::string>(PATH_TO_MATRICES));
+
+		make_edge(provider->getProviderNode() , transformer.getProcessorNode());
+
+
 		std::cout<<"start the source node "<<std::endl;
 		camera->start();
+		//provider->start();
 
 		std::cout<<"wait for all"<<std::endl;
 		this->wait_for_all();
@@ -312,14 +268,16 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 
 		for(auto& ipElement : ipList){
 			auto type = ipElement.second.get<std::string>("type");
+			auto values = ipElement.second.get_child(SPECIFICVALUES);
+
 			if (type == "aruco") {
-				imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(ipElement.second.get_child("specificvalues"));
+				imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(values);
 			}
 			if (type == "circle") {
-				imageprocessors[MarkerType::CIRCLE]->setProcessingSpecificValues(ipElement.second.get_child("specificvalues"));
+				imageprocessors[MarkerType::CIRCLE]->setProcessingSpecificValues(values);
 			}
 			if (type == "irtd") {
-				imageprocessors[MarkerType::IRTD]->setProcessingSpecificValues(ipElement.second.get_child("specificvalues"));
+				imageprocessors[MarkerType::IRTD]->setProcessingSpecificValues(values);
 			}
 		}
 	}

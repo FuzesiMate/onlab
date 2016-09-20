@@ -53,8 +53,8 @@ void LedController::flashNext(uint64_t timestamp , uint64_t nextDuration){
 		if(history.size()>50){
 			tbb::concurrent_vector<std::tuple<uint64_t , uint64_t , int> > temp;
 
-			for(auto h = history.begin() ; h<history.end()-1 ; h++){
-				temp.push_back(*(h++));
+			for(auto i = 0 ; i<history.size()-1 ; i++){
+				temp.push_back(history[i]);
 			}
 
 			history = temp;
@@ -66,20 +66,6 @@ void LedController::flashNext(uint64_t timestamp , uint64_t nextDuration){
 void LedController::addPattern(std::vector<int> p){
 	pattern.push_back(p);
 }
-
-/*
-std::string LedController::getCurrentPatternId() {
-	std::string ret;
-
-	if(iteration!=0){
-		ret = pattern[iteration-1].getId();
-	}else {
-		ret = pattern[pattern.size()-1].getId();
-	}
-
-	return ret;
-}
-*/
 
 uint64_t LedController::getLastTimestamp(){
 	return lastTimestamp;

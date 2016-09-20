@@ -1,35 +1,36 @@
-/*
- * ObjectDataProvider.cpp
- *
- *  Created on: 2016. aug. 24.
- *      Author: M�t�
- */
+
 
 #include "DataProvider.h"
 #include <thread>
+#include <mutex>
 
 tbb::flow::continue_msg DataProvider::process(MarkerPosition position){
+
+	std::unique_lock<std::mutex> l(lock);
+
 	dataBuffer[position.objectName].push_back(position);
+
+	new_data.notify_one();
 }
 
 bool DataProvider::provide(ImageProcessingResult& output){
 
-	if(providing){
+	std::unique_lock<std::mutex> l(lock);
 
-		while(!readyToSend){
+	//wait for the corresponding object data
+	new_data.wait(l, [this](){
 
-			readyToSend = true;
+				readyToSend = true;
 
-			for(auto& element : dataBuffer){
+				for(auto& object : dataBuffer) {
 
-				if((element.second.begin()->frameIndex!= nextFrameIndex || dataBuffer.size()<numberOfObjects )){
-					readyToSend = false;
+					if((object.second.begin()->frameIndex!= nextFrameIndex || dataBuffer.size()<numberOfObjects )) {
+						readyToSend = false;
+					}
 				}
-			}
 
-			//usleep(10000);
-			//std::this_thread::sleep_for(std::chrono::milliseconds(120));
-		}
+				return readyToSend;
+	});
 
 		nextFrameIndex++;
 
@@ -40,17 +41,14 @@ bool DataProvider::provide(ImageProcessingResult& output){
 					}
 				}
 
-			for(auto& object : dataBuffer){
-				auto pos = object.second;
-				object.second.clear();
-				for(size_t i = 1 ; i<pos.size() ; i++){
-					object.second.push_back(pos[i]);
+				for(auto& object : dataBuffer){
+					object.second.erase(object.second.begin());
 				}
-			}
 
 			readyToSend = false;
 
-			return true;
+	if(providing){
+		return true;
 	}else{
 		return false;
 	}

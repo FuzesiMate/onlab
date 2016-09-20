@@ -53,12 +53,12 @@ bool Camera::provide(Frame &frame) {
 
 	frame.fps = currentFps;
 
-	/*
+/*
 	for(auto& i : frame.images){
 
 		cv::putText(i , fpsstring.str() , cv::Point(100,100) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2.0);
 	}
-	*/
+*/
 
 	frame.frameIndex = frameCounter;
 	frame.timestamp = currentTimestamp;
@@ -84,6 +84,7 @@ bool Camera::init(int cameraType) {
 	return true;
 }
 
+/*
 bool Camera::loadMatrices(std::string path){
 	cv::FileStorage file;
 	if(!file.open(path , cv::FileStorage::READ)){
@@ -113,7 +114,9 @@ bool Camera::loadMatrices(std::string path){
 	canTransform = true;
 	return true;
 }
+*/
 
+/*
 cv::Point3f Camera::getRealPosition(tbb::concurrent_vector<cv::Point2f> screenPosition){
 	std::vector<cv::Point2f> p1;
 	std::vector<cv::Point2f> p2;
@@ -146,6 +149,7 @@ cv::Point3f Camera::getRealPosition(tbb::concurrent_vector<cv::Point2f> screenPo
 	}
 	return cv::Point3f(x,y,z);
 }
+*/
 
 Camera::~Camera() {
 	for(auto c : cameras){

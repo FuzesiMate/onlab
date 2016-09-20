@@ -15,11 +15,8 @@ void IRTDImageProcessor<CONFIG>::startLedController(){
 		auto currentTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
 
 		if(currentTimestamp >= ledController.getLastTimestamp()+ledController.getDuration()){
-				ledController.flashNext(currentTimestamp ,duration);
+			ledController.flashNext(currentTimestamp ,duration);
 		}
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		//usleep(10000);
 	}
 }
 
@@ -162,6 +159,8 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
 
 	tbb::parallel_for(size_t(0) , frame.images.size() , [&](size_t i){
 
+		auto iter = ledController.getFrameIteration(frame.timestamp , setupTime);
+
 		tbb::concurrent_vector<cv::Point2f> markerPosition;
 		tbb::concurrent_vector<int> 		markerIdentifier;
 
@@ -211,7 +210,7 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
 
 					averageLuminosity /= cluster.area;
 
-					auto iter = ledController.getFrameIteration(frame.timestamp , setupTime);
+
 
 					if(iter>=0){
 						BodyPart ankle;
@@ -237,8 +236,8 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
 			}
 		}
 
-			foundMarkers.data.push_back(markerPosition);
-			foundMarkers.identifiers.push_back(markerIdentifier);
+			foundMarkers.data[i] = markerPosition;
+			foundMarkers.identifiers[i] = markerIdentifier;
 	});
 
 	foundMarkers.frameIndex = frame.frameIndex;

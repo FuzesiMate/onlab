@@ -2,21 +2,27 @@
  * ObjectDataProvider.h
  *
  *  Created on: 2016. aug. 24.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef DATAPROVIDER_H_
 #define DATAPROVIDER_H_
 
+#include <mutex>
+#include <condition_variable>
 #include "Processor.h"
 #include "Provider.h"
 #include "TemplateConfiguration.h"
 
 class DataProvider: public Processor<MarkerPosition , tbb::flow::continue_msg , tbb::flow::queueing> ,public Provider<ImageProcessingResult> {
 private:
-	tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<MarkerPosition> > dataBuffer;
+	//wait-notify variables
+	std::mutex lock;
+	std::condition_variable new_data;
+
+	std::map<std::string , std::vector<MarkerPosition> > dataBuffer;
 	std::atomic<int64_t> nextFrameIndex;
-	std::atomic_bool readyToSend;
+	bool readyToSend;
 	int numberOfObjects;
 public:
 	tbb::flow::continue_msg process(MarkerPosition position);
