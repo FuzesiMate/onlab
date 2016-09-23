@@ -82,12 +82,6 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		initialized = camera->init(DEFAULT);
 	}
 
-	/*
-	if(config.get<int>(NUMBEROFCAMERAS)>=2){
-		initialized = initialized && camera->loadMatrices(config.get<std::string>(PATH_TO_MATRICES));
-	}
-	*/
-
 	model = std::make_shared<Model<t_cfg> >();
 
 	initialized = initialized && model->build(config , *this);
@@ -123,8 +117,6 @@ void ComputerVision::startProcessing() {
 			imageprocessors[MarkerType::IRTD]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
 		}
 	}
-
-	std::cout<<"instant ips"<<std::endl;
 
 	if(initialized){
 
@@ -163,10 +155,6 @@ void ComputerVision::startProcessing() {
 			make_edge(*IPsequencers[IPsequencers.size()-1] , *broadcasters[ip.first]);
 		}
 
-
-		std::cout<<"make edges end"<<std::endl;
-
-
 		Visualizer visualizer(*this);
 
 
@@ -186,8 +174,6 @@ void ComputerVision::startProcessing() {
 			make_edge(provider->getProviderNode() , tbb::flow::input_port<1>(join));
 			make_edge(join , visualizer.getProcessorNode());
 		}
-
-		std::cout<<"make edges end for visualize"<<std::endl;
 
 		auto objects = model->getObjectNames();
 
@@ -215,7 +201,6 @@ void ComputerVision::startProcessing() {
 		//	make_edge(provider->getProviderNode() , sink);
 		}
 
-		std::cout<<"make edges end for objects"<<std::endl;
 
 		tbb::tbb_thread controllerThread(std::bind(&ComputerVision::workflowController ,this , model , numberOfSuccessors));
 
@@ -240,12 +225,8 @@ void ComputerVision::startProcessing() {
 
 		make_edge(provider->getProviderNode() , transformer.getProcessorNode());
 
-
-		std::cout<<"start the source node "<<std::endl;
 		camera->start();
-		//provider->start();
 
-		std::cout<<"wait for all"<<std::endl;
 		this->wait_for_all();
 
 		std::cout<<"Processing thread stopped!"<<std::endl;
