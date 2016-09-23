@@ -2,7 +2,7 @@
  * Processor.h
  *
  *  Created on: 2016. aug. 23.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef PROCESSOR_H_
@@ -28,7 +28,7 @@ public:
 		return node;
 	}
 
-	virtual ~Processor() {};
+	virtual ~Processor()=default;
 };
 
 #endif /* PROCESSOR_H_ */

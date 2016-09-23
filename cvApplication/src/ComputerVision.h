@@ -34,7 +34,7 @@
 #define PATH_TO_MATRICES "path_to_matrices"
 #define SPECIFICVALUES	"specificvalues"
 
-#define DEFAULT 		0
+#define DEFAULT_CAMERA	0
 
 using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
 

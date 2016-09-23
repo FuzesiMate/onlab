@@ -36,7 +36,7 @@ void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , t
 			if (model->isDone(o) && !model->isRemoved(o)) {
 				numberOfSuccessors[type]--;
 				model->remove(o);
-				std::cout<<o<<" is reached it's limit."<<std::endl;
+				std::cout<<o<<" is reached it's limit"<<std::endl;
 			}
 			if (numberOfSuccessors[type] == 0) {
 				remove_edge(camera->getProviderNode(),
@@ -61,6 +61,8 @@ void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , t
 
 bool ComputerVision::initialize(std::string configFilePath) {
 
+	boost::property_tree::ptree newconfig;
+	boost::property_tree::read_json("new_input.json" , newconfig);
 	boost::property_tree::ptree config;
 
 	try{
@@ -79,7 +81,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	if(cameraType=="ximea"){
 		initialized = camera->init(CV_CAP_XIAPI);
 	}else if(cameraType=="default"){
-		initialized = camera->init(DEFAULT);
+		initialized = camera->init(DEFAULT_CAMERA);
 	}
 
 	model = std::make_shared<Model<t_cfg> >();
@@ -96,31 +98,28 @@ void ComputerVision::startProcessing() {
 
 	std::cout<<"processing thread started"<<std::endl;
 
+	if(initialized){
 	//stores the number of active successors of the image processing node
 	//mapped by markertype
-	tbb::concurrent_unordered_map<MarkerType , int> numberOfSuccessors;
+		tbb::concurrent_unordered_map<MarkerType, int> aliveObjects;
 
 	for(auto& m : config.get_child(IMAGEPROCESSORS)){
 		auto type = m.second.get<std::string>("type");
 
 		if(type=="aruco"){
-			numberOfSuccessors[MarkerType::ARUCO] = 0;
+			aliveObjects[MarkerType::ARUCO] = 0;
 			imageprocessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
 			imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
 		}if(type=="circle"){
-			numberOfSuccessors[MarkerType::CIRCLE] = 0;
+			aliveObjects[MarkerType::CIRCLE] = 0;
 			imageprocessors[MarkerType::CIRCLE] = std::make_shared<CircleDetector<t_cfg> >(*this);
 			imageprocessors[MarkerType::CIRCLE]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
 		}if(type == "irtd"){
-			numberOfSuccessors[MarkerType::IRTD] = 0;
+			aliveObjects[MarkerType::IRTD] = 0;
 			imageprocessors[MarkerType::IRTD] = std::make_shared<IRTDImageProcessor<t_cfg> >(*this);
 			imageprocessors[MarkerType::IRTD]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
 		}
 	}
-
-	if(initialized){
-
-		std::cout<<"make edges"<<std::endl;
 
 		processing = true;
 
@@ -130,7 +129,7 @@ void ComputerVision::startProcessing() {
 
 		tbb::flow::join_node<tbb::flow::tuple<Frame , ModelData> , tbb::flow::queueing  > join(*this);
 
-		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IPsequencers;
+		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IPDatasequencers;
 
 		tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > > > broadcasters;
 
@@ -142,7 +141,7 @@ void ComputerVision::startProcessing() {
 
 			broadcasters[ip.first] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
 
-			IPsequencers.push_back(sequencer);
+			IPDatasequencers.push_back(sequencer);
 
 			/*
 			 * Camera --> imageProcessor --> Sequencer --> broadcaster --> Object
@@ -151,8 +150,8 @@ void ComputerVision::startProcessing() {
 			//make_edge(camera->getProviderNode() , ip.second->getProcessorNode());
 
 			make_edge(FrameLimiter , ip.second->getProcessorNode());
-			make_edge(ip.second->getProcessorNode() , *IPsequencers[IPsequencers.size()-1]);
-			make_edge(*IPsequencers[IPsequencers.size()-1] , *broadcasters[ip.first]);
+			make_edge(ip.second->getProcessorNode() , *IPDatasequencers[IPDatasequencers.size()-1]);
+			make_edge(*IPDatasequencers[IPDatasequencers.size()-1] , *broadcasters[ip.first]);
 		}
 
 		Visualizer visualizer(*this);
@@ -177,11 +176,11 @@ void ComputerVision::startProcessing() {
 
 		auto objects = model->getObjectNames();
 
-		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< ObjectData > > > ObjectSequencers;
+		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< ObjectData > > > ObjectDataSequencers;
 
 		for(auto& o : objects){
 
-			numberOfSuccessors[model->getMarkerType(o)]++;
+			aliveObjects[model->getMarkerType(o)]++;
 
 			make_edge(*broadcasters[model->getMarkerType(o)] , model->getObject(o)->getProcessorNode());
 
@@ -189,11 +188,11 @@ void ComputerVision::startProcessing() {
 				return pos.frameIndex;
 			});
 
-			ObjectSequencers.push_back(tempSeq);
+			ObjectDataSequencers.push_back(tempSeq);
 
-			make_edge(model->getObject(o)->getProcessorNode() , *ObjectSequencers[ObjectSequencers.size()-1]);
+			make_edge(model->getObject(o)->getProcessorNode() , *ObjectDataSequencers[ObjectDataSequencers.size()-1]);
 
-			make_edge(*ObjectSequencers[ObjectSequencers.size()-1] , provider->getProcessorNode());
+			make_edge(*ObjectDataSequencers[ObjectDataSequencers.size()-1] , provider->getProcessorNode());
 
 		}
 
@@ -202,7 +201,7 @@ void ComputerVision::startProcessing() {
 		}
 
 
-		tbb::tbb_thread controllerThread(std::bind(&ComputerVision::workflowController ,this , model , numberOfSuccessors));
+		tbb::tbb_thread controllerThread(std::bind(&ComputerVision::workflowController ,this , model , aliveObjects));
 
 		controllerThread.detach();
 

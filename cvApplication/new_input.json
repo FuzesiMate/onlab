@@ -1,0 +1,13 @@
+{
+	"Camera":{
+			"type":"ximea",
+			"number":1,
+			"exposure": 10000,
+			"gain":5,
+			"fps":30
+		},
+	"Visualizer" :{
+			"windowname":"camera",
+			"delay":5000
+		}
+}

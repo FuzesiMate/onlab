@@ -2,7 +2,7 @@
  * Provider.h
  *
  *  Created on: 2016. aug. 22.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef PROVIDER_H_
@@ -39,13 +39,10 @@ public:
 
 	void start() {
 		providing = true;
-		std::cout<<"activate"<<std::endl;
 		provider_node.activate();
 	}
 
-	virtual ~Provider() {
-	}
-	;
+	virtual ~Provider()=default;
 };
 
 #endif /* PROVIDER_H_ */
