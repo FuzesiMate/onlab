@@ -18,23 +18,11 @@
 #include <ctime>
 #include <time.h>
 #include <thread>
+#include "DataTypes.h"
 #include "Provider.h"
 
 //#include <windows.h>
 
-struct Matrices{
-	tbb::concurrent_vector<cv::Mat> cameraMatrix;
-	tbb::concurrent_vector<cv::Mat> distCoeffs;
-	tbb::concurrent_vector<cv::Mat> projectionMatrix;
-	tbb::concurrent_vector<cv::Mat> rotationMatrix;
-};
-
-struct Frame{
-	tbb::concurrent_vector<cv::Mat> images;
-	int64_t timestamp;
-	int64_t frameIndex;
-	int fps;
-};
 
 class Camera:public Provider< Frame > {
 	int numberOfCameras;
@@ -43,18 +31,16 @@ class Camera:public Provider< Frame > {
 	int fps;
 	int frameCounter ;
 
-	bool canTransform;
 	std::atomic_bool initialized;
 	int64_t lastTimestamp;
 
-	Matrices matrices;
 	std::vector<cv::VideoCapture> cameras;
 
 public:
 
 	Camera(int fps , int exposure , int gain, int numberOfCameras, tbb::flow::graph& g) :
 			Provider< Frame >(g), numberOfCameras(numberOfCameras), exposure(
-					exposure), gain(gain),fps(fps),frameCounter(0),canTransform(false),initialized(
+					exposure), gain(gain),fps(fps),frameCounter(0),initialized(
 					false),lastTimestamp(0){};
 
 	bool provide(Frame &images);

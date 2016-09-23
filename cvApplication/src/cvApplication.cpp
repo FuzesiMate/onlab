@@ -10,7 +10,7 @@
 #include <opencv2/highgui.hpp>
 #include "ComputerVision.h"
 #include <tbb/flow_graph.h>
-#include "tbb/compat/thread"
+#include <tbb/compat/thread>
 #include <tbb/tbb.h>
 #include <opencv2/videoio.hpp>
 

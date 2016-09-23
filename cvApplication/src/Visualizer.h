@@ -2,7 +2,7 @@
  * Visualizer.h
  *
  *  Created on: 2016. aug. 19.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef VISUALIZER_H_
@@ -14,15 +14,15 @@
 #include "Processor.h"
 
 class Visualizer: public Processor<
-		tbb::flow::tuple<Frame, ImageProcessingResult>  , tbb::flow::continue_msg , tbb::flow::queueing> {
+		tbb::flow::tuple<Frame, ModelData>  , tbb::flow::continue_msg , tbb::flow::queueing> {
 private:
-	std::vector<ImageProcessingResult> dataBuffer;
+	std::vector<ModelData> dataBuffer;
 	std::vector<Frame> frameBuffer;
 public:
-	tbb::flow::continue_msg process(tbb::flow::tuple<Frame, ImageProcessingResult> data);
+	tbb::flow::continue_msg process(tbb::flow::tuple<Frame, ModelData> data);
 	Visualizer(tbb::flow::graph& g) :
 			Processor<
-					tbb::flow::tuple<Frame, ImageProcessingResult>, tbb::flow::continue_msg , tbb::flow::queueing >(g ,1) {};
+					tbb::flow::tuple<Frame, ModelData>, tbb::flow::continue_msg , tbb::flow::queueing >(g ,1) {};
 	virtual ~Visualizer() = default;
 };
 

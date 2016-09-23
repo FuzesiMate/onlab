@@ -4,16 +4,16 @@
 #include <thread>
 #include <mutex>
 
-tbb::flow::continue_msg DataProvider::process(MarkerPosition position){
+tbb::flow::continue_msg DataProvider::process(ObjectData objectData){
 
 	std::unique_lock<std::mutex> l(lock);
 
-	dataBuffer[position.objectName].push_back(position);
+	dataBuffer[objectData.name].push_back(objectData);
 
 	new_data.notify_one();
 }
 
-bool DataProvider::provide(ImageProcessingResult& output){
+bool DataProvider::provide(ModelData& output){
 
 	std::unique_lock<std::mutex> l(lock);
 
@@ -34,11 +34,9 @@ bool DataProvider::provide(ImageProcessingResult& output){
 
 		nextFrameIndex++;
 
+				output.objectData.clear();
 				for(auto& object : dataBuffer){
-
-					for(auto& marker : object.second.front().position){
-						output[object.first][marker.first] = marker.second;
-					}
+					output.objectData.push_back(object.second.front());
 				}
 
 				for(auto& object : dataBuffer){

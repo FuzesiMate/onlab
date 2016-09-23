@@ -8,9 +8,11 @@
 #include "ComputerVision.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <tbb/compat/thread>
 #include <cstdio>
 #include <thread>
 #include <exception>
+#include "DataTypes.h"
 #include "ArucoImageProcessor.h"
 #include "CoordinateTransformer.h"
 #include "CircleDetector.h"
@@ -130,11 +132,11 @@ void ComputerVision::startProcessing() {
 
 		processing = true;
 
-		tbb::flow::limiter_node<Frame> limiter(*this , 5);
+		tbb::flow::limiter_node<Frame> FrameLimiter(*this , 5);
 
-		make_edge(camera->getProviderNode() , limiter);
+		make_edge(camera->getProviderNode() , FrameLimiter);
 
-		tbb::flow::join_node<tbb::flow::tuple<Frame , ImageProcessingResult> , tbb::flow::queueing  > join(*this);
+		tbb::flow::join_node<tbb::flow::tuple<Frame , ModelData> , tbb::flow::queueing  > join(*this);
 
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IPsequencers;
 
@@ -156,7 +158,7 @@ void ComputerVision::startProcessing() {
 
 			//make_edge(camera->getProviderNode() , ip.second->getProcessorNode());
 
-			make_edge(limiter , ip.second->getProcessorNode());
+			make_edge(FrameLimiter , ip.second->getProcessorNode());
 			make_edge(ip.second->getProcessorNode() , *IPsequencers[IPsequencers.size()-1]);
 			make_edge(*IPsequencers[IPsequencers.size()-1] , *broadcasters[ip.first]);
 		}
@@ -180,7 +182,7 @@ void ComputerVision::startProcessing() {
 
 		if(config.get<std::string>(SHOW_WINDOW) == "true"){
 			//make_edge(camera->getProviderNode() , tbb::flow::input_port<0>(join));
-			make_edge(limiter , tbb::flow::input_port<0>(join));
+			make_edge(FrameLimiter , tbb::flow::input_port<0>(join));
 			make_edge(provider->getProviderNode() , tbb::flow::input_port<1>(join));
 			make_edge(join , visualizer.getProcessorNode());
 		}
@@ -189,7 +191,7 @@ void ComputerVision::startProcessing() {
 
 		auto objects = model->getObjectNames();
 
-		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< MarkerPosition > > > ObjectSequencers;
+		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< ObjectData > > > ObjectSequencers;
 
 		for(auto& o : objects){
 
@@ -197,7 +199,7 @@ void ComputerVision::startProcessing() {
 
 			make_edge(*broadcasters[model->getMarkerType(o)] , model->getObject(o)->getProcessorNode());
 
-			auto tempSeq = std::make_shared<tbb::flow::sequencer_node< MarkerPosition > >(*this , [](MarkerPosition pos)->size_t{
+			auto tempSeq = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this , [](ObjectData pos)->size_t{
 				return pos.frameIndex;
 			});
 
@@ -230,7 +232,7 @@ void ComputerVision::startProcessing() {
 
 		make_edge(provider->getProcessorNode() , cont);
 
-		make_edge(provider->getProcessorNode() , limiter.decrement);
+		make_edge(provider->getProcessorNode() , FrameLimiter.decrement);
 
 		CoordinateTransformer transformer(*this);
 

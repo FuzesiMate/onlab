@@ -14,21 +14,25 @@
 #include <tbb/concurrent_unordered_map.h>
 #include <tbb/flow_graph.h>
 
-class CoordinateTransformer: public Processor<ImageProcessingResult, tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point3f> > > ,tbb::flow::queueing> {
+struct Matrices{
+	tbb::concurrent_vector<cv::Mat> cameraMatrix;
+	tbb::concurrent_vector<cv::Mat> distCoeffs;
+	tbb::concurrent_vector<cv::Mat> projectionMatrix;
+	tbb::concurrent_vector<cv::Mat> rotationMatrix;
+};
+
+class CoordinateTransformer: public Processor<ModelData, ModelData ,tbb::flow::queueing> {
 private:
 	Matrices matrices;
 	bool canTransform;
 public:
-	CoordinateTransformer(tbb::flow::graph& g):Processor<ImageProcessingResult,
-	tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point3f> > >,
-	tbb::flow::queueing>(g , tbb::flow::unlimited){};
+	CoordinateTransformer(tbb::flow::graph& g):Processor<ModelData,ModelData,tbb::flow::queueing>(g , tbb::flow::unlimited),canTransform(false){};
 
 	bool loadMatrices(std::string path);
 
-	tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point3f> > >
-		process(ImageProcessingResult ipData);
+	ModelData process(ModelData ipData);
 
-	virtual ~CoordinateTransformer();
+	virtual ~CoordinateTransformer()=default;
 };
 
 #endif /* COORDINATETRANSFORMER_H_ */

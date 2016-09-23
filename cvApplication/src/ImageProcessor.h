@@ -9,18 +9,12 @@
 #define IMAGEPROCESSOR_H_
 
 #include <tbb/flow_graph.h>
+#include <tbb/parallel_for.h>
 #include <opencv2/opencv.hpp>
 #include <tbb/concurrent_vector.h>
 #include <boost/property_tree/ptree.hpp>
-#include "Camera.h"
+#include "DataTypes.h"
 #include "Processor.h"
-
-template <typename CONFIG> struct ImageProcessingData{
-	tbb::concurrent_vector<typename CONFIG::dataType> data;
-	tbb::concurrent_vector<typename CONFIG::identifierType> identifiers;
-	int64_t timestamp;
-	int64_t frameIndex;
-};
 
 template<typename CONFIG>
 

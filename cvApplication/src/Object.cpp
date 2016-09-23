@@ -14,8 +14,45 @@ int Object<CONFIG>::getCallCounter(){
 }
 
 template<typename CONFIG>
-MarkerPosition Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
+ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 
+	ObjectData objectData;
+	objectData.name = name;
+
+	if(callCounter == limit){
+				done = true;
+	}else{
+
+		for(auto m : markers){
+			int id = m.second->getId();
+			bool found = false;
+
+			MarkerData markerData;
+			markerData.name = m.first;
+			markerData.screenPosition = tbb::concurrent_vector<cv::Point2f>(ipData.data.size());
+
+			int i = 0;
+			for(auto identifier : ipData.identifiers){
+				auto index = std::find(identifier.begin() , identifier.end() , id);
+
+				if(index!=identifier.end()){
+					auto posIndex = std::distance(identifier.begin() , index);
+					markerData.screenPosition[i]=(ipData.data[i][posIndex]);
+					markerData.tracked.push_back(true);
+				}else{
+					markerData.tracked.push_back(false);
+				}
+
+				i++;
+			}
+
+			objectData.markerData.push_back(markerData);
+		}
+
+		callCounter++;
+	}
+
+	/*
 	MarkerPosition pos;
 	pos.objectName = name;
 
@@ -63,10 +100,11 @@ MarkerPosition Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 	}
 	*/
 
-	pos.frameIndex = ipData.frameIndex;
+	objectData.frameIndex = ipData.frameIndex;
+	objectData.timestamp = ipData.timestamp;
 	frameIndex = ipData.frameIndex;
 
-	return pos;
+	return objectData;
 }
 
 template<typename CONFIG>

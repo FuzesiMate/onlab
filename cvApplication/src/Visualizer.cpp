@@ -13,7 +13,7 @@
 
 //#define WITH_DELAY
 
-tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ImageProcessingResult> data){
+tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> data){
 	frameBuffer.push_back(std::get<0>(data));
 	dataBuffer.push_back(std::get<1>(data));
 
@@ -34,13 +34,16 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ImageProcess
 	size_t i = 0 ;
 	for(auto& image : frameBuffer.begin()->images){
 
-		for(auto& o : *dataBuffer.begin()){
-			for(auto& m : o.second){
-				if(i<m.second.size()){
-					cv::putText(image , m.first , cv::Point(m.second[i].x,m.second[i].y) ,cv::FONT_HERSHEY_SIMPLEX ,  1.0 , cv::Scalar(255,255,255) , 2.0);
+		auto& modelData = *dataBuffer.begin();
+
+			for(auto& objectData : modelData.objectData){
+
+				for(auto& markerData : objectData.markerData){
+					if(i<markerData.screenPosition.size() && markerData.tracked[i]){
+						cv::putText(image , markerData.name , cv::Point(markerData.screenPosition[i].x,markerData.screenPosition[i].y) ,cv::FONT_HERSHEY_SIMPLEX ,  1.0 , cv::Scalar(255,255,255) , 2.0);
+					}
 				}
 			}
-		}
 
 		cv::resize(image,image,cv::Size(800,600));
 		std::stringstream winname;

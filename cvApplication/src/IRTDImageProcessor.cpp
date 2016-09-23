@@ -5,7 +5,9 @@
  *      Author: M�t�
  */
 
+
 #include "IRTDImageProcessor.h"
+#include <chrono>
 
 template<typename CONFIG>
 
@@ -152,6 +154,8 @@ std::vector<Cluster> IRTDImageProcessor<CONFIG>::clusterContours(std::vector<std
 
 template<typename CONFIG>
 ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
+
+
 	ImageProcessingData<CONFIG> foundMarkers;
 
 	foundMarkers.data = tbb::concurrent_vector<tbb::concurrent_vector<cv::Point2f> >(frame.images.size());

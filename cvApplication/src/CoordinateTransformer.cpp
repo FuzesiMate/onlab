@@ -37,15 +37,15 @@ bool CoordinateTransformer::loadMatrices(std::string path){
 	return true;
 }
 
-tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point3f> > >CoordinateTransformer::process(ImageProcessingResult ipData){
+ModelData CoordinateTransformer::process(ModelData modelData){
 	tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point3f> > > transformed;
 
-	for(auto& object : ipData){
-		for(auto& marker : object.second){
-			if(marker.second.size()==2){
+	for(auto& objectData : modelData.objectData){
+		for(auto& markerData : objectData.markerData){
+			if(markerData.screenPosition.size()==2 && markerData.tracked[0] && markerData.tracked[1]){
 
-				std::vector<cv::Point2f> p1{marker.second[0]};
-				std::vector<cv::Point2f> p2{marker.second[1]};
+				std::vector<cv::Point2f> p1{markerData.screenPosition[0]};
+				std::vector<cv::Point2f> p2{markerData.screenPosition[1]};
 
 				cv::undistortPoints(p1, p1 , matrices.cameraMatrix[0] , matrices.distCoeffs[0] , matrices.rotationMatrix[0] , matrices.projectionMatrix[0]);
 				cv::undistortPoints(p1, p1 , matrices.cameraMatrix[1] , matrices.distCoeffs[1] , matrices.rotationMatrix[1] , matrices.projectionMatrix[1]);
@@ -64,16 +64,12 @@ tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::s
 				}
 
 				std::cout<<"x: "<<x<<" y: "<<y<<" z: "<<z<<std::endl;
-
-				transformed[object.first][marker.first].push_back(cv::Point3f(x,y,z));
+				markerData.realPosition = cv::Point3f(x,y,z);
 			}
 		}
 	}
 
-	return transformed;
+	return modelData;
 }
 
-CoordinateTransformer::~CoordinateTransformer() {
-	// TODO Auto-generated destructor stub
-}
 
