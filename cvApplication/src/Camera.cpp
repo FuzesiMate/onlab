@@ -82,6 +82,26 @@ bool Camera::init(int cameraType) {
 	return true;
 }
 
+void Camera::setFPS(int fps){
+	this->fps = fps;
+}
+
+void Camera::setExposure(int exposure){
+	this->exposure = exposure;
+
+	for(auto& camera : cameras){
+		camera.set(cv::CAP_PROP_XI_EXPOSURE , exposure);
+	}
+}
+
+void Camera::setGain(float gain){
+	this->gain = gain;
+
+	for(auto& camera : cameras){
+		camera.set(cv::CAP_PROP_XI_GAIN , gain);
+	}
+}
+
 
 Camera::~Camera() {
 	for(auto c : cameras){

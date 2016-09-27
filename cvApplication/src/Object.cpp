@@ -25,7 +25,6 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 
 		for(auto m : markers){
 			int id = m.second->getId();
-			bool found = false;
 
 			MarkerData markerData;
 			markerData.name = m.first;
@@ -52,65 +51,12 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 		callCounter++;
 	}
 
-	/*
-	MarkerPosition pos;
-	pos.objectName = name;
-
-	if(callCounter == limit){
-			done = true;
-	}else{
-
-		for(auto m : markers){
-			int id = m.second->getId();
-			bool found = false;
-
-			tbb::concurrent_vector<cv::Point2f> position(ipData.data.size());
-
-			int i = 0 ;
-			for(auto identifier : ipData.identifiers){
-
-				auto index = std::find(identifier.begin() , identifier.end() , id);
-
-				if(index!=identifier.end()){
-					auto posIndex = std::distance(identifier.begin() , index);
-					position[i]=(ipData.data[i][posIndex]);
-					found = true;
-				}
-
-				i++;
-			}
-
-			if(found){
-				//m.second->setPosition(position);
-				pos.position[m.first] = position;
-				pos.tracked = true;
-			}else{
-				pos.tracked = false;
-				//m.second->lost();
-			}
-		}
-
-		callCounter++;
-	}
-
-	/*
-	for(auto& m : markers){
-		//pos.position[m.first] = m.second->getPosition();
-		//pos.tracked = m.second->isTracked();
-	}
-	*/
-
 	objectData.frameIndex = ipData.frameIndex;
 	objectData.timestamp = ipData.timestamp;
-	frameIndex = ipData.frameIndex;
 
 	return objectData;
 }
 
-template<typename CONFIG>
-tbb::concurrent_vector<cv::Point2f>& Object<CONFIG>::getMarkerPosition(std::string name){
-	return markers[name]->getPosition();
-}
 
 template<typename CONFIG>
 std::vector<std::string> Object<CONFIG>::getMarkerNames(){
@@ -119,16 +65,6 @@ std::vector<std::string> Object<CONFIG>::getMarkerNames(){
 		names.push_back(m.first);
 	}
 	return names;
-}
-
-template<typename CONFIG>
-int64_t Object<CONFIG>::getFrameIndex(){
-	return frameIndex;
-}
-
-template<typename CONFIG>
-int64_t Object<CONFIG>::getTimestamp(){
-	return timestamp;
 }
 
 template<typename CONFIG>

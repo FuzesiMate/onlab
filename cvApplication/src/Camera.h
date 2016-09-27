@@ -45,7 +45,9 @@ public:
 
 	bool provide(Frame &images);
 	bool init(int cameraType);
-	bool loadMatrices(std::string path);
+	void setFPS(int fps);
+	void setExposure(int exposure);
+	void setGain(float gain);
 	cv::Point3f getRealPosition(tbb::concurrent_vector<cv::Point2f> screenPosition);
 
 	virtual ~Camera();

@@ -63,7 +63,6 @@ ModelData CoordinateTransformer::process(ModelData modelData){
 					z = cord.at<float>(2,i)/w;
 				}
 
-				std::cout<<"x: "<<x<<" y: "<<y<<" z: "<<z<<std::endl;
 				markerData.realPosition = cv::Point3f(x,y,z);
 			}
 		}

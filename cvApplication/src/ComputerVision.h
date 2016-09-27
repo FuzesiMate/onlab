@@ -20,7 +20,7 @@
 #include "ArucoImageProcessor.h"
 #include "Model.h"
 #include "Camera.h"
-#include "DataProvider.h"
+#include "ObjectDataCollector.h"
 
 #define CAMERATYPE		"cameratype"
 #define NUMBEROFCAMERAS "numberofcameras"
@@ -41,7 +41,7 @@ using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurr
 class ComputerVision :public tbb::flow::graph{
 private:
 	std::unique_ptr<Camera> camera;
-	std::unique_ptr<DataProvider> provider;
+	std::unique_ptr<ObjectDataCollector> provider;
 	std::shared_ptr<Model<t_cfg> > model;
 
 	//image processors mapped by markertype
@@ -58,6 +58,7 @@ public:
 	bool initialize(std::string configFilePath);
 	void startProcessing();
 	void stopProcessing();
+	ModelData getData();
 	void reconfigure(std::string configFilePath);
 	bool isProcessing();
 	virtual ~ComputerVision()=default;

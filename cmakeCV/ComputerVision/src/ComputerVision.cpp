@@ -21,9 +21,9 @@
 #include "ArucoImageProcessor.cpp"
 #include "CircleDetector.cpp"
 #include "IRTDImageProcessor.cpp"
+#include "DataProvider.h"
 #include "Object.cpp"
 #include "Model.cpp"
-#include "ObjectDataCollector.h"
 
 void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , tbb::concurrent_unordered_map<MarkerType , int>& numberOfSuccessors ){
 
@@ -61,9 +61,9 @@ void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , t
 
 bool ComputerVision::initialize(std::string configFilePath) {
 
-	boost::property_tree::ptree newconfig;
-	boost::property_tree::read_json("new_input.json" , newconfig);
-	boost::property_tree::ptree config;
+	//boost::property_tree::ptree newconfig;
+	//boost::property_tree::read_json("new_input.json" , newconfig);
+	//boost::property_tree::ptree config;
 
 	try{
 		boost::property_tree::read_json(configFilePath, config);
@@ -84,7 +84,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		initialized = camera->init(DEFAULT_CAMERA);
 	}
 
-	model = std::make_shared<Model<t_cfg> >(*this);
+	model = std::make_shared<Model<t_cfg> >();
 
 	initialized = initialized && model->build(config , *this);
 
@@ -96,7 +96,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 
 void ComputerVision::startProcessing() {
 
-	std::cout<<"processing thread started"<<std::endl;
+	std::cout<<"Start processing thread!"<<std::endl;
 
 	if(initialized){
 	//stores the number of active successors of the image processing node
@@ -123,7 +123,7 @@ void ComputerVision::startProcessing() {
 
 		processing = true;
 
-		tbb::flow::limiter_node<Frame> FrameLimiter(*this , 50);
+		tbb::flow::limiter_node<Frame> FrameLimiter(*this , 5);
 
 		make_edge(camera->getProviderNode() , FrameLimiter);
 
@@ -157,7 +157,7 @@ void ComputerVision::startProcessing() {
 		Visualizer visualizer(*this);
 
 
-		provider = std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(model->getObjectNames().size() , *this));
+		provider = std::unique_ptr<DataProvider>(new DataProvider(model->getObjectNames().size() , *this));
 
 		/*
 		 * camera ----|
@@ -214,6 +214,8 @@ void ComputerVision::startProcessing() {
 		});
 
 
+
+
 		make_edge(provider->getProcessorNode() , cont);
 
 		make_edge(provider->getProcessorNode() , FrameLimiter.decrement);
@@ -224,9 +226,9 @@ void ComputerVision::startProcessing() {
 
 		make_edge(provider->getProviderNode() , transformer.getProcessorNode());
 
-		make_edge(transformer.getProcessorNode() , model->getProcessorNode());
-
 		camera->start();
+
+		std::cout<<"processing thread started"<<std::endl;
 
 		this->wait_for_all();
 
@@ -244,38 +246,26 @@ void ComputerVision::stopProcessing() {
 }
 
 void ComputerVision::reconfigure(std::string configFilePath) {
-	if(processing){
 
-		boost::property_tree::read_json(configFilePath , config);
+	boost::property_tree::read_json(configFilePath , config);
 
-		camera->setFPS(config.get<int>(FPS));
-		camera->setExposure(config.get<int>(EXPOSURE));
-		camera->setGain(config.get<int>(GAIN));
+	for(auto& ip : imageprocessors){
+		auto ipList = config.get_child(IMAGEPROCESSORS);
 
-		for(auto& ip : imageprocessors){
-			auto ipList = config.get_child(IMAGEPROCESSORS);
+		for(auto& ipElement : ipList){
+			auto type = ipElement.second.get<std::string>("type");
+			auto values = ipElement.second.get_child(SPECIFICVALUES);
 
-			for(auto& ipElement : ipList){
-				auto type = ipElement.second.get<std::string>("type");
-				auto values = ipElement.second.get_child(SPECIFICVALUES);
-
-				if (type == "aruco") {
-					imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(values);
-				}
-				if (type == "circle") {
-					imageprocessors[MarkerType::CIRCLE]->setProcessingSpecificValues(values);
-				}
-				if (type == "irtd") {
-					imageprocessors[MarkerType::IRTD]->setProcessingSpecificValues(values);
-				}
+			if (type == "aruco") {
+				imageprocessors[MarkerType::ARUCO]->setProcessingSpecificValues(values);
+			}
+			if (type == "circle") {
+				imageprocessors[MarkerType::CIRCLE]->setProcessingSpecificValues(values);
+			}
+			if (type == "irtd") {
+				imageprocessors[MarkerType::IRTD]->setProcessingSpecificValues(values);
 			}
 		}
-	}
-}
-
-ModelData ComputerVision::getData(){
-	if(processing){
-		return model->getData();
 	}
 }
 

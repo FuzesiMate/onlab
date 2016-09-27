@@ -2,7 +2,7 @@
  * Marker.h
  *
  *  Created on: 2016. aug. 12.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef MARKER_H_
@@ -16,16 +16,10 @@ class Marker {
 private:
 	std::string name;
 	int id;
-	bool tracked;
-	tbb::concurrent_vector<cv::Point2f> screenPosition;
 
 public:
-	Marker(std::string name , int id ):name(name),id(id),tracked(false){};
-	void setPosition(tbb::concurrent_vector<cv::Point2f> position);
-	tbb::concurrent_vector<cv::Point2f>& getPosition();
+	Marker(std::string name , int id ):name(name),id(id){};
 	int getId();
-	bool isTracked();
-	void lost();
 	virtual ~Marker() = default;
 };
 

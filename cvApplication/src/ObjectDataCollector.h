@@ -5,8 +5,8 @@
  *      Author: M�t�
  */
 
-#ifndef DATAPROVIDER_H_
-#define DATAPROVIDER_H_
+#ifndef OBJECTDATACOLLECTOR_H_
+#define OBJECTDATACOLLECTOR_H_
 
 #include <mutex>
 #include <map>
@@ -16,12 +16,13 @@
 #include "DataTypes.h"
 #include "TemplateConfiguration.h"
 
-class DataProvider: public Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing> ,public Provider<ModelData> {
+class ObjectDataCollector: public Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing> ,public Provider<ModelData> {
 private:
-	//wait-notify variables
+	//wait-notify pattern variables
 	std::mutex lock;
 	std::condition_variable new_data;
 
+	//buffer to store object data
 	std::map<std::string , std::vector<ObjectData> > dataBuffer;
 	std::atomic<int64_t> nextFrameIndex;
 	bool readyToSend;
@@ -31,9 +32,9 @@ public:
 
 	bool provide(ModelData& output);
 
-	DataProvider(int numberOfObjects, tbb::flow::graph& g):Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing>(g ,1),
+	ObjectDataCollector(int numberOfObjects, tbb::flow::graph& g):Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing>(g ,1),
 			Provider<ModelData>(g),nextFrameIndex(0),readyToSend(false),numberOfObjects(numberOfObjects){};
-	virtual ~DataProvider() = default;
+	virtual ~ObjectDataCollector() = default;
 };
 
-#endif /* DATAPROVIDER_H_ */
+#endif /* OBJECTDATACOLLECTOR_H_ */

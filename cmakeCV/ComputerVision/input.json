@@ -1,9 +1,9 @@
 {
 	"cameratype": "ximea",
-	"numberofcameras": 2,
-	"exposure": 15000,
+	"numberofcameras": 1,
+	"exposure": 10000,
 	"gain": 5,
-	"fps": 50,
+	"fps": 30,
 	"path_to_matrices": "matrices.yml",
 	"imageprocessors": [{
 		"type": "aruco",
