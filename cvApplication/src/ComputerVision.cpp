@@ -125,9 +125,12 @@ void ComputerVision::startProcessing() {
 	//after each sequencer node there is a broadcaster node that broadcasts the output of the sequencer node
 		tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > > > IpDataBroadcasters;
 
+	//visualizer to show the result of object tracking
+		std::unique_ptr<Visualizer> visualizer;
+
 	//read object configuration,instantiate objects and add markers
 	try{
-		dataCollector= std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(config.get_child(OBJECTS).size() , *this));
+		dataCollector= std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(3 , *this));
 
 		for(auto& object : config.get_child(OBJECTS)){
 			auto name = object.second.get<std::string>("name");
@@ -219,6 +222,28 @@ void ComputerVision::startProcessing() {
 	}catch(std::exception& e){
 
 	}
+
+	tbb::flow::join_node<tbb::flow::tuple<Frame , ModelData> , tbb::flow::queueing  > FrameModelDataJoiner(*this);
+
+	try{
+		auto visConfig = config.get_child(VISUALIZER);
+		visualizer = std::unique_ptr<Visualizer>(new Visualizer(*this));
+		make_edge(FrameLimiter , tbb::flow::input_port<0>(FrameModelDataJoiner));
+		make_edge(dataCollector->getProviderNode() , tbb::flow::input_port<1>(FrameModelDataJoiner));
+		make_edge(FrameModelDataJoiner , visualizer->getProcessorNode());
+	}catch(std::exception& e){
+
+	}
+
+	bool started = false;
+		tbb::flow::continue_node<tbb::flow::continue_msg> dataCollectorTrigger(*this , [&](tbb::flow::continue_msg out){
+			if(!started){
+				dataCollector->start();
+				started = true;
+			}
+		});
+
+	make_edge(dataCollector->getProcessorNode() , dataCollectorTrigger);
 
 	//build the data flow graph
 
@@ -371,10 +396,9 @@ void ComputerVision::startProcessing() {
 		make_edge(transformer.getProcessorNode() , model->getProcessorNode());
 
 		*/
+		processing = true;
 
 		camera->start();
-
-		processing = true;
 
 		this->wait_for_all();
 

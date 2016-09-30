@@ -23,6 +23,7 @@
 #include "ObjectDataCollector.h"
 
 #define CAMERA					"camera"
+#define VISUALIZER				"visualizer"
 #define OBJECTS					"objects"
 #define TYPE					"type"
 #define NUMBEROFCAMERAS 		"number"
