@@ -2,7 +2,7 @@
  * ComputerVision.h
  *
  *  Created on: 2016. aug. 9.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef COMPUTERVISION_H_
@@ -32,8 +32,9 @@
 #define SEND_DATA		"send_data"
 #define SEND_RAW_DATA	"send_raw_data"
 #define PATH_TO_MATRICES "path_to_matrices"
+#define SPECIFICVALUES	"specificvalues"
 
-#define DEFAULT 		0
+#define DEFAULT_CAMERA	0
 
 using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
 

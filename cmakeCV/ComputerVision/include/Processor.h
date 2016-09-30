@@ -2,13 +2,14 @@
  * Processor.h
  *
  *  Created on: 2016. aug. 23.
- *      Author: Máté
+ *      Author: Mï¿½tï¿½
  */
 
 #ifndef PROCESSOR_H_
 #define PROCESSOR_H_
 
 #include <tbb/flow_graph.h>
+#include <functional>
 
 template<typename INPUT, typename OUTPUT, typename BUFFER_POLICY>
 
@@ -28,7 +29,7 @@ public:
 		return node;
 	}
 
-	virtual ~Processor() {};
+	virtual ~Processor()=default;
 };
 
 #endif /* PROCESSOR_H_ */

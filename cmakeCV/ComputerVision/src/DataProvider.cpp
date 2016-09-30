@@ -1,22 +1,19 @@
 
 
-#include "ObjectDataCollector.h"
-
+#include "DataProvider.h"
 #include <thread>
 #include <mutex>
 
-tbb::flow::continue_msg ObjectDataCollector::process(ObjectData objectData){
+tbb::flow::continue_msg DataProvider::process(ObjectData objectData){
 
 	std::unique_lock<std::mutex> l(lock);
 
 	dataBuffer[objectData.name].push_back(objectData);
 
-	std::cout<<"data arrived"<<std::endl;
-
 	new_data.notify_one();
 }
 
-bool ObjectDataCollector::provide(ModelData& output){
+bool DataProvider::provide(ModelData& output){
 
 	std::unique_lock<std::mutex> l(lock);
 
@@ -41,9 +38,6 @@ bool ObjectDataCollector::provide(ModelData& output){
 				for(auto& object : dataBuffer){
 					output.objectData.push_back(object.second.front());
 				}
-
-				output.frameIndex = dataBuffer.begin()->second.front().frameIndex;
-				output.timestamp = dataBuffer.begin()->second.front().frameIndex;
 
 				for(auto& object : dataBuffer){
 					object.second.erase(object.second.begin());

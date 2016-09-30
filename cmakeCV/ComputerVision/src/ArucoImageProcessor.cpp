@@ -52,5 +52,4 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 
 template <typename CONFIG>
 void ArucoImageProcessor<CONFIG>::setProcessingSpecificValues(boost::property_tree::ptree config){
-	std::cout<<"set aruco values"<<std::endl;
 }

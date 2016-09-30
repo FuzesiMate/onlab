@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>cvApplication@cmakeCV</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.cdt.managedbuilder.core.genmakebuilder</name>
+			<triggers>clean,full,incremental,</triggers>
+			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>org.eclipse.cdt.managedbuilder.core.ScannerConfigBuilder</name>
+			<triggers>full,incremental,</triggers>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.eclipse.cdt.core.ccnature</nature>
+		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>[Subprojects]</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Subprojects]/ComputerVision</name>
+			<type>2</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/CMake Rules</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Header Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Object Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Resources</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/ArucoImageProcessor.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/ArucoImageProcessor.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/Camera.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/Camera.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/CircleDetector.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/CircleDetector.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/ComputerVision.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/ComputerVision.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/CoordinateTransformer.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/CoordinateTransformer.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/DataProvider.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/DataProvider.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/IRTDImageProcessor.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/IRTDImageProcessor.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/LedController.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/LedController.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/Marker.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/Marker.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/Model.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/Model.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/Object.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/Object.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/Pattern.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/Pattern.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/SerialComm.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/SerialComm.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/Visualizer.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/Visualizer.cpp</location>
+		</link>
+		<link>
+			<name>[Targets]/[exe] ComputerVision/Source Files/cvApplication.cpp</name>
+			<type>1</type>
+			<location>/home/teqbox-dev/teqbox-master/git/onlab/cmakeCV/ComputerVision/src/cvApplication.cpp</location>
+		</link>
+	</linkedResources>
+</projectDescription>

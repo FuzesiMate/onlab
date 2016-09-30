@@ -1,7 +1,7 @@
 {
 	"cameratype": "ximea",
 	"numberofcameras": 2,
-	"exposure": 15000,
+	"exposure": 10000,
 	"gain": 5,
 	"fps": 50,
 	"path_to_matrices": "matrices.yml",

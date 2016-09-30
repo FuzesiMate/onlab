@@ -43,7 +43,7 @@ int main(int argc , char *argv[]) {
 			}else{
 				cout<<"start processing thread..."<<endl;
 
-
+				/*
 				tbb_thread temp([&](){
 					while(true){
 
@@ -51,7 +51,7 @@ int main(int argc , char *argv[]) {
 					if(cvModule.isProcessing()){
 							auto posdata = cvModule.getData();
 							std::cout<<"frameIndex: "<<posdata.frameIndex<<std::endl;
-							/*
+
 							for(auto& obj : posdata.objectData){
 															for(auto& mar : obj.markerData){
 																std::cout<<mar.name<<std::endl;
@@ -63,7 +63,7 @@ int main(int argc , char *argv[]) {
 																std::cout<<std::endl<<std::endl;
 															}
 														}
-														*/
+
 							}
 
 					}
@@ -71,7 +71,7 @@ int main(int argc , char *argv[]) {
 
 
 				temp.detach();
-
+*/
 
 				tbb_thread processingThread(std::bind(&ComputerVision::startProcessing, &cvModule));
 				processingThread.detach();

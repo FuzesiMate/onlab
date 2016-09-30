@@ -26,7 +26,7 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> d
 
 	if((500-diff)>0){
 		//Sleep(500-(diff));
-		std::this_thread::sleep_for(std::chrono::milliseconds(500-diff));
+		std::this_thread::sleep_for(std::chrono::milliseconds(200-diff));
 	}
 
 #endif

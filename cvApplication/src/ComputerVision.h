@@ -22,17 +22,22 @@
 #include "Camera.h"
 #include "ObjectDataCollector.h"
 
-#define CAMERATYPE		"cameratype"
-#define NUMBEROFCAMERAS "numberofcameras"
-#define EXPOSURE		"exposure"
-#define GAIN			"gain"
-#define FPS				"fps"
-#define IMAGEPROCESSORS	"imageprocessors"
-#define SHOW_WINDOW		"show_window"
-#define SEND_DATA		"send_data"
-#define SEND_RAW_DATA	"send_raw_data"
-#define PATH_TO_MATRICES "path_to_matrices"
-#define SPECIFICVALUES	"specificvalues"
+#define CAMERA					"camera"
+#define OBJECTS					"objects"
+#define TYPE					"type"
+#define NUMBEROFCAMERAS 		"number"
+#define EXPOSURE				"exposure"
+#define GAIN					"gain"
+#define FPS						"fps"
+#define IMAGEPROCESSORS			"imageprocessors"
+#define SHOW_WINDOW				"show_window"
+#define SEND_DATA				"send_data"
+#define SEND_RAW_DATA			"send_raw_data"
+#define PATH_TO_MATRICES 		"path_to_matrices"
+#define SPECIFICVALUES			"specificvalues"
+#define ARUCO_IMAGE_PROCESSOR	"arucoimageprocessor"
+#define IRTD_IMAGE_PROCESSOR	"irtimageprocessor"
+#define CIRCLE_IMAGE_PROCESSOR	"circleimageprocessor"
 
 #define DEFAULT_CAMERA	0
 
@@ -41,11 +46,11 @@ using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurr
 class ComputerVision :public tbb::flow::graph{
 private:
 	std::unique_ptr<Camera> camera;
-	std::unique_ptr<ObjectDataCollector> provider;
 	std::shared_ptr<Model<t_cfg> > model;
+	std::unique_ptr<ObjectDataCollector> dataCollector;
 
 	//image processors mapped by markertype
-	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageprocessors;
+	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageProcessors;
 
 	boost::property_tree::ptree config;
 	std::atomic_bool initialized;

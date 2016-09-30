@@ -3,12 +3,12 @@
 	"numberofcameras": 2,
 	"exposure": 10000,
 	"gain": 5,
-	"fps": 40,
+	"fps": 30,
 	"path_to_matrices": "matrices.yml",
 	"imageprocessors": [{
 		"type": "irtd",
 		"specificvalues": {
-			"threshold": 150,
+			"threshold": 250,
 			"duration" : 50,
 			"setuptime": 20
 		}

@@ -19,12 +19,6 @@ bool Camera::provide(Frame &frame) {
 
 	auto delay = (1000/fps) - (currentTimestamp - lastTimestamp);
 
-	//std::cout<<delay<<std::endl;
-
-	if(delay<0){
-		delay = 20;
-	}
-
 	if (delay > 0 && lastTimestamp!=0) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 	}
@@ -86,26 +80,6 @@ bool Camera::init(int cameraType) {
 		cameras[i].set(cv::CAP_PROP_XI_GAIN , gain);
 	}
 	return true;
-}
-
-void Camera::setFPS(int fps){
-	this->fps = fps;
-}
-
-void Camera::setExposure(int exposure){
-	this->exposure = exposure;
-
-	for(auto& camera : cameras){
-		camera.set(cv::CAP_PROP_XI_EXPOSURE , exposure);
-	}
-}
-
-void Camera::setGain(float gain){
-	this->gain = gain;
-
-	for(auto& camera : cameras){
-		camera.set(cv::CAP_PROP_XI_GAIN , gain);
-	}
 }
 
 

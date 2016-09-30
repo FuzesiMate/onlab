@@ -53,6 +53,9 @@ public:
 	int getCallCounter();
 	MarkerType getMarkerType();bool isDone();
 	void remove();bool isRemoved();
+	std::string getName(){
+		return name;
+	}
 	virtual ~Object() = default;
 };
 

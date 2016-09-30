@@ -11,6 +11,8 @@
 #include <opencv2/aruco.hpp>
 #include <chrono>
 
+//#define MEASURE_TIME
+
 template <typename CONFIG>
 ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 
@@ -18,6 +20,10 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 
 	foundMarkers.data = tbb::concurrent_vector<tbb::concurrent_vector<cv::Point2f> >(frame.images.size());
 	foundMarkers.identifiers = tbb::concurrent_vector<tbb::concurrent_vector<int> >(frame.images.size());
+
+#ifdef MEASURE_TIME
+	auto time = std::chrono::steady_clock::now();
+#endif
 
 	tbb::parallel_for(size_t(0) , frame.images.size() , [&](size_t i){
 
@@ -42,6 +48,16 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 		foundMarkers.data[i]=(markerPosition);
 		foundMarkers.identifiers[i]=(markerIdentifier);
 	});
+
+#ifdef MEASURE_TIME
+
+	auto endTime = std::chrono::steady_clock::now();
+
+	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(endTime-time).count();
+
+	std::cout<<diff<<std::endl;
+
+#endif
 
 	foundMarkers.timestamp = frame.timestamp;
 	foundMarkers.frameIndex = frame.frameIndex;

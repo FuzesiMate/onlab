@@ -8,10 +8,9 @@
 #ifndef IRTDIMAGEPROCESSOR_H_
 #define IRTDIMAGEPROCESSOR_H_
 
-#include "ImageProcessor.h"
-#include "LedController.h"
 #include <atomic>
-#include <tbb/compat/thread>
+#include "LedController.h"
+#include "ImageProcessor.h"
 
 #define THRESHOLD 	"threshold"
 #define SETUP_TIME 	"setuptime"
@@ -64,8 +63,8 @@ public:
 		ledController.addPattern(std::vector<int>{0,255,0,50});
 		ledController.addPattern(std::vector<int>{255,0,50,0});
 
-		tbb::tbb_thread ledControllerThread(std::bind(&IRTDImageProcessor::startLedController , this));
-		ledControllerThread.detach();
+		//tbb::tbb_thread ledControllerThread(std::bind(&IRTDImageProcessor::startLedController , this));
+		//ledControllerThread.detach();
 	};
 
 	ImageProcessingData<CONFIG> process(Frame frame);
