@@ -25,18 +25,19 @@
 #include "Model.cpp"
 #include "ObjectDataCollector.h"
 
-void ComputerVision::workflowController(std::shared_ptr<Model<t_cfg> > model , tbb::concurrent_unordered_map<MarkerType , int>& aliveObjects ){
+std::map<std::string , MarkerType> res_MarkerType = {{"aruco",MarkerType::ARUCO},{"irtd", MarkerType::IRTD},{"circle",MarkerType::CIRCLE}};
+
+void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<MarkerType , int>& aliveObjects ){
 
 	while (isProcessing()) {
-		auto objects = model->getObjectNames();
 
-		for (auto& o : objects) {
-			auto type = model->getMarkerType(o);
+		for (auto& object : objects) {
+			auto type = object.second->getMarkerType();
 
-			if (model->isDone(o) && !model->isRemoved(o)) {
+			if (object.second->isDone() && !object.second->isRemoved()) {
 				aliveObjects[type]--;
-				model->remove(o);
-				std::cout<<o<<" is reached it's limit"<<std::endl;
+				object.second->remove();
+				std::cout<<object.first<<" is reached it's limit"<<std::endl;
 			}
 			if (aliveObjects[type] == 0) {
 				remove_edge(camera->getProviderNode(),
@@ -105,7 +106,6 @@ void ComputerVision::startProcessing() {
 	 * if the processing ends, they will be destructed
 	 */
 
-
 	//objects mapped by their name
 		tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<t_cfg> > > objects;
 
@@ -128,100 +128,90 @@ void ComputerVision::startProcessing() {
 	//visualizer to show the result of object tracking
 		std::unique_ptr<Visualizer> visualizer;
 
-	//read object configuration,instantiate objects and add markers
+	/*
+	 * read image processor configuration, instantiate image processors
+	 * in case of new image processing method add the markertype to the enumeration
+	 * map the string and markertype in res_MarkerType
+	 * instantiate your image processor class like the example below
+	 */
+
 	try{
-		dataCollector= std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(3 , *this));
 
-		for(auto& object : config.get_child(OBJECTS)){
-			auto name = object.second.get<std::string>("name");
-			auto limit = object.second.get<int>("limit");
+		for(auto& imageProcessor : config.get_child("imageprocessors")){
+			auto type = res_MarkerType[imageProcessor.second.get<std::string>("type")];
 
-			objects[name]= std::make_shared<Object <t_cfg> >(name , 0 ,MarkerType::ARUCO , limit , *this);
-
-			for(auto& marker : object.second.get_child("markers")){
-				objects[name]->addMarker(marker.second.get<std::string>("name") , marker.second.get<int>("id"));
+			switch(type){
+				case MarkerType::ARUCO:
+					imageProcessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
+					break;
+				case MarkerType::IRTD:
+					imageProcessors[MarkerType::IRTD] = std::make_shared<IRTDImageProcessor<t_cfg> >(*this);
+					break;
+				case MarkerType::CIRCLE:
+					break;
 			}
 
-			auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this , [](ObjectData pos)->size_t{
-						return pos.frameIndex;
-				});
+			aliveObjects[type] = 0;
 
-			ObjectDataSequencers.push_back(sequencer);
+			imageProcessors[type]->setProcessingSpecificValues(imageProcessor.second);
 
+			for(auto& objectReference : imageProcessor.second.get_child(OBJECTS)){
+				imageProcessors[type]->addObject(objectReference.second.get<std::string>(""));
+				aliveObjects[type]++;
+			}
+
+			auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
+															(*this , [](ImageProcessingData<t_cfg> data)->size_t{
+																return data.frameIndex;
+															});
+
+			IpDatasequencers.push_back(sequencer);
+
+			IpDataBroadcasters[type] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
 		}
 	}catch(std::exception& e){
-		std::cout<<"Error while parsing objects! Error message: "<<e.what()<<std::endl;
-	}
+			std::cout<<"error while parsing image processor configuration! Error: "<<e.what()<<std::endl;
+			processing = false;
 
-	//read image processor configuration, instantiate image processors
-	try{
-		auto IpConfig = config.get_child(ARUCO_IMAGE_PROCESSOR);
-		aliveObjects[MarkerType::ARUCO] = 0;
-		imageProcessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
-		imageProcessors[MarkerType::ARUCO]->setProcessingSpecificValues(IpConfig);
-
-		auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
-												(*this , [](ImageProcessingData<t_cfg> data)->size_t{
-													return data.frameIndex;
-												});
-
-		IpDatasequencers.push_back(sequencer);
-
-		IpDataBroadcasters[MarkerType::ARUCO] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
-
-		for(auto& objectRef : IpConfig.get_child("objects")){
-			imageProcessors[MarkerType::ARUCO]->addObject(objectRef.second.get<std::string>(""));
+			std::cout<<"Abort start processing..."<<std::endl;
+			return;
 		}
 
-	}catch(std::exception& e){
-
-	}
+	/*
+	 * Parse object configuration and instantiate objects
+	 */
 
 	try{
-		auto IpConfig = config.get_child(IRTD_IMAGE_PROCESSOR);
-		aliveObjects[MarkerType::IRTD] = 0;
-		imageProcessors[MarkerType::IRTD] = std::make_shared<IRTDImageProcessor<t_cfg> >(*this);
-		imageProcessors[MarkerType::IRTD]->setProcessingSpecificValues(IpConfig);
+			dataCollector= std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(config.get_child(OBJECTS).size() , *this));
 
-		auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
-														(*this , [](ImageProcessingData<t_cfg> data)->size_t{
-															return data.frameIndex;
-														});
+			for(auto& object : config.get_child(OBJECTS)){
+				auto name = object.second.get<std::string>("name");
+				auto limit = object.second.get<int>("limit");
+				auto type = res_MarkerType[object.second.get<std::string>("markertype")];
 
-		IpDatasequencers.push_back(sequencer);
+				objects[name]= std::make_shared<Object <t_cfg> >(name , 0 , type , limit , *this);
 
-		IpDataBroadcasters[MarkerType::IRTD] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
+				for(auto& marker : object.second.get_child("markers")){
+					objects[name]->addMarker(marker.second.get<std::string>("name") , marker.second.get<int>("id"));
+				}
 
-		for(auto& objectRef : IpConfig.get_child("objects")){
-			imageProcessors[MarkerType::IRTD]->addObject(objectRef.second.get<std::string>(""));
+				auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this , [](ObjectData pos)->size_t{
+							return pos.frameIndex;
+					});
+
+				ObjectDataSequencers.push_back(sequencer);
+
+			}
+		}catch(std::exception& e){
+			std::cout<<"Error while parsing objects! Error message: "<<e.what()<<std::endl;
+			processing = false;
+
+			std::cout<<"Abort start processing..."<<std::endl;
+			return;
 		}
 
-	}catch(std::exception& e){
-
-	}
-
-	try{
-		auto IpConfig = config.get_child(CIRCLE_IMAGE_PROCESSOR);
-		aliveObjects[MarkerType::CIRCLE]=0;
-		imageProcessors[MarkerType::CIRCLE] = std::make_shared<IRTDImageProcessor<t_cfg> >(*this);
-		imageProcessors[MarkerType::CIRCLE]->setProcessingSpecificValues(IpConfig);
-
-		auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
-														(*this , [](ImageProcessingData<t_cfg> data)->size_t{
-															return data.frameIndex;
-														});
-
-		IpDatasequencers.push_back(sequencer);
-
-		IpDataBroadcasters[MarkerType::CIRCLE] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
-
-		for(auto& objectRef : IpConfig.get_child("objects")){
-			imageProcessors[MarkerType::CIRCLE]->addObject(objectRef.second.get<std::string>(""));
-		}
-
-	}catch(std::exception& e){
-
-	}
+	//build the data flow graph
+	//TODO comment more
 
 	tbb::flow::join_node<tbb::flow::tuple<Frame , ModelData> , tbb::flow::queueing  > FrameModelDataJoiner(*this);
 
@@ -232,7 +222,7 @@ void ComputerVision::startProcessing() {
 		make_edge(dataCollector->getProviderNode() , tbb::flow::input_port<1>(FrameModelDataJoiner));
 		make_edge(FrameModelDataJoiner , visualizer->getProcessorNode());
 	}catch(std::exception& e){
-
+		std::cout<<"No visualizer node instantiated!"<<std::endl;
 	}
 
 	bool started = false;
@@ -244,8 +234,6 @@ void ComputerVision::startProcessing() {
 		});
 
 	make_edge(dataCollector->getProcessorNode() , dataCollectorTrigger);
-
-	//build the data flow graph
 
 	make_edge(camera->getProviderNode() , FrameLimiter);
 
@@ -268,29 +256,7 @@ void ComputerVision::startProcessing() {
 		j++;
 	}
 
-
-/*
-	for(auto& m : config.get_child(IMAGEPROCESSORS)){
-		auto type = m.second.get<std::string>("type");
-
-		if(type=="aruco"){
-			aliveObjects[MarkerType::ARUCO] = 0;
-			imageProcessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
-			imageProcessors[MarkerType::ARUCO]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
-		}if(type=="circle"){
-			aliveObjects[MarkerType::CIRCLE] = 0;
-			imageProcessors[MarkerType::CIRCLE] = std::make_shared<CircleDetector<t_cfg> >(*this);
-			imageProcessors[MarkerType::CIRCLE]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
-		}if(type == "irtd"){
-			aliveObjects[MarkerType::IRTD] = 0;
-			imageProcessors[MarkerType::IRTD] = std::make_shared<IRTDImageProcessor<t_cfg> >(*this);
-			imageProcessors[MarkerType::IRTD]->setProcessingSpecificValues(m.second.get_child("specificvalues"));
-		}
-	}
-
-	*/
-
-
+	make_edge(dataCollector->getProcessorNode() , FrameLimiter.decrement);
 
 /*
 
@@ -396,7 +362,11 @@ void ComputerVision::startProcessing() {
 		make_edge(transformer.getProcessorNode() , model->getProcessorNode());
 
 		*/
+
 		processing = true;
+
+		tbb::tbb_thread flowController(std::bind(&ComputerVision::workflowController, this , objects , aliveObjects));
+		flowController.detach();
 
 		camera->start();
 
@@ -404,7 +374,7 @@ void ComputerVision::startProcessing() {
 
 		std::cout<<"Processing thread stopped!"<<std::endl;
 	}else{
-		std::cout<<"CV module is not initialized!"<<std::endl;
+		std::cout<<"CV module is not initialized! Please initialize before start the processing workflow"<<std::endl;
 	}
 }
 
@@ -420,26 +390,20 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 
 		boost::property_tree::read_json(configFilePath , config);
 
-		camera->setFPS(config.get<int>(FPS));
-		camera->setExposure(config.get<int>(EXPOSURE));
-		camera->setGain(config.get<int>(GAIN));
+		auto cameraConfig = config.get_child(CAMERA);
+
+		camera->setFPS(cameraConfig.get<int>(FPS));
+		camera->setExposure(cameraConfig.get<int>(EXPOSURE));
+		camera->setGain(cameraConfig.get<int>(GAIN));
 
 		for(auto& ip : imageProcessors){
 			auto ipList = config.get_child(IMAGEPROCESSORS);
 
 			for(auto& ipElement : ipList){
-				auto type = ipElement.second.get<std::string>("type");
-				auto values = ipElement.second.get_child(SPECIFICVALUES);
+				auto type = res_MarkerType[ipElement.second.get<std::string>("type")];
 
-				if (type == "aruco") {
-					imageProcessors[MarkerType::ARUCO]->setProcessingSpecificValues(values);
-				}
-				if (type == "circle") {
-					imageProcessors[MarkerType::CIRCLE]->setProcessingSpecificValues(values);
-				}
-				if (type == "irtd") {
-					imageProcessors[MarkerType::IRTD]->setProcessingSpecificValues(values);
-				}
+				imageProcessors[type]->setProcessingSpecificValues(ipElement.second);
+
 			}
 		}
 	}

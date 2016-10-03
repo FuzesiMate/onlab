@@ -11,6 +11,7 @@
 #include <atomic>
 #include "LedController.h"
 #include "ImageProcessor.h"
+#include "DataTypes.h"
 
 #define THRESHOLD 	"threshold"
 #define SETUP_TIME 	"setuptime"

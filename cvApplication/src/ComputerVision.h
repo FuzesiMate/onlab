@@ -37,7 +37,7 @@
 #define PATH_TO_MATRICES 		"path_to_matrices"
 #define SPECIFICVALUES			"specificvalues"
 #define ARUCO_IMAGE_PROCESSOR	"arucoimageprocessor"
-#define IRTD_IMAGE_PROCESSOR	"irtimageprocessor"
+#define IRTD_IMAGE_PROCESSOR	"irtdimageprocessor"
 #define CIRCLE_IMAGE_PROCESSOR	"circleimageprocessor"
 
 #define DEFAULT_CAMERA	0
@@ -57,7 +57,7 @@ private:
 	std::atomic_bool initialized;
 	std::atomic_bool processing;
 
-	void workflowController(std::shared_ptr<Model<t_cfg> > model , tbb::concurrent_unordered_map<MarkerType , int>& numberOfSuccessors );
+	void workflowController(tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<t_cfg> > >& objects , tbb::concurrent_unordered_map<MarkerType , int>& numberOfSuccessors );
 
 public:
 	ComputerVision():initialized(false),processing(false){};

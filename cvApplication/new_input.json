@@ -1,10 +1,10 @@
 {
 	"camera": {
 		"type": "ximea",
-		"number": 1,
+		"number": 2,
 		"exposure": 10000,
 		"gain": 5,
-		"fps": 30
+		"fps": 40
 	},
 	"visualizer": {
 		"windowname": "camera",
@@ -15,7 +15,8 @@
 	},
 	"objects": [{
 		"name": "test",
-		"limit": -1,
+		"limit": 10,
+		"markertype":"aruco",
 		"markers": [{
 			"name": "testMarker",
 			"id": 40
@@ -23,6 +24,7 @@
 	}, {
 		"name": "test2",
 		"limit": -1,
+		"markertype":"aruco",
 		"markers": [{
 			"name": "testMarker2",
 			"id": 10
@@ -30,6 +32,7 @@
 	}, {
 		"name": "human",
 		"limit": -1,
+		"markertype":"irtd",
 		"markers": [{
 			"name": "la",
 			"id": 0
@@ -38,16 +41,18 @@
 			"id": 1
 		}]
 	}],
-	"arucoimageprocessor": {
+	"imageprocessors": [{
+		"type": "aruco",
 		"dictionary": 0,
 		"objects": ["test", "test2"]
-	},
-	"irtdimageprocessor": {
+	}, 
+{
+		"type": "irtd",
 		"threshold": 200,
-		"setuptime": 15,
+		"setuptime": 20,
 		"duration": 50,
 		"objects": ["human"]
-	},
+	}],
 	"objectdatasenders": [{
 		"type": "mqtt",
 		"topic": "object_data",

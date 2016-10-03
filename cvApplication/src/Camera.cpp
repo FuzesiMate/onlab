@@ -9,6 +9,7 @@
 bool Camera::provide(Frame &frame) {
 
 	if (!providing) {
+		std::cout<<"Stop recording"<<std::endl;
 		return false;
 	}
 
@@ -18,8 +19,6 @@ bool Camera::provide(Frame &frame) {
 					time.time_since_epoch()).count();
 
 	auto delay = (1000/fps) - (currentTimestamp - lastTimestamp);
-
-	//std::cout<<delay<<std::endl;
 
 	if(delay<0){
 		delay = 20;

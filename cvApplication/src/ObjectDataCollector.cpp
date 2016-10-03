@@ -18,12 +18,16 @@ bool ObjectDataCollector::provide(ModelData& output){
 
 	std::unique_lock<std::mutex> l(lock);
 
+	if(!providing){
+		std::cout<<"Stop providing position data"<<std::endl;
+		return false;
+	}
+
 	//wait for the corresponding object data
 	new_data.wait(l, [this](){
 
 				readyToSend = true;
 
-				std::cout<<"waiting"<<std::endl;
 				for(auto& object : dataBuffer) {
 
 					if((object.second.begin()->frameIndex!= nextFrameIndex || dataBuffer.size()<numberOfObjects )) {
@@ -48,13 +52,7 @@ bool ObjectDataCollector::provide(ModelData& output){
 					object.second.erase(object.second.begin());
 				}
 
-				std::cout<<"data sent"<<std::endl;
-
 			readyToSend = false;
 
-	if(providing){
-		return true;
-	}else{
-		return false;
-	}
+	return true;
 }
