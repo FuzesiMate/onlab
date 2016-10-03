@@ -21,6 +21,7 @@
 #include "Camera.h"
 #include "ModelDataStore.h"
 #include "ObjectDataCollector.h"
+#include "DataSender.h"
 
 #define CAMERA					"camera"
 #define VISUALIZER				"visualizer"
@@ -49,6 +50,8 @@ private:
 	std::unique_ptr<Camera> camera;
 	std::shared_ptr<ModelDataStore<t_cfg> > model;
 	std::unique_ptr<ObjectDataCollector> dataCollector;
+
+	std::vector<std::shared_ptr<DataSender> > dataSenders;
 
 	//image processors mapped by markertype
 	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageProcessors;

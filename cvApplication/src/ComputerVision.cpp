@@ -66,9 +66,11 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	/*
 	 * initialize method needs to be called before the start of the processing workflow
 	 * the initialization of some cameras can take more time, so it is recommended
-	 * to so this step before we start the processing thread in order to faster
-	 * startup
+	 * to so this step before we start the processing thread in order to faster startup
+	 *
+	 * datasenders are also initialized in this step for the same reasons
 	 */
+
 
 	try{
 		boost::property_tree::read_json(configFilePath, config);
@@ -78,17 +80,52 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		return initialized;
 	}
 
-	auto cameraConfig = config.get_child(CAMERA);
-	camera = std::unique_ptr<Camera>(new Camera(cameraConfig.get<int>(FPS) , cameraConfig.get<int>(EXPOSURE) , cameraConfig.get<float>(GAIN) , cameraConfig.get<int>(NUMBEROFCAMERAS), *this));
-	auto cameraType = cameraConfig.get<std::string>(TYPE);
+	try{
+		auto cameraConfig = config.get_child(CAMERA);
+			camera = std::unique_ptr<Camera>(new Camera(cameraConfig.get<int>(FPS) , cameraConfig.get<int>(EXPOSURE) , cameraConfig.get<float>(GAIN) , cameraConfig.get<int>(NUMBEROFCAMERAS), *this));
+			auto cameraType = cameraConfig.get<std::string>(TYPE);
 
-	if(cameraType=="ximea"){
-		initialized = camera->init(CV_CAP_XIAPI);
-	}else if(cameraType=="default"){
-		initialized = camera->init(DEFAULT_CAMERA);
-	}else{
+			if(cameraType=="ximea"){
+				initialized = camera->init(CV_CAP_XIAPI);
+			}else if(cameraType=="default"){
+				initialized = camera->init(DEFAULT_CAMERA);
+			}else{
+				initialized = false;
+				return initialized;
+			}
+
+	}catch(std::exception& e){
+		std::cout<<"Error occured while parsing camera configuration! Error message: "<<e.what()<<std::endl;
 		initialized = false;
 		return initialized;
+	}
+
+	try{
+		auto senderConfig = config.get_child("objectdatasenders");
+		for(auto& sender : senderConfig){
+
+			auto type = sender.second.get<std::string>("type");
+
+			std::cout<<type<<std::endl;
+
+			if(type=="zeromq"){
+				auto topic = sender.second.get<std::string>("topic");
+
+				std::cout<<topic<<std::endl;
+
+				auto temp = std::make_shared<ZeroMQDataSender>(topic , *this);
+
+				for(auto& address : sender.second.get_child("bind_addresses")){
+
+					std::cout<<address.second.get<std::string>("")<<std::endl;
+
+					temp->bindAddress(address.second.get<std::string>(""));
+				}
+				dataSenders.push_back(temp);
+			}
+		}
+	}catch(std::exception& e){
+		std::cout<<"failed "<<e.what()<<std::endl;
 	}
 
 	return initialized;
@@ -259,12 +296,10 @@ void ComputerVision::startProcessing() {
 
 	make_edge(dataCollector->getProcessorNode() , FrameLimiter.decrement);
 
-	std::string topic = "position_data";
-	ZeroMQDataSender sender(topic ,*this);
+	for(auto& sender : dataSenders){
+		make_edge(dataCollector->getProviderNode() , sender->getProcessorNode());
+	}
 
-	sender.bindAddress("tcp://*:5556");
-
-	make_edge(dataCollector->getProviderNode() , sender.getProcessorNode());
 
 /*
 

@@ -26,11 +26,11 @@ public:
 
 	ImageProcessor(tbb::flow::graph& g):Processor<Frame , ImageProcessingData<CONFIG>  , tbb::flow::queueing>(g , tbb::flow::unlimited){}
 
-	void addObject(std::string object){
+	inline void addObject(std::string object){
 		objects.push_back(object);
 	};
 
-	std::vector<std::string> getObjects(){
+	inline std::vector<std::string> getObjects(){
 		return objects;
 	}
 

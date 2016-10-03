@@ -54,15 +54,10 @@
 		"objects": ["human"]
 	}],
 	"objectdatasenders": [{
-		"type": "mqtt",
-		"topic": "object_data",
-		"broker_url": "127.0.0.1",
+		"type": "zeromq",
+		"topic": "position_data",
+		"bind_addresses":["tcp://*:5556"],
 		"objects": ["test"]
-	}, {
-		"type": "mqtt",
-		"topic": "another_object_data",
-		"broker_url": "127.0.0.1",
-		"objects": ["another"]
 	}],
 	"rawdatasenders": [{
 		"type": "MQTT",
