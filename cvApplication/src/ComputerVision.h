@@ -18,8 +18,8 @@
 #include "TemplateConfiguration.h"
 #include "ImageProcessor.h"
 #include "ArucoImageProcessor.h"
-#include "Model.h"
 #include "Camera.h"
+#include "ModelDataStore.h"
 #include "ObjectDataCollector.h"
 
 #define CAMERA					"camera"
@@ -47,7 +47,7 @@ using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurr
 class ComputerVision :public tbb::flow::graph{
 private:
 	std::unique_ptr<Camera> camera;
-	std::shared_ptr<Model<t_cfg> > model;
+	std::shared_ptr<ModelDataStore<t_cfg> > model;
 	std::unique_ptr<ObjectDataCollector> dataCollector;
 
 	//image processors mapped by markertype

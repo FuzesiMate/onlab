@@ -21,9 +21,10 @@
 #include "ArucoImageProcessor.cpp"
 #include "CircleDetector.cpp"
 #include "IRTDImageProcessor.cpp"
+#include "ModelDataStore.cpp"
 #include "Object.cpp"
-#include "Model.cpp"
 #include "ObjectDataCollector.h"
+#include "ZeroMQDataSender.h"
 
 std::map<std::string , MarkerType> res_MarkerType = {{"aruco",MarkerType::ARUCO},{"irtd", MarkerType::IRTD},{"circle",MarkerType::CIRCLE}};
 
@@ -258,6 +259,13 @@ void ComputerVision::startProcessing() {
 
 	make_edge(dataCollector->getProcessorNode() , FrameLimiter.decrement);
 
+	std::string topic = "position_data";
+	ZeroMQDataSender sender(topic ,*this);
+
+	sender.bindAddress("tcp://*:5556");
+
+	make_edge(dataCollector->getProviderNode() , sender.getProcessorNode());
+
 /*
 
 		make_edge(camera->getProviderNode() , FrameLimiter);
@@ -369,6 +377,8 @@ void ComputerVision::startProcessing() {
 		flowController.detach();
 
 		camera->start();
+
+		std::cout<<"Flow graph has been built successfully, start processing workflow"<<std::endl;
 
 		this->wait_for_all();
 

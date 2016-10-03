@@ -46,8 +46,9 @@
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="tbbmalloc_proxy"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="boost_system"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="opencv_aruco"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="zmq"/>
 								</option>
-								<option id="gnu.cpp.link.option.paths.1415114656" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths"/>
+								<option id="gnu.cpp.link.option.paths.1415114656" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.737055567" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -121,6 +122,7 @@
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_imencode310"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_aruco310"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libopencv_calib3d310"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="zmq"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.45749355" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
