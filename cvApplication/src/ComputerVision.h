@@ -15,10 +15,9 @@
 #include <atomic>
 #include <iostream>
 #include <boost/property_tree/ptree.hpp>
+#include "FrameProvider.h"
 #include "TemplateConfiguration.h"
 #include "ImageProcessor.h"
-#include "ArucoImageProcessor.h"
-#include "Camera.h"
 #include "ModelDataStore.h"
 #include "ObjectDataCollector.h"
 #include "DataSender.h"
@@ -47,7 +46,7 @@ using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurr
 
 class ComputerVision :public tbb::flow::graph{
 private:
-	std::unique_ptr<Camera> camera;
+	std::shared_ptr<FrameProvider> frameProvider;
 	std::shared_ptr<ModelDataStore<t_cfg> > model;
 	std::unique_ptr<ObjectDataCollector> dataCollector;
 

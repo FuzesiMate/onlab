@@ -15,7 +15,7 @@
 	},
 	"objects": [{
 		"name": "test",
-		"limit": 10,
+		"limit": -1,
 		"markertype":"aruco",
 		"markers": [{
 			"name": "testMarker",
@@ -29,29 +29,12 @@
 			"name": "testMarker2",
 			"id": 10
 		}]
-	}, {
-		"name": "human",
-		"limit": -1,
-		"markertype":"irtd",
-		"markers": [{
-			"name": "la",
-			"id": 0
-		}, {
-			"name": "ra",
-			"id": 1
-		}]
-	}],
+	}
+	],
 	"imageprocessors": [{
 		"type": "aruco",
 		"dictionary": 0,
 		"objects": ["test", "test2"]
-	}, 
-{
-		"type": "irtd",
-		"threshold": 200,
-		"setuptime": 20,
-		"duration": 50,
-		"objects": ["human"]
 	}],
 	"objectdatasenders": [{
 		"type": "zeromq",

@@ -13,6 +13,7 @@
 #include <thread>
 #include <exception>
 #include "DataTypes.h"
+#include "FrameProviderFactory.h"
 #include "ArucoImageProcessor.h"
 #include "CoordinateTransformer.h"
 #include "CircleDetector.h"
@@ -25,6 +26,8 @@
 #include "Object.cpp"
 #include "ObjectDataCollector.h"
 #include "ZeroMQDataSender.h"
+#include "FrameProvider.h"
+#include "Camera.h"
 
 std::map<std::string , MarkerType> res_MarkerType = {{"aruco",MarkerType::ARUCO},{"irtd", MarkerType::IRTD},{"circle",MarkerType::CIRCLE}};
 
@@ -41,7 +44,7 @@ void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::strin
 				std::cout<<object.first<<" is reached it's limit"<<std::endl;
 			}
 			if (aliveObjects[type] == 0) {
-				remove_edge(camera->getProviderNode(),
+				remove_edge(frameProvider->getProviderNode(),
 						imageProcessors[type]->getProcessorNode());
 			}
 		}
@@ -82,17 +85,11 @@ bool ComputerVision::initialize(std::string configFilePath) {
 
 	try{
 		auto cameraConfig = config.get_child(CAMERA);
-			camera = std::unique_ptr<Camera>(new Camera(cameraConfig.get<int>(FPS) , cameraConfig.get<int>(EXPOSURE) , cameraConfig.get<float>(GAIN) , cameraConfig.get<int>(NUMBEROFCAMERAS), *this));
-			auto cameraType = cameraConfig.get<std::string>(TYPE);
+		auto type = cameraConfig.get<std::string>(TYPE);
 
-			if(cameraType=="ximea"){
-				initialized = camera->init(CV_CAP_XIAPI);
-			}else if(cameraType=="default"){
-				initialized = camera->init(DEFAULT_CAMERA);
-			}else{
-				initialized = false;
-				return initialized;
-			}
+		frameProvider = FrameProviderFactory::createFrameProvider(cameraConfig , *this);
+
+		initialized = true;
 
 	}catch(std::exception& e){
 		std::cout<<"Error occured while parsing camera configuration! Error message: "<<e.what()<<std::endl;
@@ -273,7 +270,7 @@ void ComputerVision::startProcessing() {
 
 	make_edge(dataCollector->getProcessorNode() , dataCollectorTrigger);
 
-	make_edge(camera->getProviderNode() , FrameLimiter);
+	make_edge(frameProvider->getProviderNode() , FrameLimiter);
 
 	int i = 0;
 	for(auto& imageProcessor : imageProcessors){
@@ -411,7 +408,7 @@ void ComputerVision::startProcessing() {
 		tbb::tbb_thread flowController(std::bind(&ComputerVision::workflowController, this , objects , aliveObjects));
 		flowController.detach();
 
-		camera->start();
+		frameProvider->start();
 
 		std::cout<<"Flow graph has been built successfully, start processing workflow"<<std::endl;
 
@@ -426,7 +423,7 @@ void ComputerVision::startProcessing() {
 void ComputerVision::stopProcessing() {
 	std::cout<<"stop processing"<<std::endl;
 	processing = false;
-	camera->stop();
+	frameProvider->stop();
 	dataCollector->stop();
 }
 
@@ -437,9 +434,9 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 
 		auto cameraConfig = config.get_child(CAMERA);
 
-		camera->setFPS(cameraConfig.get<int>(FPS));
-		camera->setExposure(cameraConfig.get<int>(EXPOSURE));
-		camera->setGain(cameraConfig.get<int>(GAIN));
+		frameProvider->setFPS(cameraConfig.get<int>(FPS));
+		frameProvider->setExposure(cameraConfig.get<int>(EXPOSURE));
+		frameProvider->setGain(cameraConfig.get<int>(GAIN));
 
 		for(auto& ip : imageProcessors){
 			auto ipList = config.get_child(IMAGEPROCESSORS);
