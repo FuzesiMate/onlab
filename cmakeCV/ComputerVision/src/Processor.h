@@ -10,6 +10,7 @@
 
 #include <tbb/flow_graph.h>
 #include <functional>
+#include <algorithm>
 
 template<typename INPUT, typename OUTPUT, typename BUFFER_POLICY>
 

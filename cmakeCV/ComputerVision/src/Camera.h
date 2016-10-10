@@ -18,13 +18,10 @@
 #include <ctime>
 #include <time.h>
 #include <thread>
+#include "FrameProvider.h"
 #include "DataTypes.h"
-#include "Provider.h"
 
-//#include <windows.h>
-
-
-class Camera:public Provider< Frame > {
+class Camera: public FrameProvider {
 	int numberOfCameras;
 	int exposure;
 	int gain;
@@ -39,14 +36,15 @@ class Camera:public Provider< Frame > {
 public:
 
 	Camera(int fps , int exposure , int gain, int numberOfCameras, tbb::flow::graph& g) :
-			Provider< Frame >(g), numberOfCameras(numberOfCameras), exposure(
+			FrameProvider(g), numberOfCameras(numberOfCameras), exposure(
 					exposure), gain(gain),fps(fps),frameCounter(0),initialized(
 					false),lastTimestamp(0){};
 
 	bool provide(Frame &images);
 	bool init(int cameraType);
-	bool loadMatrices(std::string path);
-	cv::Point3f getRealPosition(tbb::concurrent_vector<cv::Point2f> screenPosition);
+	void setFPS(int fps);
+	void setExposure(int exposure);
+	void setGain(float gain);
 
 	virtual ~Camera();
 };

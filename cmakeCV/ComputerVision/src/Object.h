@@ -21,35 +21,41 @@
 template<typename CONFIG>
 class Object: public Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >{
 private:
+
+	//name of the object provided by user in config file
 	std::string name;
-	std::atomic_bool tracked;
+	//number of markers on the object
 	int numberOfMarkers;
-	std::atomic<int64_t> frameIndex;
-	std::atomic<int64_t> timestamp;
+	//counts how many times the object was tried to detect
 	std::atomic_int callCounter;
+	//detection limit provided by user in config file
 	std::atomic_int limit;
+	//true if the object reaches it's detection limit
 	std::atomic_bool done;
+	//true if the object was removed from the graph
 	std::atomic_bool removed;
+	//type of the marker on the object
 	MarkerType markerType;
 
 	tbb::concurrent_unordered_map<std::string, std::shared_ptr<Marker> > markers;
 
 public:
 	Object(std::string name, int numberOfMarkers, MarkerType type, int limit,
-			tbb::flow::graph& g) :Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >(g  , 1), name(
-					name), tracked(false), numberOfMarkers(numberOfMarkers), frameIndex(
-					0), timestamp(0), callCounter(0), limit(limit), done(false), removed(
+			tbb::flow::graph& g) :Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >(g  , tbb::flow::unlimited), name(
+					name), numberOfMarkers(numberOfMarkers), callCounter(0), limit(limit), done(false), removed(
 					false), markerType(type) {};
 
+	//Body of intel tbb function node
 	ObjectData process(ImageProcessingData<CONFIG> data);
+
 	void addMarker(std::string name, int id);
-	tbb::concurrent_vector<cv::Point2f>& getMarkerPosition(std::string name);
 	std::vector<std::string> getMarkerNames();
-	int64_t getFrameIndex();
 	int getCallCounter();
-	int64_t getTimestamp();
 	MarkerType getMarkerType();bool isDone();
 	void remove();bool isRemoved();
+	std::string getName(){
+		return name;
+	}
 	virtual ~Object() = default;
 };
 
