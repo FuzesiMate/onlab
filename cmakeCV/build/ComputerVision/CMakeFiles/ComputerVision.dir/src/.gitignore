@@ -1,0 +1,17 @@
+/ArucoImageProcessor.cpp.o
+/Camera.cpp.o
+/CircleDetector.cpp.o
+/ComputerVision.cpp.o
+/CoordinateTransformer.cpp.o
+/cvApplication.cpp.o
+/FrameProviderFactory.cpp.o
+/IRTDImageProcessor.cpp.o
+/LedController.cpp.o
+/Marker.cpp.o
+/ModelDataStore.cpp.o
+/Object.cpp.o
+/ObjectDataCollector.cpp.o
+/Pattern.cpp.o
+/SerialComm.cpp.o
+/Visualizer.cpp.o
+/ZeroMQDataSender.cpp.o
