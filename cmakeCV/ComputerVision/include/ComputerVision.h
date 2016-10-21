@@ -8,7 +8,6 @@
 #ifndef COMPUTERVISION_H_
 #define COMPUTERVISION_H_
 
-
 #include <tbb/flow_graph.h>
 #include <tbb/concurrent_vector.h>
 #include <opencv2/opencv.hpp>
@@ -43,9 +42,9 @@
 
 #define DEFAULT_CAMERA	0
 
-using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurrent_vector<int > >;
+using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f>, tbb::concurrent_vector<int > >;
 
-class ComputerVision :public tbb::flow::graph{
+class ComputerVision :public tbb::flow::graph {
 private:
 	std::shared_ptr<FrameProvider> frameProvider;
 	std::shared_ptr<ModelDataStore> model;
@@ -54,23 +53,23 @@ private:
 	std::vector<std::shared_ptr<DataSender> > dataSenders;
 
 	//image processors mapped by markertype
-	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageProcessors;
+	tbb::concurrent_unordered_map<std::string, std::shared_ptr<ImageProcessor<t_cfg> > > imageProcessors;
 
 	boost::property_tree::ptree config;
 	std::atomic<bool> initialized;
 	std::atomic<bool> processing;
 
-	void workflowController(tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<t_cfg> > >& objects , tbb::concurrent_unordered_map<MarkerType , int>& numberOfSuccessors );
+	void workflowController(tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<std::string, int>& numberOfSuccessors);
 
 public:
-	ComputerVision():initialized(false),processing(false){};
+	ComputerVision() :initialized(false), processing(false) {};
 	bool initialize(std::string configFilePath);
 	void startProcessing();
 	void stopProcessing();
 	ModelData getData();
 	void reconfigure(std::string configFilePath);
 	bool isProcessing();
-	virtual ~ComputerVision()=default;
+	virtual ~ComputerVision() = default;
 };
 
 #endif /* COMPUTERVISION_H_ */

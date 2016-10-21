@@ -18,6 +18,7 @@
 #include "TemplateConfiguration.h"
 #include "Processor.h"
 
+
 template<typename CONFIG>
 class Object: public Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >{
 private:
@@ -35,12 +36,12 @@ private:
 	//true if the object was removed from the graph
 	std::atomic<bool> removed;
 	//type of the marker on the object
-	MarkerType markerType;
+	std::string markerType;
 
 	tbb::concurrent_unordered_map<std::string, std::shared_ptr<Marker> > markers;
 
 public:
-	Object(std::string name, int numberOfMarkers, MarkerType type, int limit,
+	Object(std::string name, int numberOfMarkers, std::string type, int limit,
 			tbb::flow::graph& g) :Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >(g  , tbb::flow::unlimited), name(
 					name), numberOfMarkers(numberOfMarkers), callCounter(0), limit(limit), done(false), removed(
 					false), markerType(type) {};
@@ -51,7 +52,7 @@ public:
 	void addMarker(std::string name, int id);
 	std::vector<std::string> getMarkerNames();
 	int getCallCounter();
-	MarkerType getMarkerType();bool isDone();
+	std::string getMarkerType();bool isDone();
 	void remove();bool isRemoved();
 	std::string getName(){
 		return name;

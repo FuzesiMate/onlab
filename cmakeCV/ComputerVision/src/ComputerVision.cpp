@@ -12,6 +12,8 @@
 #include <thread>
 #include <exception>
 #include "DataTypes.h"
+#include "ImageProcessorFactory.h"
+#include "DataSenderFactory.h"
 #include "ObjectDataCollector.h"
 #include "FrameProvider.h"
 #include "Camera.h"
@@ -21,13 +23,12 @@
 #include "CircleDetector.h"
 #include "IRTDImageProcessor.h"
 #include "Visualizer.h"
-#include "ImageProcessorFactory"
 #include "ArucoImageProcessor.cpp"
 #include "CircleDetector.cpp"
 #include "IRTDImageProcessor.cpp"
 #include "Object.cpp"
 
-void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<MarkerType , int>& aliveObjects ){
+void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<std::string, int>& aliveObjects) {
 
 	while (isProcessing()) {
 
@@ -37,11 +38,11 @@ void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::strin
 			if (object.second->isDone() && !object.second->isRemoved()) {
 				aliveObjects[type]--;
 				object.second->remove();
-				std::cout<<object.first<<" is reached it's limit"<<std::endl;
+				std::cout << object.first << " is reached it's limit" << std::endl;
 			}
 			if (aliveObjects[type] == 0) {
 				remove_edge(frameProvider->getProviderNode(),
-						imageProcessors[type]->getProcessorNode());
+					imageProcessors[type]->getProcessorNode());
 			}
 		}
 
@@ -71,265 +72,249 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	 */
 
 
-	try{
+	try {
 		boost::property_tree::read_json(configFilePath, config);
-	}catch(std::exception& e){
-		std::cout<<"JSON file is missing or invalid! Error message: "<<e.what()<<std::endl;
+	}
+	catch (std::exception& e) {
+		std::cout << "JSON file is missing or invalid! Error message: " << e.what() << std::endl;
 		initialized = false;
 		return initialized;
 	}
 
-	try{
+	try {
 		auto cameraConfig = config.get_child(FRAME_SOURCE);
 		auto type = cameraConfig.get<std::string>(TYPE);
 
-		try{
+		try {
 			frameProvider = FrameProviderFactory::createFrameProvider(cameraConfig, *this);
 			initialized = true;
 		}
 		catch (std::exception& e) {
-			std::cout << "Error occured while creating frame provider! Error message: " <<e.what()<< std::endl;
+			std::cout << "Error occured while creating frame provider! Error message: " << e.what() << std::endl;
 			initialized = false;
 			return initialized;
 		}
 
-	}catch(std::exception& e){
-		std::cout<<"Error occured while parsing camera configuration! Error message: "<<e.what()<<std::endl;
+	}
+	catch (std::exception& e) {
+		std::cout << "Error occured while parsing camera configuration! Error message: " << e.what() << std::endl;
 		initialized = false;
 		return initialized;
 	}
 
-	try{
+	try {
 		auto senderConfig = config.get_child("objectdatasenders");
-		for(auto& sender : senderConfig){
+		for (auto& sender : senderConfig) {
 
-			auto type = sender.second.get<std::string>("type");
-
-			std::cout<<type<<std::endl;
-
-			if(type=="zeromq"){
-				auto topic = sender.second.get<std::string>("topic");
-
-				std::cout<<topic<<std::endl;
-
-				auto temp = std::make_shared<ZeroMQDataSender>(topic , *this);
-
-				for(auto& address : sender.second.get_child("bind_addresses")){
-
-					std::cout<<address.second.get<std::string>("")<<std::endl;
-
-					temp->bindAddress(address.second.get<std::string>(""));
-				}
+			auto temp = DataSenderFactory::createDataSender(sender.second, *this);
 				dataSenders.push_back(temp);
 			}
+		}catch (std::exception& e) {
+			std::cout << "failed " << e.what() << std::endl;
 		}
-	}catch(std::exception& e){
-		std::cout<<"failed "<<e.what()<<std::endl;
-	}
 
 	return initialized;
-
 }
 
 void ComputerVision::startProcessing() {
 
-	std::cout<<"processing thread started!"<<std::endl;
+	std::cout << "processing thread started!" << std::endl;
 
-	if(initialized){
+	if (initialized) {
 
-	/*
-	 * this function blocks it's caller until the processing workflow ends
-	 * we do not need these nodes outside this function, so they are instantiated locally
-	 * if the processing ends, they will be destructed
-	 */
+		/*
+		 * this function blocks it's caller until the processing workflow ends
+		 * we do not need these nodes outside this function, so they are instantiated locally
+		 * if the processing ends, they will be destructed
+		 */
 
-	//objects mapped by their name
-		tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<t_cfg> > > objects;
+		 //objects mapped by their name
+		tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > > objects;
 
-	//after each object there is a sequencer node, which restores the original order of the data
+		//after each object there is a sequencer node, which restores the original order of the data
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< ObjectData > > > ObjectDataSequencers;
 
-	//stores the number of active successors of the image processing node
-	//mapped by markertype
-		tbb::concurrent_unordered_map<MarkerType, int> aliveObjects;
+		//stores the number of active successors of the image processing node
+		//mapped by markertype
+		tbb::concurrent_unordered_map<std::string, int> aliveObjects;
 
-	//limiter node limits the number of buffered frames in the system in order to reduce memory consumption
-		tbb::flow::limiter_node<Frame> FrameLimiter(*this , 10);
+		//limiter node limits the number of buffered frames in the system in order to reduce memory consumption
+		tbb::flow::limiter_node<Frame> FrameLimiter(*this, 10);
 
-	//after each imageprocessor there is a sequencer node, which restores the original order of the data
+		//after each imageprocessor there is a sequencer node, which restores the original order of the data
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IpDatasequencers;
 
-	//after each sequencer node there is a broadcaster node that broadcasts the output of the sequencer node
-		tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > > > IpDataBroadcasters;
+		//after each sequencer node there is a broadcaster node that broadcasts the output of the sequencer node
+		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > > > IpDataBroadcasters;
 
-	//visualizer to show the result of object tracking
+		//visualizer to show the result of object tracking
 		std::unique_ptr<Visualizer> visualizer;
 
-	//Local model data store to provide marker positions locally
+		//Local model data store to provide marker positions locally
 		model = std::unique_ptr<ModelDataStore>(new ModelDataStore(*this));
 
-	/*
-	 * read image processor configuration, instantiate image processors
-	 * in case of new image processing method add the markertype to the enumeration
-	 * map the string and markertype in res_MarkerType
-	 * instantiate your image processor class like the example below
-	 */
+		/*
+		 * read image processor configuration, instantiate image processors
+		 * in case of new image processing method add the markertype to the enumeration
+		 * map the string and markertype in res_MarkerType
+		 * instantiate your image processor class like the example below
+		 */
 
-	try{
+		try {
 
-		for(auto& imageProcessor : config.get_child("imageprocessors")){
-			auto type = res_MarkerType[imageProcessor.second.get<std::string>("type")];
+			for (auto& imageProcessor : config.get_child(IMAGEPROCESSORS)) {
+				auto type = imageProcessor.second.get<std::string>(TYPE);
 
-			switch(type){
-				case MarkerType::ARUCO:
-					imageProcessors[MarkerType::ARUCO] = std::make_shared<ArucoImageProcessor<t_cfg> >(*this);
-					break;
-				case MarkerType::IRTD:
-					imageProcessors[MarkerType::IRTD] = std::make_shared<IRTDImageProcessor<t_cfg> >(*this);
-					break;
-				case MarkerType::CIRCLE:
-					break;
+				try {
+					imageProcessors[type] = ImageProcessorFactory::createImageProcessor<t_cfg>(imageProcessor.second, *this);
+
+					aliveObjects[type] = 0;
+
+					for (auto& objectReference : imageProcessor.second.get_child(OBJECTS)) {
+						imageProcessors[type]->addObject(objectReference.second.get<std::string>(""));
+						aliveObjects[type]++;
+					}
+
+					auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
+						(*this, [](ImageProcessingData<t_cfg> data)->size_t {
+						return data.frameIndex;
+					});
+
+					IpDatasequencers.push_back(sequencer);
+
+					IpDataBroadcasters[type] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
+				}
+				catch (std::exception& e) {
+					std::cout << "Error while creating data sender! Error message: " << e.what() << std::endl;
+				}
 			}
-
-			aliveObjects[type] = 0;
-
-			imageProcessors[type]->setProcessingSpecificValues(imageProcessor.second);
-
-			for(auto& objectReference : imageProcessor.second.get_child(OBJECTS)){
-				imageProcessors[type]->addObject(objectReference.second.get<std::string>(""));
-				aliveObjects[type]++;
-			}
-
-			auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
-															(*this , [](ImageProcessingData<t_cfg> data)->size_t{
-																return data.frameIndex;
-															});
-
-			IpDatasequencers.push_back(sequencer);
-
-			IpDataBroadcasters[type] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
 		}
-	}catch(std::exception& e){
-			std::cout<<"error while parsing image processor configuration! Error: "<<e.what()<<std::endl;
+		catch (std::exception& e) {
+			std::cout << "Error while parsing image processor configuration! Error message: " << e.what() << std::endl;
 			processing = false;
 
-			std::cout<<"Abort start processing..."<<std::endl;
+			std::cout << "Abort start processing..." << std::endl;
 			return;
 		}
 
-	/*
-	 * Parse object configuration and instantiate objects
-	 */
+		/*
+		 * Parse object configuration and instantiate objects
+		 */
 
-	try{
-			dataCollector= std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(config.get_child(OBJECTS).size() , *this));
+		try {
+			dataCollector = std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(config.get_child(OBJECTS).size(), *this));
 
-			for(auto& object : config.get_child(OBJECTS)){
+			for (auto& object : config.get_child(OBJECTS)) {
 				auto name = object.second.get<std::string>("name");
 				auto limit = object.second.get<int>("limit");
-				auto type = res_MarkerType[object.second.get<std::string>("markertype")];
+				auto type = object.second.get<std::string>("markertype");
 
-				objects[name]= std::make_shared<Object <t_cfg> >(name , 0 , type , limit , *this);
+				objects[name] = std::make_shared<Object <t_cfg> >(name, 0, type, limit, *this);
 
-				for(auto& marker : object.second.get_child("markers")){
-					objects[name]->addMarker(marker.second.get<std::string>("name") , marker.second.get<int>("id"));
+				for (auto& marker : object.second.get_child("markers")) {
+					objects[name]->addMarker(marker.second.get<std::string>("name"), marker.second.get<int>("id"));
 				}
 
-				auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this , [](ObjectData pos)->size_t{
-							return pos.frameIndex;
-					});
+				auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this, [](ObjectData pos)->size_t {
+					return pos.frameIndex;
+				});
 
 				ObjectDataSequencers.push_back(sequencer);
 
 			}
-		}catch(std::exception& e){
-			std::cout<<"Error while parsing objects! Error message: "<<e.what()<<std::endl;
+		}
+		catch (std::exception& e) {
+			std::cout << "Error while parsing objects! Error message: " << e.what() << std::endl;
 			processing = false;
 
-			std::cout<<"Abort start processing..."<<std::endl;
+			std::cout << "Abort start processing..." << std::endl;
 			return;
 		}
 
-	//build the data flow graph
-	//TODO comment more
+		//build the data flow graph
+		//TODO comment more
 
-	tbb::flow::join_node<tbb::flow::tuple<Frame , ModelData> , tbb::flow::queueing  > FrameModelDataJoiner(*this);
+		tbb::flow::join_node<tbb::flow::tuple<Frame, ModelData>, tbb::flow::queueing  > FrameModelDataJoiner(*this);
 
-	try{
-		auto visConfig = config.get_child(VISUALIZER);
-		visualizer = std::unique_ptr<Visualizer>(new Visualizer(*this));
-		make_edge(FrameLimiter , tbb::flow::input_port<0>(FrameModelDataJoiner));
-		make_edge(dataCollector->getProviderNode() , tbb::flow::input_port<1>(FrameModelDataJoiner));
-		make_edge(FrameModelDataJoiner , visualizer->getProcessorNode());
-	}catch(std::exception& e){
-		std::cout<<"No visualizer node instantiated!"<<std::endl;
-	}
+		try {
+			auto visConfig = config.get_child(VISUALIZER);
+			visualizer = std::unique_ptr<Visualizer>(new Visualizer(*this));
+			make_edge(FrameLimiter, tbb::flow::input_port<0>(FrameModelDataJoiner));
+			make_edge(dataCollector->getProviderNode(), tbb::flow::input_port<1>(FrameModelDataJoiner));
+			make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
+		}
+		catch (std::exception& e) {
+			std::cout << "No visualizer node instantiated!" << std::endl;
+		}
 
-	bool started = false;
-		tbb::flow::continue_node<tbb::flow::continue_msg> dataCollectorTrigger(*this , [&](tbb::flow::continue_msg out){
-			if(!started){
+		bool started = false;
+		tbb::flow::continue_node<tbb::flow::continue_msg> dataCollectorTrigger(*this, [&](tbb::flow::continue_msg out) {
+			if (!started) {
 				dataCollector->start();
 				started = true;
 			}
 		});
 
-	make_edge(dataCollector->getProcessorNode() , dataCollectorTrigger);
+		make_edge(dataCollector->getProcessorNode(), dataCollectorTrigger);
 
-	make_edge(frameProvider->getProviderNode() , FrameLimiter);
+		make_edge(frameProvider->getProviderNode(), FrameLimiter);
 
-	int i = 0;
-	for(auto& imageProcessor : imageProcessors){
-		make_edge(FrameLimiter , imageProcessor.second->getProcessorNode());
-		make_edge(imageProcessor.second->getProcessorNode() , *IpDatasequencers[i]);
-		make_edge(*IpDatasequencers[i] , *IpDataBroadcasters[imageProcessor.first]);
-		i++;
+		int i = 0;
+		for (auto& imageProcessor : imageProcessors) {
+			make_edge(FrameLimiter, imageProcessor.second->getProcessorNode());
+			make_edge(imageProcessor.second->getProcessorNode(), *IpDatasequencers[i]);
+			make_edge(*IpDatasequencers[i], *IpDataBroadcasters[imageProcessor.first]);
+			i++;
 
-		for(auto& object : imageProcessor.second->getObjects()){
-			make_edge(*IpDataBroadcasters[imageProcessor.first] , objects[object]->getProcessorNode());
+			for (auto& object : imageProcessor.second->getObjects()) {
+				make_edge(*IpDataBroadcasters[imageProcessor.first], objects[object]->getProcessorNode());
+			}
 		}
-	}
 
-	int j = 0;
-	for(auto& object : objects){
-		make_edge(object.second->getProcessorNode() , *ObjectDataSequencers[j]);
-		make_edge(*ObjectDataSequencers[j] , dataCollector->getProcessorNode());
-		j++;
-	}
+		int j = 0;
+		for (auto& object : objects) {
+			make_edge(object.second->getProcessorNode(), *ObjectDataSequencers[j]);
+			make_edge(*ObjectDataSequencers[j], dataCollector->getProcessorNode());
+			j++;
+		}
 
-	make_edge(dataCollector->getProcessorNode() , FrameLimiter.decrement);
+		make_edge(dataCollector->getProcessorNode(), FrameLimiter.decrement);
 
-	for(auto& sender : dataSenders){
-		make_edge(dataCollector->getProviderNode() , sender->getProcessorNode());
-	}
+		for (auto& sender : dataSenders) {
+			make_edge(dataCollector->getProviderNode(), sender->getProcessorNode());
+		}
+
+		make_edge(dataCollector->getProviderNode() , model->getProcessorNode());
 
 		processing = true;
 
-		tbb::tbb_thread flowController(std::bind(&ComputerVision::workflowController, this , objects , aliveObjects));
+		tbb::tbb_thread flowController(std::bind(&ComputerVision::workflowController, this, objects, aliveObjects));
 		flowController.detach();
 
 		frameProvider->start();
 
-		std::cout<<"Flow graph has been built successfully, start processing workflow"<<std::endl;
+		std::cout << "Flow graph has been built successfully, start processing workflow" << std::endl;
 
 		this->wait_for_all();
 
-		std::cout<<"Processing thread stopped!"<<std::endl;
-	}else{
-		std::cout<<"CV module is not initialized! Please initialize before start the processing workflow"<<std::endl;
+		std::cout << "Processing thread stopped!" << std::endl;
+	}
+	else {
+		std::cout << "CV module is not initialized! Please initialize before start the processing workflow" << std::endl;
 	}
 }
 
 void ComputerVision::stopProcessing() {
-	std::cout<<"stop processing"<<std::endl;
+	std::cout << "stop processing" << std::endl;
 	processing = false;
 	frameProvider->stop();
 	dataCollector->stop();
 }
 
 void ComputerVision::reconfigure(std::string configFilePath) {
-	if(processing){
+	if (processing) {
 
-		boost::property_tree::read_json(configFilePath , config);
+		boost::property_tree::read_json(configFilePath, config);
 
 		auto cameraConfig = config.get_child(FRAME_SOURCE);
 
@@ -337,11 +322,11 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 		frameProvider->setExposure(cameraConfig.get<int>(EXPOSURE));
 		frameProvider->setGain(cameraConfig.get<int>(GAIN));
 
-		for(auto& ip : imageProcessors){
+		for (auto& ip : imageProcessors) {
 			auto ipList = config.get_child(IMAGEPROCESSORS);
 
-			for(auto& ipElement : ipList){
-				auto type = res_MarkerType[ipElement.second.get<std::string>(TYPE)];
+			for (auto& ipElement : ipList) {
+				auto type = ipElement.second.get<std::string>(TYPE);
 
 				imageProcessors[type]->setProcessingSpecificValues(ipElement.second);
 
@@ -350,16 +335,16 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 	}
 }
 
-ModelData ComputerVision::getData(){
-	if(processing){
+ModelData ComputerVision::getData() {
+	if (processing) {
 		return model->getData();
 	}
-	else{
+	else {
 		ModelData dummy;
 		return dummy;
 	}
 }
 
-bool ComputerVision::isProcessing(){
-	return processing ;
+bool ComputerVision::isProcessing() {
+	return processing;
 }

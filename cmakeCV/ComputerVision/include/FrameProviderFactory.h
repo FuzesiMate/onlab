@@ -1,54 +1,59 @@
-#pragma once
+#ifndef FRAMEPROVIDERFACTORY_H_
+#define FRAMEPROVIDERFACTORY_H_
 
-#include <memory>
-#include <string>
+#include "Camera.h"
+#include "FrameProvider.h"
+#include "InitFailedException.h"
 #include <boost/property_tree/ptree.hpp>
-#include "ImageProcessor.h"
-#include "ArucoImageProcessor.h"
-#include "IRTDImageProcessor.h"
-#include "CircleDetector.h"
 
-#define TYPE			"type"
-#define DICTIONARY		"dictionary"
+#define NUMBEROFCAMERAS 		"number"
+#define EXPOSURE				"exposure"
+#define GAIN					"gain"
+#define FPS						"fps"
+#define TYPE 					"type"
 
-enum MarkerType {
-	ARUCO,
-	CIRCLE,
-	IRTD
+enum FrameProviderType {
+	XIMEA = CV_CAP_XIAPI,
+	DEFAULT = 0,
+	VIDEO_SOURCE = 1
 };
 
-std::map<std::string, MarkerType> res_MarkerType = { { "aruco",MarkerType::ARUCO },{ "irtd", MarkerType::IRTD },{ "circle",MarkerType::CIRCLE } };
+std::map<std::string, FrameProviderType> res_FrameProviderType = { {"ximea",FrameProviderType::XIMEA} ,{"default" , FrameProviderType::DEFAULT} ,{"video",FrameProviderType::VIDEO_SOURCE} };
 
-class ImageProcessorFactory
-{
+class FrameProviderFactory {
 public:
-	ImageProcessorFactory();
+	FrameProviderFactory()=delete;
 
-	template <typename CONFIG>
-	static std::shared_ptr<ImageProcessor<CONFIG> >createImageProcessor(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
+	static std::shared_ptr<FrameProvider> createFrameProvider(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
 
-		auto ipType = res_MarkerType[parameters.get<std::string>(TYPE)]
+		try {
+			auto providerType = res_FrameProviderType[parameters.get<std::string>(TYPE)];
 
-		std::shared_ptr < ImageProcessor<CONFIG> > imageprocessor;
+			//Same constructor and init method for ximea camera and default camera (webcam)
+			if (providerType == FrameProviderType::XIMEA || providerType == FrameProviderType::DEFAULT) {
 
-		switch (ipType) {
-		case ARUCO:
-			imageprocessor = std::make_shared(ArucoImageProcessor<CONFIG> , *this);
-			break;
-		case IRTD:
-			imageprocessor = std::make_shared(IRTDImageProcessor<CONFIG>, *this);
-			break;
-		case CIRCLE:
-			imageprocessor = std::make_shared(CircleDetector<CONFIG> , *this);
-			break;
-		default:
-			throw std::exception("Not supported image processing method!");
-			break;
+				int numberOfCameras = parameters.get<int>(NUMBEROFCAMERAS);
+				int fps = parameters.get<int>(FPS);
+				int expo = parameters.get<int>(EXPOSURE);
+				float gain = parameters.get<float>(GAIN);
+
+				auto cam = std::make_shared<Camera>(fps, expo, gain, numberOfCameras, g);
+				if (!cam->init(providerType)) {
+					throw std::exception("Camera initialization failed");
+				}
+				return cam;
+			}
+			else if (providerType == FrameProviderType::VIDEO_SOURCE) {
+				throw std::exception("This function is currently not available!");
+			}
 		}
-
-		imageprocessor->setProcessingSpecificValues(parameters);
+		catch (std::exception& e) {
+			throw;
+		}
 	}
 
-	virtual ~ImageProcessorFactory();
+	virtual ~FrameProviderFactory()=default;
 };
+
+#endif /* FRAMEPROVIDERFACTORY_H_ */
 

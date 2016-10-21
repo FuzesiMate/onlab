@@ -1,4 +1,5 @@
-#pragma once
+#ifndef IMAGEPROCESSORFACTORY_H_
+#define IMAGEPROCESSORFACTORY_H_
 
 #include <memory>
 #include <string>
@@ -22,24 +23,24 @@ std::map<std::string, MarkerType> res_MarkerType = { { "aruco",MarkerType::ARUCO
 class ImageProcessorFactory
 {
 public:
-	ImageProcessorFactory();
+	ImageProcessorFactory()=delete;
 
 	template <typename CONFIG>
 	static std::shared_ptr<ImageProcessor<CONFIG> >createImageProcessor(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
 
-		auto ipType = res_MarkerType[parameters.get<std::string>(TYPE)]
+		auto ipType = res_MarkerType[parameters.get<std::string>(TYPE)];
 
 		std::shared_ptr < ImageProcessor<CONFIG> > imageprocessor;
 
 		switch (ipType) {
 		case ARUCO:
-			imageprocessor = std::make_shared(ArucoImageProcessor<CONFIG> , *this);
+			imageprocessor = std::make_shared<ArucoImageProcessor<CONFIG> >(g);
 			break;
 		case IRTD:
-			imageprocessor = std::make_shared(IRTDImageProcessor<CONFIG>, *this);
+			imageprocessor = std::make_shared<IRTDImageProcessor<CONFIG> >(g);
 			break;
 		case CIRCLE:
-			imageprocessor = std::make_shared(CircleDetector<CONFIG> , *this);
+			imageprocessor = std::make_shared<CircleDetector<CONFIG> >(g);
 			break;
 		default:
 			throw std::exception("Not supported image processing method!");
@@ -47,8 +48,11 @@ public:
 		}
 
 		imageprocessor->setProcessingSpecificValues(parameters);
+
+		return imageprocessor;
 	}
 
-	virtual ~ImageProcessorFactory();
+	virtual ~ImageProcessorFactory()=default;
 };
 
+#endif //IMAGEPROCESSORFACTORY_H_

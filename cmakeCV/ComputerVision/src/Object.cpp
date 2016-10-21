@@ -73,7 +73,7 @@ void Object<CONFIG>::addMarker(std::string name , int id){
 }
 
 template <typename CONFIG>
-MarkerType Object<CONFIG>::getMarkerType(){
+std::string Object<CONFIG>::getMarkerType(){
 	return markerType;
 }
 

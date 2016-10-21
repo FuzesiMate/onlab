@@ -20,6 +20,11 @@ using namespace tbb;
 
 int main(int argc , char *argv[]) {
 
+	if (argc < 2) {
+		std::cout << "No command line argument provided!" << std::endl;
+		return -1;
+	}
+
 	ComputerVision cvModule;
 
 	bool in = false;
@@ -102,7 +107,6 @@ int main(int argc , char *argv[]) {
 			cout<<"invalid"<<endl;
 			break;
 		}
-		//usleep(100000);
 	}
 
 	return 0;

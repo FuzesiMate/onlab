@@ -1,13 +1,56 @@
 {
-	"Camera":{
-			"type":"ximea",
-			"number":1,
-			"exposure": 10000,
-			"gain":5,
-			"fps":30
-		},
-	"Visualizer" :{
-			"windowname":"camera",
-			"delay":5000
-		}
+	"frameprovider": {
+		"type": "ximea",
+		"number": 2,
+		"exposure": 10000,
+		"gain": 5,
+		"fps": 30
+	},
+	"visualizer": {
+		"windowname": "camera",
+		"delay": 500
+	},
+	"transformer": {
+		"path_to_matrices": "matrices.yml"
+	},
+	"objects": [{
+		"name": "test",
+		"limit": -1,
+		"markertype":"aruco",
+		"markers": [{
+			"name": "testMarker",
+			"id": 40
+		}]
+	}, {
+		"name": "test2",
+		"limit": -1,
+		"markertype":"aruco",
+		"markers": [{
+			"name": "testMarker2",
+			"id": 10
+		}]
+	}
+	],
+	"imageprocessors": [{
+		"type": "aruco",
+		"dictionary": 0,
+		"objects": ["test", "test2"]
+	}],
+	"objectdatasenders": [{
+		"type": "zeromq",
+		"topic": "position_data",
+		"bind_addresses":["tcp://*:5556"],
+		"objects": ["test"]
+	}],
+	"rawdatasenders": [{
+		"type": "MQTT",
+		"topic": "aruco_raw_data",
+		"broker_url": "127.0.0.1",
+		"imageprocessor": "aruco"
+	}, {
+		"type": "MQTT",
+		"topic": "irtd_raw_data",
+		"broker_url": "127.0.0.1",
+		"imageprocessor": "irtd"
+	}]
 }
