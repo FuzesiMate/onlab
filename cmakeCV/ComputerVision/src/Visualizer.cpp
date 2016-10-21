@@ -14,7 +14,16 @@
 #define WITH_DELAY
 
 tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> data){
-	frameBuffer.push_back(std::get<0>(data));
+	auto frame = std::get<0>(data);
+
+	tbb::concurrent_vector<cv::Mat> clonedImages;
+	for (auto i : frame.images) {
+		clonedImages.push_back(i.clone());
+	}
+
+	frame.images = clonedImages;
+	
+	frameBuffer.push_back(frame);
 	dataBuffer.push_back(std::get<1>(data));
 
 #ifdef WITH_DELAY

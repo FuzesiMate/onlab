@@ -21,12 +21,11 @@
 #include "CircleDetector.h"
 #include "IRTDImageProcessor.h"
 #include "Visualizer.h"
+#include "ImageProcessorFactory"
 #include "ArucoImageProcessor.cpp"
 #include "CircleDetector.cpp"
 #include "IRTDImageProcessor.cpp"
 #include "Object.cpp"
-
-std::map<std::string , MarkerType> res_MarkerType = {{"aruco",MarkerType::ARUCO},{"irtd", MarkerType::IRTD},{"circle",MarkerType::CIRCLE}};
 
 void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<MarkerType , int>& aliveObjects ){
 

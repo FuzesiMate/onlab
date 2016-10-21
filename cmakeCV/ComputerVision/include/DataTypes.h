@@ -38,10 +38,4 @@ struct ModelData{
 	uint64_t frameIndex;
 };
 
-enum MarkerType{
-	ARUCO,
-	CIRCLE,
-	IRTD
-};
-
 #endif /*DATA_TYPES_H*/

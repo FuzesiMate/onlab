@@ -30,7 +30,7 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 			std::vector< std::vector< cv::Point2f > > corners, rejected;
 			std::vector<int> identifiers;
 			try{
-				cv::aruco::detectMarkers(frame.images[i], dictionary, corners, identifiers, detectorParams, rejected);
+				cv::aruco::detectMarkers(frame.images[i].clone(), dictionary, corners, identifiers, detectorParams, rejected);
 			}
 			catch (std::exception& e){
 				std::cout << e.what() << std::endl;

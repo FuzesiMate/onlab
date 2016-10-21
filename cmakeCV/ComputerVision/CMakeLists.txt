@@ -5,7 +5,7 @@ SET(PROJECT_NAME ComputerVision)
 project(${PROJECT_NAME})
 
 
-include_directories(${CMAKE_SOURCE_DIR}/ComputerVision/src)
+include_directories(${CMAKE_SOURCE_DIR}/ComputerVision/include)
 include_directories(C:/include)
 link_directories(C:/lib)
 
