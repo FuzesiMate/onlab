@@ -11,7 +11,7 @@ tbb::flow::continue_msg ObjectDataCollector::process(ObjectData objectData){
 
 	dataBuffer[objectData.name].push_back(objectData);
 
-	new_data.notify_one();
+	new_data.notify_all();
 
 	tbb::flow::continue_msg msg;
 	return msg;
@@ -27,14 +27,15 @@ bool ObjectDataCollector::provide(ModelData& output){
 	}
 
 	//wait for the corresponding object data
-	new_data.wait(l, [this](){
+	new_data.wait_for(l, std::chrono::milliseconds(1000), [this](){
 
 				readyToSend = true;
 
 				for(auto& object : dataBuffer) {
-
-					if((object.second.begin()->frameIndex!= nextFrameIndex || dataBuffer.size()<numberOfObjects )) {
-						readyToSend = false;
+					if (object.second.size() > 0) {
+						if ((object.second[0].frameIndex != nextFrameIndex || dataBuffer.size() < numberOfObjects)) {
+							readyToSend = false;
+						}
 					}
 				}
 
@@ -45,14 +46,19 @@ bool ObjectDataCollector::provide(ModelData& output){
 
 				output.objectData.clear();
 				for(auto& object : dataBuffer){
-					output.objectData.push_back(object.second.front());
+					if (object.second.size() > 0) {
+						output.objectData.push_back(object.second[0]);
+						output.frameIndex = object.second[0].frameIndex;
+						output.timestamp = object.second[0].timestamp;
+					}
 				}
 
-				output.frameIndex = dataBuffer.begin()->second.front().frameIndex;
-				output.timestamp = dataBuffer.begin()->second.front().frameIndex;
+				
 
 				for(auto& object : dataBuffer){
-					object.second.erase(object.second.begin());
+					if (object.second.size() > 0) {
+						object.second.erase(object.second.begin());
+					}
 				}
 
 			readyToSend = false;

@@ -27,13 +27,13 @@ private:
 	//number of markers on the object
 	int numberOfMarkers;
 	//counts how many times the object was tried to detect
-	std::atomic_int callCounter;
+	std::atomic<int> callCounter;
 	//detection limit provided by user in config file
-	std::atomic_int limit;
+	std::atomic<int> limit;
 	//true if the object reaches it's detection limit
-	std::atomic_bool done;
+	std::atomic<bool> done;
 	//true if the object was removed from the graph
-	std::atomic_bool removed;
+	std::atomic<bool> removed;
 	//type of the marker on the object
 	MarkerType markerType;
 

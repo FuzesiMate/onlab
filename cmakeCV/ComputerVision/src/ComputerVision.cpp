@@ -9,10 +9,12 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <tbb/compat/thread>
-#include <cstdio>
 #include <thread>
 #include <exception>
 #include "DataTypes.h"
+#include "ObjectDataCollector.h"
+#include "FrameProvider.h"
+#include "Camera.h"
 #include "FrameProviderFactory.h"
 #include "ArucoImageProcessor.h"
 #include "CoordinateTransformer.h"
@@ -22,12 +24,7 @@
 #include "ArucoImageProcessor.cpp"
 #include "CircleDetector.cpp"
 #include "IRTDImageProcessor.cpp"
-#include "ModelDataStore.cpp"
 #include "Object.cpp"
-#include "ObjectDataCollector.h"
-#include "ZeroMQDataSender.h"
-#include "FrameProvider.h"
-#include "Camera.h"
 
 std::map<std::string , MarkerType> res_MarkerType = {{"aruco",MarkerType::ARUCO},{"irtd", MarkerType::IRTD},{"circle",MarkerType::CIRCLE}};
 
@@ -84,12 +81,18 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	}
 
 	try{
-		auto cameraConfig = config.get_child(CAMERA);
+		auto cameraConfig = config.get_child(FRAME_SOURCE);
 		auto type = cameraConfig.get<std::string>(TYPE);
 
-		frameProvider = FrameProviderFactory::createFrameProvider(cameraConfig , *this);
-
-		initialized = true;
+		try{
+			frameProvider = FrameProviderFactory::createFrameProvider(cameraConfig, *this);
+			initialized = true;
+		}
+		catch (std::exception& e) {
+			std::cout << "Error occured while creating frame provider! Error message: " <<e.what()<< std::endl;
+			initialized = false;
+			return initialized;
+		}
 
 	}catch(std::exception& e){
 		std::cout<<"Error occured while parsing camera configuration! Error message: "<<e.what()<<std::endl;
@@ -152,7 +155,7 @@ void ComputerVision::startProcessing() {
 		tbb::concurrent_unordered_map<MarkerType, int> aliveObjects;
 
 	//limiter node limits the number of buffered frames in the system in order to reduce memory consumption
-		tbb::flow::limiter_node<Frame> FrameLimiter(*this , 50);
+		tbb::flow::limiter_node<Frame> FrameLimiter(*this , 10);
 
 	//after each imageprocessor there is a sequencer node, which restores the original order of the data
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IpDatasequencers;
@@ -162,6 +165,9 @@ void ComputerVision::startProcessing() {
 
 	//visualizer to show the result of object tracking
 		std::unique_ptr<Visualizer> visualizer;
+
+	//Local model data store to provide marker positions locally
+		model = std::unique_ptr<ModelDataStore>(new ModelDataStore(*this));
 
 	/*
 	 * read image processor configuration, instantiate image processors
@@ -297,112 +303,6 @@ void ComputerVision::startProcessing() {
 		make_edge(dataCollector->getProviderNode() , sender->getProcessorNode());
 	}
 
-
-/*
-
-		make_edge(camera->getProviderNode() , FrameLimiter);
-
-		tbb::flow::join_node<tbb::flow::tuple<Frame , ModelData> , tbb::flow::queueing  > join(*this);
-
-
-
-
-
-		for(auto& ip : imageProcessors){
-			auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
-										(*this , [](ImageProcessingData<t_cfg> data)->size_t{
-											return data.frameIndex;
-										});
-
-			IpDataBroadcasters[ip.first] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
-
-			IpDatasequencers.push_back(sequencer);
-
-			/*
-			 * Camera --> imageProcessor --> Sequencer --> broadcaster --> Object
-
-
-			//make_edge(camera->getProviderNode() , ip.second->getProcessorNode());
-
-			make_edge(FrameLimiter , ip.second->getProcessorNode());
-			make_edge(ip.second->getProcessorNode() , *IpDatasequencers[IpDatasequencers.size()-1]);
-			make_edge(*IpDatasequencers[IpDatasequencers.size()-1] , *IpDataBroadcasters[ip.first]);
-		}
-
-		Visualizer visualizer(*this);
-
-
-		provider = std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(model->getObjectNames().size() , *this));
-
-		/*
-		 * camera ----|
-		 * 			  |
-		 * 			join node --> Visualizer
-		 * 			  |
-		 * Provider --|--> DataSender
-
-
-		if(config.get<std::string>(SHOW_WINDOW) == "true"){
-			//make_edge(camera->getProviderNode() , tbb::flow::input_port<0>(join));
-			make_edge(FrameLimiter , tbb::flow::input_port<0>(join));
-		make_edge(provider->getProviderNode() , tbb::flow::input_port<1>(join));
-			make_edge(join , visualizer.getProcessorNode());
-		}
-
-		auto objects = model->getObjectNames();
-
-
-
-		for(auto& o : objects){
-
-			aliveObjects[model->getMarkerType(o)]++;
-
-			make_edge(*IpDataBroadcasters[model->getMarkerType(o)] , model->getObject(o)->getProcessorNode());
-
-			auto tempSeq = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this , [](ObjectData pos)->size_t{
-				return pos.frameIndex;
-			});
-
-			ObjectDataSequencers.push_back(tempSeq);
-
-			make_edge(model->getObject(o)->getProcessorNode() , *ObjectDataSequencers[ObjectDataSequencers.size()-1]);
-
-			make_edge(*ObjectDataSequencers[ObjectDataSequencers.size()-1] , provider->getProcessorNode());
-
-		}
-
-		if(config.get<std::string>(SEND_DATA)=="true"){
-		//	make_edge(provider->getProviderNode() , sink);
-		}
-
-
-		tbb::tbb_thread controllerThread(std::bind(&ComputerVision::workflowController ,this , model , aliveObjects));
-
-		controllerThread.detach();
-
-		bool started = false;
-		tbb::flow::continue_node<tbb::flow::continue_msg> cont(*this , [&](tbb::flow::continue_msg out){
-			if(!started){
-				provider->start();
-				started = true;
-			}
-		});
-
-
-		make_edge(provider->getProcessorNode() , cont);
-
-		make_edge(provider->getProcessorNode() , FrameLimiter.decrement);
-
-		CoordinateTransformer transformer(*this);
-
-		transformer.loadMatrices(config.get<std::string>(PATH_TO_MATRICES));
-
-		make_edge(provider->getProviderNode() , transformer.getProcessorNode());
-
-		make_edge(transformer.getProcessorNode() , model->getProcessorNode());
-
-		*/
-
 		processing = true;
 
 		tbb::tbb_thread flowController(std::bind(&ComputerVision::workflowController, this , objects , aliveObjects));
@@ -432,7 +332,7 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 
 		boost::property_tree::read_json(configFilePath , config);
 
-		auto cameraConfig = config.get_child(CAMERA);
+		auto cameraConfig = config.get_child(FRAME_SOURCE);
 
 		frameProvider->setFPS(cameraConfig.get<int>(FPS));
 		frameProvider->setExposure(cameraConfig.get<int>(EXPOSURE));
@@ -442,7 +342,7 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 			auto ipList = config.get_child(IMAGEPROCESSORS);
 
 			for(auto& ipElement : ipList){
-				auto type = res_MarkerType[ipElement.second.get<std::string>("type")];
+				auto type = res_MarkerType[ipElement.second.get<std::string>(TYPE)];
 
 				imageProcessors[type]->setProcessingSpecificValues(ipElement.second);
 
@@ -454,6 +354,10 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 ModelData ComputerVision::getData(){
 	if(processing){
 		return model->getData();
+	}
+	else{
+		ModelData dummy;
+		return dummy;
 	}
 }
 

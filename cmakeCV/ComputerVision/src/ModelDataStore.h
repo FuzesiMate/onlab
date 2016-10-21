@@ -12,12 +12,10 @@
 #include <boost/property_tree/ptree.hpp>
 #include <mutex>
 #include <condition_variable>
-#include "ImageProcessor.h"
-#include "Object.h"
+#include <tbb/flow_graph.h>
+#include "Processor.h"
 #include "DataTypes.h"
 #include "TemplateConfiguration.h"
-
-template<typename CONFIG>
 
 class ModelDataStore:public Processor<ModelData, tbb::flow::continue_msg , tbb::flow::queueing> {
 private:

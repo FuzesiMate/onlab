@@ -15,6 +15,7 @@
 #include <atomic>
 #include <iostream>
 #include <boost/property_tree/ptree.hpp>
+#include "Object.h"
 #include "FrameProvider.h"
 #include "TemplateConfiguration.h"
 #include "ImageProcessor.h"
@@ -22,7 +23,7 @@
 #include "ObjectDataCollector.h"
 #include "DataSender.h"
 
-#define CAMERA					"camera"
+#define FRAME_SOURCE			"frameprovider"
 #define VISUALIZER				"visualizer"
 #define OBJECTS					"objects"
 #define TYPE					"type"
@@ -47,7 +48,7 @@ using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f> , tbb::concurr
 class ComputerVision :public tbb::flow::graph{
 private:
 	std::shared_ptr<FrameProvider> frameProvider;
-	std::shared_ptr<ModelDataStore<t_cfg> > model;
+	std::shared_ptr<ModelDataStore> model;
 	std::unique_ptr<ObjectDataCollector> dataCollector;
 
 	std::vector<std::shared_ptr<DataSender> > dataSenders;
@@ -56,8 +57,8 @@ private:
 	tbb::concurrent_unordered_map<MarkerType , std::shared_ptr<ImageProcessor<t_cfg> > > imageProcessors;
 
 	boost::property_tree::ptree config;
-	std::atomic_bool initialized;
-	std::atomic_bool processing;
+	std::atomic<bool> initialized;
+	std::atomic<bool> processing;
 
 	void workflowController(tbb::concurrent_unordered_map<std::string , std::shared_ptr<Object<t_cfg> > >& objects , tbb::concurrent_unordered_map<MarkerType , int>& numberOfSuccessors );
 

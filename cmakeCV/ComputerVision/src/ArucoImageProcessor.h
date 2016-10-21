@@ -9,7 +9,6 @@
 #define ARUCOIMAGEPROCESSOR_H_
 
 #include "ImageProcessor.h"
-#include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <tbb/flow_graph.h>
 

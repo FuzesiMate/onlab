@@ -10,6 +10,7 @@
 
 #include "DataTypes.h"
 #include "Provider.h"
+#include <atomic>
 
 class FrameProvider: public Provider<Frame> {
 public:
@@ -22,7 +23,6 @@ public:
 	virtual void setFPS(int fps) = 0;
 	virtual void setExposure(int exposure){};
 	virtual void setGain(float gain){};
-
 
 	virtual ~FrameProvider() = default;
 };

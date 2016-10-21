@@ -15,8 +15,8 @@
  * Awful solution caused by data type refactor TODO make better
  */
 
-template<typename CONFIG>
-tbb::flow::continue_msg ModelDataStore<CONFIG>::process(ModelData data){
+
+tbb::flow::continue_msg ModelDataStore::process(ModelData data){
 
 	//thread safety
 	std::unique_lock<std::mutex> l(lock);
@@ -61,10 +61,13 @@ tbb::flow::continue_msg ModelDataStore<CONFIG>::process(ModelData data){
 	}
 
 	new_data.notify_one();
+
+	tbb::flow::continue_msg msg;
+	return msg;
 }
 
-template<typename CONFIG>
-ModelData ModelDataStore<CONFIG>::getData(){
+
+ModelData ModelDataStore::getData(){
 
 	/*
 	 * if the position data was provided for a frameindex, it is not provided again
@@ -84,8 +87,7 @@ ModelData ModelDataStore<CONFIG>::getData(){
 	return modelData;
 }
 
-template<typename CONFIG>
-ObjectData ModelDataStore<CONFIG>::getObjectData(std::string object){
+ObjectData ModelDataStore::getObjectData(std::string object){
 	for(auto& objectData : modelData.objectData){
 		if(objectData.name == object){
 			return objectData;
@@ -93,8 +95,7 @@ ObjectData ModelDataStore<CONFIG>::getObjectData(std::string object){
 	}
 }
 
-template<typename CONFIG>
-MarkerData ModelDataStore<CONFIG>::getMarkerData(std::string object ,std::string marker){
+MarkerData ModelDataStore::getMarkerData(std::string object ,std::string marker){
 	for(auto& objectData : modelData.objectData){
 		if(objectData.name == object){
 			for(auto& markerData : objectData.markerData){

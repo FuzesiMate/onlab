@@ -6,6 +6,7 @@
  */
 
 #include "ZeroMQDataSender.h"
+#include <zmq_addon.hpp>
 
 #include <iostream>
 

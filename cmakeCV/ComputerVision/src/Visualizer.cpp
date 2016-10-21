@@ -11,7 +11,7 @@
 #include <chrono>
 #include <iostream>
 
-//#define WITH_DELAY
+#define WITH_DELAY
 
 tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> data){
 	frameBuffer.push_back(std::get<0>(data));
@@ -25,7 +25,6 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> d
 	auto diff = currentTimestamp-frameBuffer.begin()->timestamp;
 
 	if((500-diff)>0){
-		//Sleep(500-(diff));
 		std::this_thread::sleep_for(std::chrono::milliseconds(500-diff));
 	}
 

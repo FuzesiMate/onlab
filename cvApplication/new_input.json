@@ -1,10 +1,10 @@
 {
-	"camera": {
+	"frameprovider": {
 		"type": "ximea",
 		"number": 2,
 		"exposure": 10000,
 		"gain": 5,
-		"fps": 40
+		"fps": 30
 	},
 	"visualizer": {
 		"windowname": "camera",

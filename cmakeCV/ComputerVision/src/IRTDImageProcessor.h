@@ -50,9 +50,9 @@ struct Cluster{
 template <typename CONFIG>
 class IRTDImageProcessor: public ImageProcessor<CONFIG> {
 private:
-	std::atomic_int threshold;
-	std::atomic_int duration;
-	std::atomic_int setupTime;
+	std::atomic<int> threshold;
+	std::atomic<int> duration;
+	std::atomic<int> setupTime;
 	LedController ledController;
 
 	std::vector<Cluster> clusterContours(std::vector<std::vector<cv::Point> > contours , int distanceThreshold);

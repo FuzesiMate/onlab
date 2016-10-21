@@ -9,7 +9,8 @@
 #define CAMERA_H_
 
 #include <opencv2/videoio.hpp>
-#include <opencv2/opencv.hpp>
+#include "ZeroMQDataSender.h"
+#include "LedController.h"
 #include <tbb/flow_graph.h>
 #include <tbb/concurrent_vector.h>
 #include <chrono>
@@ -28,7 +29,6 @@ class Camera: public FrameProvider {
 	int fps;
 	int frameCounter ;
 
-	std::atomic_bool initialized;
 	int64_t lastTimestamp;
 
 	std::vector<cv::VideoCapture> cameras;
@@ -37,8 +37,7 @@ public:
 
 	Camera(int fps , int exposure , int gain, int numberOfCameras, tbb::flow::graph& g) :
 			FrameProvider(g), numberOfCameras(numberOfCameras), exposure(
-					exposure), gain(gain),fps(fps),frameCounter(0),initialized(
-					false),lastTimestamp(0){};
+					exposure), gain(gain),fps(fps),frameCounter(0),lastTimestamp(0){};
 
 	bool provide(Frame &images);
 	bool init(int cameraType);

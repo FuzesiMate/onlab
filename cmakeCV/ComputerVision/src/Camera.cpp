@@ -5,6 +5,7 @@
  */
 
 #include "Camera.h"
+#include <opencv2/imgproc.hpp>
 
 bool Camera::provide(Frame &frame) {
 

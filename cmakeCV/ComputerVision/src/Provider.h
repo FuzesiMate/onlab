@@ -16,7 +16,7 @@ template<typename OUTPUT>
 class Provider {
 protected:
 	tbb::flow::source_node<OUTPUT> provider_node;
-	std::atomic_bool providing;
+	std::atomic<bool> providing;
 public:
 
 	virtual bool provide(OUTPUT& output)=0;

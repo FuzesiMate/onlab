@@ -7,14 +7,9 @@
 //============================================================================
 
 #include <iostream>
-#include <opencv2/highgui.hpp>
 #include "ComputerVision.h"
-#include <tbb/flow_graph.h>
 #include <tbb/compat/thread>
 #include <tbb/tbb.h>
-#include <opencv2/videoio.hpp>
-#include <zmq.hpp>
-#include <zmq_addon.hpp>
 
 using namespace std;
 
@@ -75,7 +70,7 @@ int main(int argc , char *argv[]) {
 				temp.detach();
 */
 
-				tbb_thread processingThread(std::bind(&ComputerVision::startProcessing, &cvModule));
+				tbb::tbb_thread processingThread(std::bind(&ComputerVision::startProcessing, &cvModule));
 				processingThread.detach();
 			}
 
