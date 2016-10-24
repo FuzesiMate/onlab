@@ -29,7 +29,7 @@ public:
 					false) {
 	}
 
-	void stop() {
+virtual	void stop() {
 		providing = false;
 	}
 

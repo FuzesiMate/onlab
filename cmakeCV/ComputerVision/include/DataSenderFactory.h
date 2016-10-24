@@ -32,18 +32,18 @@ public:
 		{
 			auto topic = parameters.get<std::string>(TOPIC);
 
-			auto zeromq = std::make_shared<ZeroMQDataSender>(topic , g);
-
-			std::cout << topic << std::endl;
+			auto zeromqSender = std::make_shared<ZeroMQDataSender>(topic , g);
 
 			for (auto& address : parameters.get_child(BIND_ADRESSES)) {
 
-				std::cout << address.second.get<std::string>("") << std::endl;
-
-				zeromq->bindAddress(address.second.get<std::string>(""));
+				zeromqSender->bindAddress(address.second.get<std::string>(""));
 			}
 
-			sender = zeromq;
+			for (auto& object : parameters.get_child(OBJECTS)) {
+				zeromqSender->addObject(object.second.get<std::string>(""));
+			}
+
+			sender = zeromqSender;
 
 			break;
 		}

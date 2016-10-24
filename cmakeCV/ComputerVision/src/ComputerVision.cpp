@@ -71,7 +71,8 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	 * datasenders are also initialized in this step for the same reasons
 	 */
 
-
+	 
+	//parse the config file into a boost property tree object
 	try {
 		boost::property_tree::read_json(configFilePath, config);
 	}
@@ -81,6 +82,11 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		return initialized;
 	}
 
+	frameProvider.reset();
+
+	/*
+	parse frame providet configuration and create an instance
+	*/
 	try {
 		auto cameraConfig = config.get_child(FRAME_SOURCE);
 		auto type = cameraConfig.get<std::string>(TYPE);
@@ -102,15 +108,19 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		return initialized;
 	}
 
+	dataSenders.clear();
+
 	try {
-		auto senderConfig = config.get_child("objectdatasenders");
+		auto senderConfig = config.get_child(OBJECT_DATA_SENDERS);
 		for (auto& sender : senderConfig) {
 
-			auto temp = DataSenderFactory::createDataSender(sender.second, *this);
-				dataSenders.push_back(temp);
+			auto dataSender = DataSenderFactory::createDataSender(sender.second, *this);
+				dataSenders.push_back(dataSender);
 			}
 		}catch (std::exception& e) {
-			std::cout << "failed " << e.what() << std::endl;
+			std::cout << "Error while creating data sender! Error message: " << e.what() << std::endl;
+			initialized = false;
+			return initialized;
 		}
 
 	return initialized;
@@ -150,16 +160,16 @@ void ComputerVision::startProcessing() {
 		//visualizer to show the result of object tracking
 		std::unique_ptr<Visualizer> visualizer;
 
+		//transformer performs 2D-3D transformation from a stereo point
+		std::unique_ptr<CoordinateTransformer> transformer;
+
 		//Local model data store to provide marker positions locally
 		model = std::unique_ptr<ModelDataStore>(new ModelDataStore(*this));
 
-		/*
+		/* 
+		 * CREATE IMAGE PROCESSORS 
 		 * read image processor configuration, instantiate image processors
-		 * in case of new image processing method add the markertype to the enumeration
-		 * map the string and markertype in res_MarkerType
-		 * instantiate your image processor class like the example below
 		 */
-
 		try {
 
 			for (auto& imageProcessor : config.get_child(IMAGEPROCESSORS)) {
@@ -167,13 +177,6 @@ void ComputerVision::startProcessing() {
 
 				try {
 					imageProcessors[type] = ImageProcessorFactory::createImageProcessor<t_cfg>(imageProcessor.second, *this);
-
-					aliveObjects[type] = 0;
-
-					for (auto& objectReference : imageProcessor.second.get_child(OBJECTS)) {
-						imageProcessors[type]->addObject(objectReference.second.get<std::string>(""));
-						aliveObjects[type]++;
-					}
 
 					auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
 						(*this, [](ImageProcessingData<t_cfg> data)->size_t {
@@ -198,6 +201,7 @@ void ComputerVision::startProcessing() {
 		}
 
 		/*
+		 * CREATE OBJECTS
 		 * Parse object configuration and instantiate objects
 		 */
 
@@ -209,10 +213,18 @@ void ComputerVision::startProcessing() {
 				auto limit = object.second.get<int>("limit");
 				auto type = object.second.get<std::string>("markertype");
 
-				objects[name] = std::make_shared<Object <t_cfg> >(name, 0, type, limit, *this);
+				objects[name] = std::make_shared<Object <t_cfg> >(name, type, limit, *this);
 
 				for (auto& marker : object.second.get_child("markers")) {
 					objects[name]->addMarker(marker.second.get<std::string>("name"), marker.second.get<int>("id"));
+				}
+
+				auto key = aliveObjects.find(type);
+				if (key != aliveObjects.end()) {
+					aliveObjects[type]++;
+				}
+				else {
+					aliveObjects[type] = 1;
 				}
 
 				auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this, [](ObjectData pos)->size_t {
@@ -238,13 +250,17 @@ void ComputerVision::startProcessing() {
 
 		try {
 			auto visConfig = config.get_child(VISUALIZER);
-			visualizer = std::unique_ptr<Visualizer>(new Visualizer(*this));
+
+			auto windowName = visConfig.get<std::string>("windowname");
+			auto delay = visConfig.get<int>("delay");
+
+			visualizer = std::unique_ptr<Visualizer>(new Visualizer(windowName , delay , *this));
 			make_edge(FrameLimiter, tbb::flow::input_port<0>(FrameModelDataJoiner));
 			make_edge(dataCollector->getProviderNode(), tbb::flow::input_port<1>(FrameModelDataJoiner));
 			make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
 		}
 		catch (std::exception& e) {
-			std::cout << "No visualizer node instantiated!" << std::endl;
+			std::cout << "No visualizer module specified!" << std::endl;
 		}
 
 		bool started = false;
@@ -265,14 +281,11 @@ void ComputerVision::startProcessing() {
 			make_edge(imageProcessor.second->getProcessorNode(), *IpDatasequencers[i]);
 			make_edge(*IpDatasequencers[i], *IpDataBroadcasters[imageProcessor.first]);
 			i++;
-
-			for (auto& object : imageProcessor.second->getObjects()) {
-				make_edge(*IpDataBroadcasters[imageProcessor.first], objects[object]->getProcessorNode());
-			}
 		}
 
 		int j = 0;
 		for (auto& object : objects) {
+			make_edge(*IpDataBroadcasters[object.second->getMarkerType()], object.second->getProcessorNode());
 			make_edge(object.second->getProcessorNode(), *ObjectDataSequencers[j]);
 			make_edge(*ObjectDataSequencers[j], dataCollector->getProcessorNode());
 			j++;

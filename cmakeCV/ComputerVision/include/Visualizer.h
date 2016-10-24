@@ -18,11 +18,13 @@ class Visualizer: public Processor<
 private:
 	std::vector<ModelData> dataBuffer;
 	std::vector<Frame> frameBuffer;
+	std::string windowName;
+	int64_t delay;
 public:
 	tbb::flow::continue_msg process(tbb::flow::tuple<Frame, ModelData> data);
-	Visualizer(tbb::flow::graph& g) :
+	Visualizer(std::string windowName, int64_t delay ,tbb::flow::graph& g) :
 			Processor<
-					tbb::flow::tuple<Frame, ModelData>, tbb::flow::continue_msg , tbb::flow::queueing >(g ,1) {};
+					tbb::flow::tuple<Frame, ModelData>, tbb::flow::continue_msg , tbb::flow::queueing >(g ,1),windowName(windowName),delay(delay) {};
 	virtual ~Visualizer() = default;
 };
 

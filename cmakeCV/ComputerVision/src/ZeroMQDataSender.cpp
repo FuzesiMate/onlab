@@ -26,11 +26,31 @@ tbb::flow::continue_msg ZeroMQDataSender::process(ModelData modelData){
 	/*
 	 * Publish the actual data
 	 */
-	zmq::message_t mesg("uzenet" , 6);
+	std::stringstream output;
+
+	for (auto& object : modelData.objectData) {
+		if (std::find(objects.begin(), objects.end(), object.name) != objects.end()) {
+			output << "name:" << object.name;
+			for (auto& marker : object.markerData) {
+
+				output << "screenposition:";
+				for (auto i = 0; i < marker.screenPosition.size(); i++) {
+					output << "X:" << marker.screenPosition[i].x << "y:" << marker.screenPosition[i].y;
+					output << "tracked:" << marker.tracked[i] ? "true" : "false";
+				}
+			}
+		}
+	}
+
+	zmq::message_t mesg(output.str().c_str() , output.str().length());
 	publisher.send(mesg);
 
 	tbb::flow::continue_msg msg;
 	return msg;
+}
+
+void ZeroMQDataSender::addObject(std::string object) {
+	objects.push_back(object);
 }
 
 

@@ -17,50 +17,46 @@ tbb::flow::continue_msg ObjectDataCollector::process(ObjectData objectData){
 	return msg;
 }
 
-bool ObjectDataCollector::provide(ModelData& output){
+bool ObjectDataCollector::provide(ModelData& output) {
 
 	std::unique_lock<std::mutex> l(lock);
 
-	if(!providing){
-		std::cout<<"Stop providing position data"<<std::endl;
+	if (!providing) {
+		std::cout << "Stop providing position data" << std::endl;
 		return false;
 	}
 
 	//wait for the corresponding object data
-	new_data.wait_for(l, std::chrono::milliseconds(1000), [this](){
+	new_data.wait(l, [this]() {
 
-				readyToSend = true;
+		readyToSend = true;
 
-				for(auto& object : dataBuffer) {
-					if (object.second.size() > 0) {
-						if ((object.second[0].frameIndex != nextFrameIndex || dataBuffer.size() < numberOfObjects)) {
-							readyToSend = false;
-						}
-					}
-				}
+		for (auto& object : dataBuffer) {
+				if ((object.second.front().frameIndex != nextFrameIndex || dataBuffer.size() < numberOfObjects)) {
+					readyToSend = false;
+			}
+		}
 
-				return readyToSend;
+		return readyToSend;
 	});
 
-		nextFrameIndex++;
+	nextFrameIndex++;
 
-				output.objectData.clear();
-				for(auto& object : dataBuffer){
-					if (object.second.size() > 0) {
-						output.objectData.push_back(object.second[0]);
-						output.frameIndex = object.second[0].frameIndex;
-						output.timestamp = object.second[0].timestamp;
-					}
-				}
+	tbb::concurrent_vector<ObjectData> objectPosition;
 
-				
+	for (auto& object : dataBuffer) {
+		objectPosition.push_back(object.second.front());
+	}
 
-				for(auto& object : dataBuffer){
-					if (object.second.size() > 0) {
-						object.second.erase(object.second.begin());
-					}
-				}
+	output.objectData = objectPosition;
+	output.frameIndex = dataBuffer.begin()->second.front().frameIndex;
+	output.timestamp  = dataBuffer.begin()->second.front().timestamp;
 
+	for(auto& object : dataBuffer){
+		if (!object.second.empty()) {
+			object.second.erase(object.second.begin());
+		}
+	}
 			readyToSend = false;
 
 	return true;

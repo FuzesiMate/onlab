@@ -11,7 +11,6 @@
 #include <chrono>
 #include <iostream>
 
-#define WITH_DELAY
 
 tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> data){
 	auto frame = std::get<0>(data);
@@ -26,18 +25,16 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> d
 	frameBuffer.push_back(frame);
 	dataBuffer.push_back(std::get<1>(data));
 
-#ifdef WITH_DELAY
+	if (delay > 0) {
+		auto time = std::chrono::steady_clock::now();
+		auto currentTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
 
-	auto time = std::chrono::steady_clock::now();
-	auto currentTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
+		auto diff = currentTimestamp - frameBuffer.begin()->timestamp;
 
-	auto diff = currentTimestamp-frameBuffer.begin()->timestamp;
-
-	if((500-diff)>0){
-		std::this_thread::sleep_for(std::chrono::milliseconds(500-diff));
+		if ((delay - diff) > 0) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(delay - diff));
+		}
 	}
-
-#endif
 
 	size_t i = 0 ;
 	for(auto& image : frameBuffer.begin()->images){
@@ -55,9 +52,9 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> d
 
 		cv::resize(image,image,cv::Size(800,600));
 		std::stringstream winname;
-		winname<<"cam "<<i;
+		winname<<windowName<<i;
 		cv::imshow(winname.str() , image);
-		cv::waitKey(10);
+		cv::waitKey(5);
 		i++;
 	}
 

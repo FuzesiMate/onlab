@@ -8,7 +8,7 @@
 #include <opencv2/imgproc.hpp>
 
 bool Camera::provide(Frame &frame) {
-
+	
 	if (!providing) {
 		std::cout<<"Stop recording"<<std::endl;
 		return false;
@@ -107,7 +107,6 @@ void Camera::setGain(float gain){
 		camera.set(cv::CAP_PROP_XI_GAIN , gain);
 	}
 }
-
 
 Camera::~Camera() {
 	for(auto c : cameras){

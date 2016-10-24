@@ -25,8 +25,6 @@ private:
 
 	//name of the object provided by user in config file
 	std::string name;
-	//number of markers on the object
-	int numberOfMarkers;
 	//counts how many times the object was tried to detect
 	std::atomic<int> callCounter;
 	//detection limit provided by user in config file
@@ -41,9 +39,9 @@ private:
 	tbb::concurrent_unordered_map<std::string, std::shared_ptr<Marker> > markers;
 
 public:
-	Object(std::string name, int numberOfMarkers, std::string type, int limit,
+	Object(std::string name, std::string type, int limit,
 			tbb::flow::graph& g) :Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >(g  , tbb::flow::unlimited), name(
-					name), numberOfMarkers(numberOfMarkers), callCounter(0), limit(limit), done(false), removed(
+					name), callCounter(0), limit(limit), done(false), removed(
 					false), markerType(type) {};
 
 	//Body of intel tbb function node
