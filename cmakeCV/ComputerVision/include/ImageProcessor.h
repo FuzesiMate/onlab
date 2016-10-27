@@ -9,9 +9,6 @@
 #define IMAGEPROCESSOR_H_
 
 #include <tbb/flow_graph.h>
-#include <tbb/parallel_for.h>
-#include <opencv2/opencv.hpp>
-#include <tbb/concurrent_vector.h>
 #include <boost/property_tree/ptree.hpp>
 #include "DataTypes.h"
 #include "Processor.h"

@@ -9,15 +9,11 @@
 #define CAMERA_H_
 
 #include <opencv2/videoio.hpp>
-#include "ZeroMQDataSender.h"
-#include "LedController.h"
 #include <tbb/flow_graph.h>
+#include <tbb/parallel_for.h>
 #include <tbb/concurrent_vector.h>
 #include <chrono>
 #include <atomic>
-#include <tbb/tbb.h>
-#include <ctime>
-#include <time.h>
 #include <thread>
 #include "FrameProvider.h"
 #include "DataTypes.h"
@@ -25,7 +21,7 @@
 class Camera: public FrameProvider {
 	int numberOfCameras;
 	int exposure;
-	int gain;
+	float gain;
 	int fps;
 	int frameCounter ;
 
@@ -35,7 +31,7 @@ class Camera: public FrameProvider {
 
 public:
 
-	Camera(int fps , int exposure , int gain, int numberOfCameras, tbb::flow::graph& g) :
+	Camera(int fps , int exposure , float gain, int numberOfCameras, tbb::flow::graph& g) :
 			FrameProvider(g), numberOfCameras(numberOfCameras), exposure(
 					exposure), gain(gain),fps(fps),frameCounter(0),lastTimestamp(0){};
 

@@ -9,6 +9,7 @@
 #define IRTDIMAGEPROCESSOR_H_
 
 #include <atomic>
+#include <opencv2/core.hpp>
 #include "LedController.h"
 #include "ImageProcessor.h"
 #include "DataTypes.h"
@@ -27,7 +28,7 @@ enum BodyPart{
 struct Contour{
 	std::vector<cv::Point> points;
 	int clusterId = -1;
-	int area;
+	double area;
 
 	bool operator == (const Contour c){
 		return this->points == c.points;
@@ -43,7 +44,7 @@ struct ContourPair{
 struct Cluster{
 	std::vector<Contour> contours;
 	std::vector<cv::Point> allPoints;
-	int area;
+	double area;
 	cv::Rect boundingRect;
 };
 

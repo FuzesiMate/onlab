@@ -10,11 +10,12 @@
 
 #include "Processor.h"
 
-class DataSender: public Processor<ModelData , tbb::flow::continue_msg , tbb::flow::queueing> {
+template <typename INPUT>
+class DataSender: public Processor<INPUT , tbb::flow::continue_msg , tbb::flow::queueing> {
 public:
-	DataSender(tbb::flow::graph& g , int concurrency):Processor<ModelData, tbb::flow::continue_msg , tbb::flow::queueing>(g , concurrency){};
+	DataSender(tbb::flow::graph& g , int concurrency):Processor<INPUT, tbb::flow::continue_msg , tbb::flow::queueing>(g , concurrency){};
 
-	virtual tbb::flow::continue_msg process(ModelData modelData) = 0;
+	virtual tbb::flow::continue_msg process(INPUT modelData) = 0;
 
 	virtual void addObject(std::string object) = 0;
 

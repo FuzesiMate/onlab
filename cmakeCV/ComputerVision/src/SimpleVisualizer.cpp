@@ -5,14 +5,14 @@
  *      Author: M�t�
  */
 
-#include "Visualizer.h"
+#include "SimpleVisualizer.h"
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <chrono>
 #include <iostream>
 
 
-tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> data){
+tbb::flow::continue_msg SimpleVisualizer::process(tbb::flow::tuple<Frame, ModelData> data) {
 	auto frame = std::get<0>(data);
 
 	tbb::concurrent_vector<cv::Mat> clonedImages;
@@ -21,7 +21,7 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> d
 	}
 
 	frame.images = clonedImages;
-	
+
 	frameBuffer.push_back(frame);
 	dataBuffer.push_back(std::get<1>(data));
 
@@ -36,24 +36,24 @@ tbb::flow::continue_msg Visualizer::process(tbb::flow::tuple<Frame, ModelData> d
 		}
 	}
 
-	size_t i = 0 ;
-	for(auto& image : frameBuffer.begin()->images){
+	size_t i = 0;
+	for (auto& image : frameBuffer.begin()->images) {
 
 		auto& modelData = *dataBuffer.begin();
 
-			for(auto& objectData : modelData.objectData){
+		for (auto& objectData : modelData.objectData) {
 
-				for(auto& markerData : objectData.markerData){
-					if(i<markerData.screenPosition.size() && markerData.tracked[i]){
-						cv::putText(image , markerData.name , cv::Point(markerData.screenPosition[i].x,markerData.screenPosition[i].y) ,cv::FONT_HERSHEY_SIMPLEX ,  1.0 , cv::Scalar(255,255,255) , 2.0);
-					}
+			for (auto& markerData : objectData.markerData) {
+				if (markerData.tracked[i]) {
+					cv::putText(image, markerData.name, cv::Point(markerData.screenPosition[i].x, markerData.screenPosition[i].y), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
 				}
 			}
+		}
 
-		cv::resize(image,image,cv::Size(800,600));
+		cv::resize(image, image, cv::Size(800, 600));
 		std::stringstream winname;
-		winname<<windowName<<i;
-		cv::imshow(winname.str() , image);
+		winname << windowName << i;
+		cv::imshow(winname.str(), image);
 		cv::waitKey(5);
 		i++;
 	}

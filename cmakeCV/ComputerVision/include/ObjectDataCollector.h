@@ -14,7 +14,6 @@
 #include "Processor.h"
 #include "Provider.h"
 #include "DataTypes.h"
-#include "TemplateConfiguration.h"
 
 class ObjectDataCollector: public Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing> ,public Provider<ModelData> {
 private:
@@ -24,9 +23,9 @@ private:
 
 	//buffer to store object data
 	std::map<std::string , std::vector<ObjectData> > dataBuffer;
-	std::atomic<int64_t> nextFrameIndex;
+	std::atomic<uint64_t> nextFrameIndex;
 	bool readyToSend;
-	int numberOfObjects;
+	size_t numberOfObjects;
 public:
 	tbb::flow::continue_msg process(ObjectData position);
 

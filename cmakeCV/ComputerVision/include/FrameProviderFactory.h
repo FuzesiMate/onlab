@@ -48,7 +48,7 @@ public:
 			}
 		}
 		catch (std::exception& e) {
-			throw;
+			throw e;
 		}
 	}
 

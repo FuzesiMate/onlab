@@ -10,11 +10,13 @@
 
 #include <iostream>
 
-void ZeroMQDataSender::bindAddress(std::string address){
+template<typename INPUT>
+void ZeroMQDataSender<INPUT>::bindAddress(std::string address){
 	publisher.bind(address);
 }
 
-tbb::flow::continue_msg ZeroMQDataSender::process(ModelData modelData){
+template<typename INPUT>
+tbb::flow::continue_msg ZeroMQDataSender<INPUT>::process(INPUT data){
 
 	/*
 	 * Publish the topic as the first part of a multi-part message
@@ -24,42 +26,30 @@ tbb::flow::continue_msg ZeroMQDataSender::process(ModelData modelData){
 	publisher.send(topic_message , ZMQ_SNDMORE);
 
 	/*
-	 * Publish the actual data
+	 *The template type must implement the toJSON method which returns a string 
+	 *containing the JSON object that will be published
 	 */
-	std::stringstream output;
+	std::string output = data.toJSON();
 
-	for (auto& object : modelData.objectData) {
-		if (std::find(objects.begin(), objects.end(), object.name) != objects.end()) {
-			output << "name:" << object.name;
-			for (auto& marker : object.markerData) {
-
-				output << "screenposition:";
-				for (auto i = 0; i < marker.screenPosition.size(); i++) {
-					output << "X:" << marker.screenPosition[i].x << "y:" << marker.screenPosition[i].y;
-					output << "tracked:" << marker.tracked[i] ? "true" : "false";
-				}
-			}
-		}
-	}
-
-	zmq::message_t mesg(output.str().c_str() , output.str().length());
+	zmq::message_t mesg(output.c_str() , output.length());
 	publisher.send(mesg);
 
 	tbb::flow::continue_msg msg;
 	return msg;
 }
 
-void ZeroMQDataSender::addObject(std::string object) {
+template<typename INPUT>
+void ZeroMQDataSender<INPUT>::addObject(std::string object) {
 	objects.push_back(object);
 }
 
-
-ZeroMQDataSender::~ZeroMQDataSender(){
+template<typename INPUT>
+ZeroMQDataSender<INPUT>::~ZeroMQDataSender(){
 	try{
 		publisher.close();
 		context.close();
 	}catch(std::exception& e){
-
+		std::cout << "Cannot close ZeroMQ context! Error message: " << e.what() << std::endl;
 	}
 
 }

@@ -1,5 +1,6 @@
 #include <tbb/concurrent_vector.h>
 #include <opencv2/core/types.hpp>
+#include <string>
 
 #ifndef DATA_TYPES_H
 #define DATA_TYPES_H
@@ -14,8 +15,12 @@ struct Frame{
 template <typename CONFIG> struct ImageProcessingData{
 	tbb::concurrent_vector<typename CONFIG::dataType> data;
 	tbb::concurrent_vector<typename CONFIG::identifierType> identifiers;
-	int64_t timestamp;
-	int64_t frameIndex;
+	uint64_t timestamp;
+	uint64_t frameIndex;
+
+	std::string toJSON() {
+		return std::string("jsonified data");
+	}
 };
 
 struct MarkerData{
@@ -30,12 +35,17 @@ struct ObjectData{
 	tbb::concurrent_vector<MarkerData> markerData;
 	uint64_t timestamp;
 	uint64_t frameIndex;
+	bool alive;
 };
 
-struct ModelData{
+struct ModelData {
 	tbb::concurrent_vector<ObjectData> objectData;
 	uint64_t timestamp;
 	uint64_t frameIndex;
+
+	std::string toJSON() {
+		return std::string("jsonified data");
+	}
 };
 
 #endif /*DATA_TYPES_H*/

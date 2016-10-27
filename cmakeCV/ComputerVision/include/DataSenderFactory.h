@@ -5,6 +5,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <exception>
 #include "ZeroMQDataSender.h"
+#include "ZeroMQDataSender.cpp"
+#include "DataTypes.h"
 
 #define TYPE			"type"
 #define TOPIC			"topic"
@@ -22,17 +24,17 @@ class DataSenderFactory {
 public:
 	DataSenderFactory() = delete;
 
-	static std::shared_ptr<DataSender> createDataSender(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
+	static std::shared_ptr<DataSender<ModelData> > createDataSender(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
 		auto senderType = res_DataSenderType[parameters.get<std::string>(TYPE)];
 
-		std::shared_ptr<DataSender> sender;
+		std::shared_ptr<DataSender<ModelData> > sender;
 
 		switch (senderType) {
 		case DataSenderType::ZEROMQ:
 		{
 			auto topic = parameters.get<std::string>(TOPIC);
 
-			auto zeromqSender = std::make_shared<ZeroMQDataSender>(topic , g);
+			auto zeromqSender = std::make_shared<ZeroMQDataSender<ModelData> >(topic , g);
 
 			for (auto& address : parameters.get_child(BIND_ADRESSES)) {
 

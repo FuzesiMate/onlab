@@ -8,6 +8,9 @@
 #include "ArucoImageProcessor.h"
 #include "IRTDImageProcessor.h"
 #include "CircleDetector.h"
+#include "ArucoImageProcessor.cpp"
+#include "IRTDImageProcessor.cpp"
+#include "CircleDetector.cpp"
 
 #define TYPE			"type"
 #define DICTIONARY		"dictionary"

@@ -4,11 +4,10 @@
  *  Created on: 2016. aug. 9.
  *      Author: M�t�
  */
-
+#include "winsock2.h"
 #include "ComputerVision.h"
-#include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <tbb/compat/thread>
+#include <tbb/tbb.h>
 #include <thread>
 #include <exception>
 #include "DataTypes.h"
@@ -16,16 +15,9 @@
 #include "DataSenderFactory.h"
 #include "ObjectDataCollector.h"
 #include "FrameProvider.h"
-#include "Camera.h"
 #include "FrameProviderFactory.h"
-#include "ArucoImageProcessor.h"
 #include "CoordinateTransformer.h"
-#include "CircleDetector.h"
-#include "IRTDImageProcessor.h"
-#include "Visualizer.h"
-#include "ArucoImageProcessor.cpp"
-#include "CircleDetector.cpp"
-#include "IRTDImageProcessor.cpp"
+#include "VisualizerFactory.h"
 #include "Object.cpp"
 
 void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<std::string, int>& aliveObjects) {
@@ -38,7 +30,7 @@ void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::strin
 			if (object.second->isDone() && !object.second->isRemoved()) {
 				aliveObjects[type]--;
 				object.second->remove();
-				std::cout << object.first << " is reached it's limit" << std::endl;
+				std::cout << object.first << " reached it's limit" << std::endl;
 			}
 			if (aliveObjects[type] == 0) {
 				remove_edge(frameProvider->getProviderNode(),
@@ -179,7 +171,7 @@ void ComputerVision::startProcessing() {
 					imageProcessors[type] = ImageProcessorFactory::createImageProcessor<t_cfg>(imageProcessor.second, *this);
 
 					auto sequencer = std::make_shared<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > >
-						(*this, [](ImageProcessingData<t_cfg> data)->size_t {
+						(*this, [](ImageProcessingData<t_cfg> data)->uint64_t {
 						return data.frameIndex;
 					});
 
@@ -227,7 +219,7 @@ void ComputerVision::startProcessing() {
 					aliveObjects[type] = 1;
 				}
 
-				auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this, [](ObjectData pos)->size_t {
+				auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this, [](ObjectData pos)->uint64_t {
 					return pos.frameIndex;
 				});
 
@@ -250,17 +242,20 @@ void ComputerVision::startProcessing() {
 
 		try {
 			auto visConfig = config.get_child(VISUALIZER);
-
-			auto windowName = visConfig.get<std::string>("windowname");
-			auto delay = visConfig.get<int>("delay");
-
-			visualizer = std::unique_ptr<Visualizer>(new Visualizer(windowName , delay , *this));
+			
+			try {
+				visualizer = VisualizerFactory::createVisualizer(visConfig, *this);
+			}
+			catch (std::exception& e) {
+				std::cout << "Error occured while creating visualizer! Error message: " << e.what() << std::endl;
+				return;
+			}
 			make_edge(FrameLimiter, tbb::flow::input_port<0>(FrameModelDataJoiner));
 			make_edge(dataCollector->getProviderNode(), tbb::flow::input_port<1>(FrameModelDataJoiner));
 			make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
 		}
 		catch (std::exception& e) {
-			std::cout << "No visualizer module specified!" << std::endl;
+			std::cout << "No visualizer module specified or an error occured while reading configuration! Error message: " <<e.what()<< std::endl;
 		}
 
 		bool started = false;
@@ -333,7 +328,7 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 
 		frameProvider->setFPS(cameraConfig.get<int>(FPS));
 		frameProvider->setExposure(cameraConfig.get<int>(EXPOSURE));
-		frameProvider->setGain(cameraConfig.get<int>(GAIN));
+		frameProvider->setGain(cameraConfig.get<float>(GAIN));
 
 		for (auto& ip : imageProcessors) {
 			auto ipList = config.get_child(IMAGEPROCESSORS);

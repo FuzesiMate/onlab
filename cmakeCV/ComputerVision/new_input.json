@@ -6,10 +6,11 @@
 		"gain": 5,
 		"fps": 10
 	},
-	"visualizer": {
-		"windowname": "camera",
-		"delay": 500
-	},
+  "visualizer": {
+    "type": "simple",
+    "windowname": "camera",
+    "delay": 500
+  },
 	"transformer": {
 		"path_to_matrices": "matrices.yml"
 	},
@@ -24,18 +25,22 @@
 	}, {
 		"name": "test2",
 		"limit": -1,
-		"markertype":"aruco",
+		"markertype":"circle",
 		"markers": [{
 			"name": "testMarker2",
 			"id": 7
 		}]
 	}
 	],
-	"imageprocessors": [{
-		"type": "aruco",
-		"dictionary": 0,
-		"objects": ["test", "test2"]
-	}],
+  "imageprocessors": [
+    {
+      "type": "aruco",
+      "dictionary": 0
+    },
+    {
+      "type": "circle"
+    }
+  ],
   "objectdatasenders": [
     {
       "type": "zeromq",

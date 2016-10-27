@@ -8,6 +8,7 @@
 
 #include "IRTDImageProcessor.h"
 #include <chrono>
+#include <opencv2/imgproc.hpp>
 
 template<typename CONFIG>
 
@@ -200,7 +201,7 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame){
 
 		if(contours.size()>0){
 			for (auto& cluster : clusters) {
-				int averageLuminosity = 0;
+				double averageLuminosity = 0;
 
 				if (cluster.area > 10) {
 					for (int i = 0; i < cluster.boundingRect.width; i++) {

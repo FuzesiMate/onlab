@@ -9,11 +9,9 @@
 #define OBJECT_H_
 
 #include <tbb/flow_graph.h>
-#include <tbb/concurrent_vector.h>
 #include <tbb/concurrent_unordered_map.h>
 #include <atomic>
 #include "DataTypes.h"
-#include "ImageProcessor.h"
 #include "Marker.h"
 #include "TemplateConfiguration.h"
 #include "Processor.h"

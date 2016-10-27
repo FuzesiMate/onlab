@@ -12,7 +12,8 @@
 #include "DataSender.h"
 #include <zmq.hpp>
 
-class ZeroMQDataSender: public DataSender {
+template <typename INPUT>
+class ZeroMQDataSender: public DataSender<INPUT> {
 private:
 	zmq::context_t context;
 	zmq::socket_t publisher;
@@ -26,7 +27,7 @@ public:
 
 	void addObject(std::string object);
 
-	tbb::flow::continue_msg process(ModelData modelData);
+	tbb::flow::continue_msg process(INPUT modelData);
 
 	virtual ~ZeroMQDataSender();
 };

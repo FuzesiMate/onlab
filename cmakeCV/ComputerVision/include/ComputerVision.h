@@ -49,7 +49,7 @@ private:
 	std::shared_ptr<ModelDataStore> model;
 	std::unique_ptr<ObjectDataCollector> dataCollector;
 
-	std::vector<std::shared_ptr<DataSender> > dataSenders;
+	std::vector<std::shared_ptr<DataSender<ModelData> > > dataSenders;
 
 	//image processors mapped by markertype
 	tbb::concurrent_unordered_map<std::string, std::shared_ptr<ImageProcessor<t_cfg> > > imageProcessors;

@@ -46,7 +46,7 @@ bool Camera::provide(Frame &frame) {
 		cameras[i].retrieve(frame.images[i]);
 	});
 
-	int currentFps;
+	uint64_t currentFps;
 
 	if((currentTimestamp-lastTimestamp)>0){
 		currentFps = 1000/(currentTimestamp-lastTimestamp);
@@ -55,15 +55,14 @@ bool Camera::provide(Frame &frame) {
 	std::stringstream fpsstring;
 	fpsstring <<currentFps;
 
-	frame.fps = currentFps;
+	frame.fps = (int)currentFps;
 
 
 	for(auto& i : frame.images){
 
-		cv::putText(i , fpsstring.str() , cv::Point(100,100) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2.0);
+		cv::putText(i , fpsstring.str() , cv::Point(100,100) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2);
 	}
-
-
+	
 	frame.frameIndex = frameCounter;
 	frame.timestamp = currentTimestamp;
 
