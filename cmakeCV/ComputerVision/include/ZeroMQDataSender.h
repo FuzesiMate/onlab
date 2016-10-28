@@ -19,13 +19,13 @@ private:
 	zmq::socket_t publisher;
 	std::string topic;
 
-	std::vector<std::string> objects;
+	//std::vector<std::string> references;
 public:
 	ZeroMQDataSender(std::string topic , tbb::flow::graph& g):DataSender(g,1),context(zmq::context_t(1)),publisher(zmq::socket_t(context, ZMQ_PUB)),topic(topic){};
 
 	void bindAddress(std::string address);
 
-	void addObject(std::string object);
+	//void addReference(std::string reference);
 
 	tbb::flow::continue_msg process(INPUT modelData);
 

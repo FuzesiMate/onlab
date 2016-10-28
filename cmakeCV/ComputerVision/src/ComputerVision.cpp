@@ -74,7 +74,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		return initialized;
 	}
 
-	frameProvider.reset();
+	//frameProvider.reset();
 
 	/*
 	parse frame providet configuration and create an instance
@@ -100,20 +100,32 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		return initialized;
 	}
 
-	dataSenders.clear();
+	objectDataSenders.clear();
+	ipDataSenders.clear();
 
-	try {
-		auto senderConfig = config.get_child(OBJECT_DATA_SENDERS);
-		for (auto& sender : senderConfig) {
+	if (config.find(DATA_SENDERS) != config.not_found()) {
 
-			auto dataSender = DataSenderFactory::createDataSender(sender.second, *this);
-				dataSenders.push_back(dataSender);
+		try {
+			auto senderConfig = config.get_child(DATA_SENDERS);
+			for (auto& sender : senderConfig) {
+
+				if (sender.second.find("imageprocessor") != sender.second.not_found()) {
+					auto dataSender = DataSenderFactory::createDataSender<ImageProcessingData<t_cfg> >(sender.second, *this);
+					auto ipType = sender.second.get<std::string>("imageprocessor");
+					ipDataSenders[ipType] = dataSender;
+				}
+				else {
+					auto dataSender = DataSenderFactory::createDataSender<ModelData>(sender.second, *this);
+					objectDataSenders.push_back(dataSender);
+				}
 			}
-		}catch (std::exception& e) {
+		}
+		catch (std::exception& e) {
 			std::cout << "Error while creating data sender! Error message: " << e.what() << std::endl;
 			initialized = false;
 			return initialized;
 		}
+	}
 
 	return initialized;
 }
@@ -187,8 +199,6 @@ void ComputerVision::startProcessing() {
 		catch (std::exception& e) {
 			std::cout << "Error while parsing image processor configuration! Error message: " << e.what() << std::endl;
 			processing = false;
-
-			std::cout << "Abort start processing..." << std::endl;
 			return;
 		}
 
@@ -196,6 +206,7 @@ void ComputerVision::startProcessing() {
 		 * CREATE OBJECTS
 		 * Parse object configuration and instantiate objects
 		 */
+		
 
 		try {
 			dataCollector = std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(config.get_child(OBJECTS).size(), *this));
@@ -231,7 +242,6 @@ void ComputerVision::startProcessing() {
 			std::cout << "Error while parsing objects! Error message: " << e.what() << std::endl;
 			processing = false;
 
-			std::cout << "Abort start processing..." << std::endl;
 			return;
 		}
 
@@ -240,22 +250,25 @@ void ComputerVision::startProcessing() {
 
 		tbb::flow::join_node<tbb::flow::tuple<Frame, ModelData>, tbb::flow::queueing  > FrameModelDataJoiner(*this);
 
-		try {
-			auto visConfig = config.get_child(VISUALIZER);
-			
+		if (config.find(VISUALIZER) != config.not_found()) {
+
 			try {
-				visualizer = VisualizerFactory::createVisualizer(visConfig, *this);
+				auto visConfig = config.get_child(VISUALIZER);
+
+				try {
+					visualizer = VisualizerFactory::createVisualizer(visConfig, *this);
+				}
+				catch (std::exception& e) {
+					std::cout << "Error occured while creating visualizer! Error message: " << e.what() << std::endl;
+					return;
+				}
+				make_edge(FrameLimiter, tbb::flow::input_port<0>(FrameModelDataJoiner));
+				make_edge(dataCollector->getProviderNode(), tbb::flow::input_port<1>(FrameModelDataJoiner));
+				make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
 			}
 			catch (std::exception& e) {
-				std::cout << "Error occured while creating visualizer! Error message: " << e.what() << std::endl;
-				return;
+				std::cout << "Error occured while reading visualizer configuration! Error message: " << e.what() << std::endl;
 			}
-			make_edge(FrameLimiter, tbb::flow::input_port<0>(FrameModelDataJoiner));
-			make_edge(dataCollector->getProviderNode(), tbb::flow::input_port<1>(FrameModelDataJoiner));
-			make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
-		}
-		catch (std::exception& e) {
-			std::cout << "No visualizer module specified or an error occured while reading configuration! Error message: " <<e.what()<< std::endl;
 		}
 
 		bool started = false;
@@ -275,6 +288,11 @@ void ComputerVision::startProcessing() {
 			make_edge(FrameLimiter, imageProcessor.second->getProcessorNode());
 			make_edge(imageProcessor.second->getProcessorNode(), *IpDatasequencers[i]);
 			make_edge(*IpDatasequencers[i], *IpDataBroadcasters[imageProcessor.first]);
+
+			if (ipDataSenders.find(imageProcessor.first) != ipDataSenders.end()) {
+				make_edge(imageProcessor.second->getProcessorNode(), ipDataSenders[imageProcessor.first]->getProcessorNode());
+			}
+
 			i++;
 		}
 
@@ -288,7 +306,7 @@ void ComputerVision::startProcessing() {
 
 		make_edge(dataCollector->getProcessorNode(), FrameLimiter.decrement);
 
-		for (auto& sender : dataSenders) {
+		for (auto& sender : objectDataSenders) {
 			make_edge(dataCollector->getProviderNode(), sender->getProcessorNode());
 		}
 
@@ -308,7 +326,7 @@ void ComputerVision::startProcessing() {
 		std::cout << "Processing thread stopped!" << std::endl;
 	}
 	else {
-		std::cout << "CV module is not initialized! Please initialize before start the processing workflow" << std::endl;
+		std::cout << "CV module is not initialized! Please initialize before start the processing workflow!" << std::endl;
 	}
 }
 
@@ -322,23 +340,25 @@ void ComputerVision::stopProcessing() {
 void ComputerVision::reconfigure(std::string configFilePath) {
 	if (processing) {
 
-		boost::property_tree::read_json(configFilePath, config);
+		try {
+			boost::property_tree::read_json(configFilePath, config);
 
-		auto cameraConfig = config.get_child(FRAME_SOURCE);
+			auto cameraConfig = config.get_child(FRAME_SOURCE);
 
-		frameProvider->setFPS(cameraConfig.get<int>(FPS));
-		frameProvider->setExposure(cameraConfig.get<int>(EXPOSURE));
-		frameProvider->setGain(cameraConfig.get<float>(GAIN));
+			frameProvider->setFPS(cameraConfig.get<int>(FPS));
+			frameProvider->setExposure(cameraConfig.get<int>(EXPOSURE));
+			frameProvider->setGain(cameraConfig.get<float>(GAIN));
 
-		for (auto& ip : imageProcessors) {
-			auto ipList = config.get_child(IMAGEPROCESSORS);
+			for (auto& ipConfig : config.get_child(IMAGEPROCESSORS)) {
+				auto type = ipConfig.second.get<std::string>(TYPE);
 
-			for (auto& ipElement : ipList) {
-				auto type = ipElement.second.get<std::string>(TYPE);
-
-				imageProcessors[type]->setProcessingSpecificValues(ipElement.second);
+				imageProcessors[type]->setProcessingSpecificValues(ipConfig.second);
 
 			}
+
+		}
+		catch (std::exception& e) {
+			std::cout << "Error occured while reconfiguring components! Error message: " << e.what() << std::endl;
 		}
 	}
 }

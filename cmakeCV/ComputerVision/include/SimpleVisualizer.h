@@ -5,13 +5,11 @@
  *      Author: M�t�
  */
 
-#ifndef VISUALIZER_H_
-#define VISUALIZER_H_
+#ifndef SIMPLEVISUALIZER_H_
+#define SIMPLEVISUALIZER_H_
 
 #include <tbb/flow_graph.h>
-#include "TemplateConfiguration.h"
-#include "Camera.h"
-#include "Processor.h"
+#include "DataTypes.h"
 #include "Visualizer.h"
 
 class SimpleVisualizer: public Visualizer{
@@ -21,8 +19,13 @@ private:
 	std::string windowName;
 	int64_t delay;
 public:
-	tbb::flow::continue_msg process(tbb::flow::tuple<Frame, ModelData> data);
+	
 	SimpleVisualizer(std::string windowName, int64_t delay ,tbb::flow::graph& g):Visualizer(g),windowName(windowName),delay(delay) {};
+
+	tbb::flow::continue_msg process(tbb::flow::tuple<Frame, ModelData> data);
+
+	SimpleVisualizer(SimpleVisualizer& vis) = delete;
+
 	virtual ~SimpleVisualizer() = default;
 };
 

@@ -19,7 +19,7 @@ template <typename CONFIG> struct ImageProcessingData{
 	uint64_t frameIndex;
 
 	std::string toJSON() {
-		return std::string("jsonified data");
+		return std::string("jsonified image processing data");
 	}
 };
 

@@ -17,7 +17,7 @@ public:
 
 	virtual tbb::flow::continue_msg process(INPUT modelData) = 0;
 
-	virtual void addObject(std::string object) = 0;
+	//virtual void addReference(std::string reference) = 0;
 
 	virtual ~DataSender() = default;
 };

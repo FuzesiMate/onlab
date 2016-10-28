@@ -24,32 +24,43 @@ class DataSenderFactory {
 public:
 	DataSenderFactory() = delete;
 
-	static std::shared_ptr<DataSender<ModelData> > createDataSender(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
-		auto senderType = res_DataSenderType[parameters.get<std::string>(TYPE)];
+	template<typename INPUT>
+	static std::shared_ptr<DataSender<INPUT> > createDataSender(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
+		
+		DataSenderType senderType;
 
-		std::shared_ptr<DataSender<ModelData> > sender;
+		try{
+			senderType = res_DataSenderType[parameters.get<std::string>(TYPE)];
+		}
+		catch (std::exception& e) {
+			throw e;
+		}
+		
+		std::shared_ptr<DataSender<INPUT> > sender;
 
 		switch (senderType) {
 		case DataSenderType::ZEROMQ:
 		{
-			auto topic = parameters.get<std::string>(TOPIC);
+			try {
+				auto topic = parameters.get<std::string>(TOPIC);
 
-			auto zeromqSender = std::make_shared<ZeroMQDataSender<ModelData> >(topic , g);
+				auto zeromqSender = std::make_shared<ZeroMQDataSender<INPUT> >(topic, g);
 
-			for (auto& address : parameters.get_child(BIND_ADRESSES)) {
+				for (auto& address : parameters.get_child(BIND_ADRESSES)) {
 
-				zeromqSender->bindAddress(address.second.get<std::string>(""));
+					zeromqSender->bindAddress(address.second.get<std::string>(""));
+				}
+
+				sender = zeromqSender;
 			}
-
-			for (auto& object : parameters.get_child(OBJECTS)) {
-				zeromqSender->addObject(object.second.get<std::string>(""));
+			catch (std::exception& e) {
+				throw e;
 			}
-
-			sender = zeromqSender;
 
 			break;
 		}
 		case DataSenderType::MQTT:
+			throw std::exception("MQTT data sender is not implemented!");
 			break;
 		default:
 			throw std::exception("Unsupported data sender type!");

@@ -38,10 +38,12 @@ tbb::flow::continue_msg ZeroMQDataSender<INPUT>::process(INPUT data){
 	return msg;
 }
 
+/*
 template<typename INPUT>
-void ZeroMQDataSender<INPUT>::addObject(std::string object) {
-	objects.push_back(object);
+void ZeroMQDataSender<INPUT>::addReference(std::string reference) {
+	references.push_back(reference);
 }
+*/
 
 template<typename INPUT>
 ZeroMQDataSender<INPUT>::~ZeroMQDataSender(){

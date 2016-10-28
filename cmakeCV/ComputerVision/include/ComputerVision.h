@@ -32,7 +32,7 @@
 #define FPS						"fps"
 #define IMAGEPROCESSORS			"imageprocessors"
 #define SHOW_WINDOW				"show_window"
-#define OBJECT_DATA_SENDERS		"objectdatasenders"
+#define DATA_SENDERS			"datasenders"
 #define PATH_TO_MATRICES 		"path_to_matrices"
 #define SPECIFICVALUES			"specificvalues"
 #define ARUCO_IMAGE_PROCESSOR	"arucoimageprocessor"
@@ -43,13 +43,14 @@
 
 using t_cfg = TEMPLATE_CONFIG<tbb::concurrent_vector<cv::Point2f>, tbb::concurrent_vector<int > >;
 
-class ComputerVision :public tbb::flow::graph {
+class ComputerVision  :public tbb::flow::graph {
 private:
 	std::shared_ptr<FrameProvider> frameProvider;
 	std::shared_ptr<ModelDataStore> model;
 	std::unique_ptr<ObjectDataCollector> dataCollector;
 
-	std::vector<std::shared_ptr<DataSender<ModelData> > > dataSenders;
+	std::vector<std::shared_ptr<DataSender<ModelData> > > objectDataSenders;
+	tbb::concurrent_unordered_map<std::string , std::shared_ptr<DataSender<ImageProcessingData<t_cfg> > > > ipDataSenders;
 
 	//image processors mapped by markertype
 	tbb::concurrent_unordered_map<std::string, std::shared_ptr<ImageProcessor<t_cfg> > > imageProcessors;
@@ -61,7 +62,7 @@ private:
 	void workflowController(tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<std::string, int>& numberOfSuccessors);
 
 public:
-	ComputerVision() :initialized(false), processing(false) {};
+	ComputerVision():initialized(false), processing(false) {};
 	bool initialize(std::string configFilePath);
 	void startProcessing();
 	void stopProcessing();

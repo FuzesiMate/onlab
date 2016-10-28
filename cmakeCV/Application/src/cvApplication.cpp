@@ -34,7 +34,6 @@ int main(int argc , char *argv[]) {
 			in = cvModule.initialize(argv[1]);
 			if (!in) {
 				std::cout << "failed to init" << std::endl;
-				return -1;
 			}
 			else {
 				std::cout << "init successful" << std::endl;

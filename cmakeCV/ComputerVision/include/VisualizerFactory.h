@@ -13,7 +13,7 @@ enum VisualizerType {
 	SIMPLE
 };
 
-std::map<std::string, VisualizerType> res_VisualizerType = { {"default",VisualizerType::SIMPLE} };
+std::map<std::string, VisualizerType> res_VisualizerType = { {"simple",VisualizerType::SIMPLE} };
 
 class VisualizerFactory
 {
@@ -28,9 +28,15 @@ public:
 
 			switch (type) {
 			case VisualizerType::SIMPLE:
+			{
 				auto delay = parameters.get<int>(DELAY);
 				auto windowName = parameters.get<std::string>(WINDOW_NAME);
 				visualizer = std::unique_ptr<SimpleVisualizer>(new SimpleVisualizer(windowName, delay, g));
+				break; 
+			}
+				
+			default:
+				throw std::exception("Unknown visualizer type!");
 				break;
 			}
 		}
