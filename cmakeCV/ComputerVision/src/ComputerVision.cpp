@@ -148,6 +148,8 @@ void ComputerVision::startProcessing() {
 		//after each object there is a sequencer node, which restores the original order of the data
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< ObjectData > > > ObjectDataSequencers;
 
+		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::broadcast_node<ObjectData> > > objectDataBroadcasters;
+
 		//stores the number of active successors of the image processing node
 		//mapped by markertype
 		tbb::concurrent_unordered_map<std::string, int> aliveObjects;
@@ -155,11 +157,19 @@ void ComputerVision::startProcessing() {
 		//limiter node limits the number of buffered frames in the system in order to reduce memory consumption
 		tbb::flow::limiter_node<Frame> FrameLimiter(*this, 10);
 
+		tbb::flow::broadcast_node<Frame> FrameBroadcaster(*this);
+
 		//after each imageprocessor there is a sequencer node, which restores the original order of the data
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IpDatasequencers;
 
 		//after each sequencer node there is a broadcaster node that broadcasts the output of the sequencer node
 		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > > > IpDataBroadcasters;
+
+		//tbb::concurrent_unordered_map<std::string, std::shared_ptr< tbb::flow::limiter_node<Frame > > > ipLimiters;
+
+		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::limiter_node<ImageProcessingData<t_cfg> > > > objectLimiters;
+
+		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::function_node<ObjectData, tbb::flow::continue_msg, tbb::flow::queueing> > > ipTriggers;
 
 		//visualizer to show the result of object tracking
 		std::unique_ptr<Visualizer> visualizer;
@@ -190,6 +200,8 @@ void ComputerVision::startProcessing() {
 					IpDatasequencers.push_back(sequencer);
 
 					IpDataBroadcasters[type] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
+
+					//ipLimiters[type] = std::make_shared<tbb::flow::limiter_node<Frame> >(*this , 1 );
 				}
 				catch (std::exception& e) {
 					std::cout << "Error while creating data sender! Error message: " << e.what() << std::endl;
@@ -218,6 +230,16 @@ void ComputerVision::startProcessing() {
 
 				objects[name] = std::make_shared<Object <t_cfg> >(name, type, limit, *this);
 
+				if (limit != -1) {
+					objectLimiters[name] = std::make_shared<tbb::flow::limiter_node<ImageProcessingData<t_cfg> > >(*this , limit);
+				}
+
+				ipTriggers[name] = std::make_shared<tbb::flow::function_node<ObjectData, tbb::flow::continue_msg, tbb::flow::queueing> >(*this, 1, [](ObjectData data) {
+					std::cout << "triggered by " << data.name << std::endl;
+					tbb::flow::continue_msg msg;
+					return msg;
+				});
+
 				for (auto& marker : object.second.get_child("markers")) {
 					objects[name]->addMarker(marker.second.get<std::string>("name"), marker.second.get<int>("id"));
 				}
@@ -235,6 +257,8 @@ void ComputerVision::startProcessing() {
 				});
 
 				ObjectDataSequencers.push_back(sequencer);
+
+				objectDataBroadcasters[name] = std::make_shared<tbb::flow::broadcast_node<ObjectData> >(*this);
 
 			}
 		}
@@ -262,7 +286,7 @@ void ComputerVision::startProcessing() {
 					std::cout << "Error occured while creating visualizer! Error message: " << e.what() << std::endl;
 					return;
 				}
-				make_edge(FrameLimiter, tbb::flow::input_port<0>(FrameModelDataJoiner));
+				make_edge(FrameBroadcaster, tbb::flow::input_port<0>(FrameModelDataJoiner));
 				make_edge(dataCollector->getProviderNode(), tbb::flow::input_port<1>(FrameModelDataJoiner));
 				make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
 			}
@@ -282,15 +306,16 @@ void ComputerVision::startProcessing() {
 		make_edge(dataCollector->getProcessorNode(), dataCollectorTrigger);
 
 		make_edge(frameProvider->getProviderNode(), FrameLimiter);
+		make_edge(FrameLimiter , FrameBroadcaster);
 
 		int i = 0;
 		for (auto& imageProcessor : imageProcessors) {
-			make_edge(FrameLimiter, imageProcessor.second->getProcessorNode());
+			make_edge(FrameBroadcaster, imageProcessor.second->getProcessorNode());
 			make_edge(imageProcessor.second->getProcessorNode(), *IpDatasequencers[i]);
 			make_edge(*IpDatasequencers[i], *IpDataBroadcasters[imageProcessor.first]);
 
 			if (ipDataSenders.find(imageProcessor.first) != ipDataSenders.end()) {
-				make_edge(imageProcessor.second->getProcessorNode(), ipDataSenders[imageProcessor.first]->getProcessorNode());
+				make_edge(*IpDataBroadcasters[imageProcessor.first], ipDataSenders[imageProcessor.first]->getProcessorNode());
 			}
 
 			i++;
@@ -298,9 +323,21 @@ void ComputerVision::startProcessing() {
 
 		int j = 0;
 		for (auto& object : objects) {
-			make_edge(*IpDataBroadcasters[object.second->getMarkerType()], object.second->getProcessorNode());
+			if (objectLimiters.find(object.first)!=objectLimiters.end()) {
+				make_edge(*IpDataBroadcasters[object.second->getMarkerType()], *objectLimiters[object.first]);
+				make_edge(*objectLimiters[object.first], object.second->getProcessorNode());
+			}
+			else {
+				make_edge(*IpDataBroadcasters[object.second->getMarkerType()], object.second->getProcessorNode());
+			}
+			
 			make_edge(object.second->getProcessorNode(), *ObjectDataSequencers[j]);
-			make_edge(*ObjectDataSequencers[j], dataCollector->getProcessorNode());
+			make_edge(*ObjectDataSequencers[j], *objectDataBroadcasters[object.first]);
+			make_edge(*objectDataBroadcasters[object.first], dataCollector->getProcessorNode());
+
+			//make_edge(object.second->getProcessorNode(), *ipTriggers[object.first]);
+			//make_edge(*ipTriggers[object.first], ipLimiters[object.second->getMarkerType()]->decrement);
+
 			j++;
 		}
 
@@ -314,8 +351,8 @@ void ComputerVision::startProcessing() {
 
 		processing = true;
 
-		tbb::tbb_thread flowController(std::bind(&ComputerVision::workflowController, this, objects, aliveObjects));
-		flowController.detach();
+	//	tbb::tbb_thread flowController(std::bind(&ComputerVision::workflowController, this, objects, aliveObjects));
+	//	flowController.detach();
 
 		frameProvider->start();
 

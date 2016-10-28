@@ -4,7 +4,7 @@
     "number": 1,
     "exposure": 10000,
     "gain": 5,
-    "fps": 10
+    "fps": 30
   },
   "visualizer" : {
     "type": "simple",
