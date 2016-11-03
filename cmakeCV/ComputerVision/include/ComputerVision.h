@@ -38,6 +38,7 @@
 #define ARUCO_IMAGE_PROCESSOR	"arucoimageprocessor"
 #define IRTD_IMAGE_PROCESSOR	"irtdimageprocessor"
 #define CIRCLE_IMAGE_PROCESSOR	"circleimageprocessor"
+#define TRANSFORMER				"transformer"
 
 #define DEFAULT_CAMERA	0
 

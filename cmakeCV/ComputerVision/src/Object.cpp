@@ -55,6 +55,10 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 
 	objectData.frameIndex = ipData.frameIndex;
 	objectData.timestamp = ipData.timestamp;
+
+	if (!objectData.alive) {
+		std::cout << "object " << name << " is done!" << std::endl;
+	}
 	
 	return objectData;
 }

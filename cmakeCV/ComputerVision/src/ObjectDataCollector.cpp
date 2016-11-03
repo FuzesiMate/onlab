@@ -11,13 +11,13 @@ void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_p
 
 	dataBuffer[objectData.name].push_back(objectData);
 
-	tbb::flow::continue_msg msg;
-	std::get<1>(output).try_put(msg);
+	
 
 	bool readyToSend = true;
 
 	for (auto& object : dataBuffer) {
-		if ((object.second.front().frameIndex != nextFrameIndex) || dataBuffer.size() < numberOfObjects || object.second.empty()) {
+		
+		 if(((object.second.front().frameIndex != nextFrameIndex) || dataBuffer.size() < numberOfObjects) && object.second.front().alive) {
 			readyToSend = false;
 		}
 	}
@@ -41,17 +41,16 @@ void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_p
 
 		std::get<0>(output).try_put(modelData);
 
+		tbb::flow::continue_msg msg;
+		std::get<1>(output).try_put(msg);
+
 		for (auto& object : dataBuffer) {
 
 			if (!object.second.empty()) {
 				object.second.erase(object.second.begin());
 			}
-
-			if (!object.second.front().alive) {
-				dataBuffer.erase(object.second.front().name);
-				numberOfObjects--;
-			}
 		}
+		
 	}
 
 	//std::cout << "object data arrived: " <<objectData.name<< std::endl;

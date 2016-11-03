@@ -4,7 +4,7 @@
     "number": 2,
     "exposure": 10000,
     "gain": 5,
-    "fps": 30
+    "fps": 15
   },
   "visualizer" : {
     "type": "simple",
@@ -12,12 +12,12 @@
     "windowname": "cam"
   },
 	"transformer": {
-		"path_to_matrices": "matrices.yml"
+		"path_to_matrices": "C:/git/onlab/cmakeCV/ComputerVision/matrices.yml"
 	},
 	"objects": [{
 		"name": "test",
 		"limit": -1,
-		"markertype":"aruco",
+		"markertype":"circle",
 		"markers": [{
 			"name": "testMarker",
 			"id": 10
@@ -36,6 +36,9 @@
     {
       "type": "aruco",
       "dictionary": 0
+    },
+    {
+      "type": "circle"
     }
   ],
   "datasenders": [

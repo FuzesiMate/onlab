@@ -20,6 +20,7 @@
 #include "VisualizerFactory.h"
 #include "Object.cpp"
 
+/*
 void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<std::string, int>& aliveObjects) {
 
 	while (isProcessing()) {
@@ -52,6 +53,7 @@ void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::strin
 	}
 	std::cout << "controller thread stopped!" << std::endl;
 }
+*/
 
 bool ComputerVision::initialize(std::string configFilePath) {
 
@@ -77,7 +79,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 	//frameProvider.reset();
 
 	/*
-	parse frame providet configuration and create an instance
+	parse frame provider configuration and create an instance
 	*/
 	try {
 		auto cameraConfig = config.get_child(FRAME_SOURCE);
@@ -201,7 +203,16 @@ void ComputerVision::startProcessing() {
 
 					IpDataBroadcasters[type] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
 
-					//ipLimiters[type] = std::make_shared<tbb::flow::limiter_node<Frame> >(*this , 1 );
+					/*IP LIMITER*/
+					//ipLimiters[type] = std::make_shared<tbb::flow::limiter_node<Frame> >(*this , 100);
+
+					
+					ipTriggers[type] = std::make_shared<tbb::flow::function_node<ObjectData, tbb::flow::continue_msg, tbb::flow::queueing> >(*this, 1, [&](ObjectData data) {
+						
+						tbb::flow::continue_msg msg;
+						return msg;
+					});
+					
 				}
 				catch (std::exception& e) {
 					std::cout << "Error while creating image processor! Error message: " << e.what() << std::endl;
@@ -234,22 +245,10 @@ void ComputerVision::startProcessing() {
 					objectLimiters[name] = std::make_shared<tbb::flow::limiter_node<ImageProcessingData<t_cfg> > >(*this , limit);
 				}
 
-				ipTriggers[name] = std::make_shared<tbb::flow::function_node<ObjectData, tbb::flow::continue_msg, tbb::flow::queueing> >(*this, 1, [](ObjectData data) {
-					std::cout << "triggered by " << data.name << std::endl;
-					tbb::flow::continue_msg msg;
-					return msg;
-				});
+				
 
 				for (auto& marker : object.second.get_child("markers")) {
 					objects[name]->addMarker(marker.second.get<std::string>("name"), marker.second.get<int>("id"));
-				}
-
-				auto key = aliveObjects.find(type);
-				if (key != aliveObjects.end()) {
-					aliveObjects[type]++;
-				}
-				else {
-					aliveObjects[type] = 1;
 				}
 
 				auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this, [](ObjectData pos)->uint64_t {
@@ -286,34 +285,26 @@ void ComputerVision::startProcessing() {
 					std::cout << "Error occured while creating visualizer! Error message: " << e.what() << std::endl;
 					return;
 				}
-				make_edge(FrameBroadcaster, tbb::flow::input_port<0>(FrameModelDataJoiner));
+				make_edge(FrameLimiter, tbb::flow::input_port<0>(FrameModelDataJoiner));
 				make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), tbb::flow::input_port<1>(FrameModelDataJoiner));
 				make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
 			}
 			catch (std::exception& e) {
 				std::cout << "Error occured while reading visualizer configuration! Error message: " << e.what() << std::endl;
+				return;
 			}
 		}
 
-		/*
-		bool started = false;
-		tbb::flow::continue_node<tbb::flow::continue_msg> dataCollectorTrigger(*this, [&](tbb::flow::continue_msg out) {
-			if (!started) {
-				dataCollector->start();
-				started = true;
-			}
-		});
-
-		make_edge(dataCollector->getProcessorNode(), dataCollectorTrigger);
-
-		*/
-
 		make_edge(frameProvider->getProviderNode(), FrameLimiter);
-		make_edge(FrameLimiter , FrameBroadcaster);
+		//make_edge(FrameLimiter , FrameBroadcaster);
 
 		int i = 0;
 		for (auto& imageProcessor : imageProcessors) {
-			make_edge(FrameBroadcaster, imageProcessor.second->getProcessorNode());
+
+			//make_edge(FrameLimiter, *ipLimiters[imageProcessor.first]);
+
+			make_edge(FrameLimiter, imageProcessor.second->getProcessorNode());
+			
 			make_edge(imageProcessor.second->getProcessorNode(), *IpDatasequencers[i]);
 			make_edge(*IpDatasequencers[i], *IpDataBroadcasters[imageProcessor.first]);
 
@@ -327,7 +318,6 @@ void ComputerVision::startProcessing() {
 		int j = 0;
 		for (auto& object : objects) {
 			if (objectLimiters.find(object.first)!=objectLimiters.end()) {
-				std::cout << "object " << object.first << " is limited" << std::endl;
 				make_edge(*IpDataBroadcasters[object.second->getMarkerType()], *objectLimiters[object.first]);
 				make_edge(*objectLimiters[object.first], object.second->getProcessorNode());
 			}
@@ -339,8 +329,9 @@ void ComputerVision::startProcessing() {
 			make_edge(*ObjectDataSequencers[j], *objectDataBroadcasters[object.first]);
 			make_edge(*objectDataBroadcasters[object.first], dataCollector->getCollectorNode());
 
-			//make_edge(object.second->getProcessorNode(), *ipTriggers[object.first]);
-			//make_edge(*ipTriggers[object.first], ipLimiters[object.second->getMarkerType()]->decrement);
+			/*IP TRIGGER*/
+			make_edge(object.second->getProcessorNode(), *ipTriggers[object.second->getMarkerType()]);
+			//make_edge(*ipTriggers[object.second->getMarkerType()], ipLimiters[object.second->getMarkerType()]->decrement);
 
 			j++;
 		}
@@ -351,12 +342,27 @@ void ComputerVision::startProcessing() {
 			make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), sender->getProcessorNode());
 		}
 
-		make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), model->getProcessorNode());
+		if (config.find(TRANSFORMER) != config.not_found()) {
+			try {
+				auto transConfig = config.get_child(TRANSFORMER);
+				auto pathToMatrices = transConfig.get<std::string>(PATH_TO_MATRICES);
+				transformer = std::unique_ptr<CoordinateTransformer>(new CoordinateTransformer(*this));
+				transformer->loadMatrices(pathToMatrices);
+			}
+			catch (std::exception& e) {
+				std::cout << "Error occured while creating transformer! Error message: " << e.what() << std::endl;
+				return;
+			}
+
+			make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), transformer->getProcessorNode());
+			make_edge(transformer->getProcessorNode(), model->getProcessorNode());
+
+		}
+		else {
+			make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), model->getProcessorNode());
+		}
 
 		processing = true;
-
-	//	tbb::tbb_thread flowController(std::bind(&ComputerVision::workflowController, this, objects, aliveObjects));
-	//	flowController.detach();
 
 		frameProvider->start();
 

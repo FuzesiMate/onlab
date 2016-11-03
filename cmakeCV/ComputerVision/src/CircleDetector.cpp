@@ -6,6 +6,7 @@
  */
 
 #include "CircleDetector.h"
+#include <thread>
 
 template <typename CONFIG>
 ImageProcessingData<CONFIG> CircleDetector<CONFIG>::process(Frame frame){
@@ -16,6 +17,10 @@ ImageProcessingData<CONFIG> CircleDetector<CONFIG>::process(Frame frame){
 	ipData.identifiers = tbb::concurrent_vector<tbb::concurrent_vector<int> >(frame.images.size());
 	ipData.frameIndex = frame.frameIndex;
 	ipData.timestamp = frame.timestamp;
+
+	std::cout << "start " << std::endl;
+	std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	std::cout << "stop" << std::endl;
 
 	for(auto f : frame.images){
 		std::vector<cv::Point3f> circles;
