@@ -19,10 +19,6 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 	ObjectData objectData;
 	objectData.name = name;
 
-	if(callCounter == limit){
-				done = true;
-	}else{
-
 		for(auto m : markers){
 			int id = m.second->getId();
 
@@ -49,11 +45,17 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 		}
 
 		callCounter++;
-	}
+
+		if (limit == -1) {
+			objectData.alive = true;
+		}
+		else {
+			objectData.alive = callCounter < (limit);
+		}
 
 	objectData.frameIndex = ipData.frameIndex;
 	objectData.timestamp = ipData.timestamp;
-
+	
 	return objectData;
 }
 

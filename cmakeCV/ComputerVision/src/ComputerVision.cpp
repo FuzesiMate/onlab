@@ -204,7 +204,7 @@ void ComputerVision::startProcessing() {
 					//ipLimiters[type] = std::make_shared<tbb::flow::limiter_node<Frame> >(*this , 1 );
 				}
 				catch (std::exception& e) {
-					std::cout << "Error while creating data sender! Error message: " << e.what() << std::endl;
+					std::cout << "Error while creating image processor! Error message: " << e.what() << std::endl;
 				}
 			}
 		}
@@ -324,6 +324,7 @@ void ComputerVision::startProcessing() {
 		int j = 0;
 		for (auto& object : objects) {
 			if (objectLimiters.find(object.first)!=objectLimiters.end()) {
+				std::cout << "object " << object.first << " is limited" << std::endl;
 				make_edge(*IpDataBroadcasters[object.second->getMarkerType()], *objectLimiters[object.first]);
 				make_edge(*objectLimiters[object.first], object.second->getProcessorNode());
 			}
@@ -357,8 +358,15 @@ void ComputerVision::startProcessing() {
 		frameProvider->start();
 
 		std::cout << "Flow graph has been built successfully, start processing workflow" << std::endl;
-
-		this->wait_for_all();
+		
+		try {
+			this->wait_for_all();
+		}
+		catch (int& ex) {
+			std::cout << "Error occured in the processing workflow!" << std::endl;
+			this->reset();
+		}
+		
 
 		std::cout << "Processing thread stopped!" << std::endl;
 	}
@@ -372,6 +380,7 @@ void ComputerVision::stopProcessing() {
 	processing = false;
 	frameProvider->stop();
 	dataCollector->stop();
+	this->reset();
 }
 
 void ComputerVision::reconfigure(std::string configFilePath) {

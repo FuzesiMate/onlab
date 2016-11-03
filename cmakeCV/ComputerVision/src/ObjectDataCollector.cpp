@@ -11,6 +11,8 @@ tbb::flow::continue_msg ObjectDataCollector::process(ObjectData objectData){
 
 	dataBuffer[objectData.name].push_back(objectData);
 
+	//std::cout << "object data arrived: " <<objectData.name<< std::endl;
+
 	new_data.notify_all();
 
 	tbb::flow::continue_msg msg;
@@ -29,18 +31,20 @@ bool ObjectDataCollector::provide(ModelData& output) {
 	//wait for the corresponding object data
 	new_data.wait(l, [this]() {
 
-		readyToSend = true;
+		bool readyToSend = true;
 
 		for (auto& object : dataBuffer) {
-				if ((object.second.front().frameIndex != nextFrameIndex || dataBuffer.size() < numberOfObjects)) {
-					readyToSend = false;
-			}
+					if ((object.second.front().frameIndex != nextFrameIndex) || dataBuffer.size() < numberOfObjects || object.second.empty()) {
+						readyToSend = false;
+					}
 		}
 
 		return readyToSend;
 	});
 
 	nextFrameIndex++;
+
+	//std::cout << "object data sent out" << std::endl;
 
 	tbb::concurrent_vector<ObjectData> objectPosition;
 
@@ -53,11 +57,16 @@ bool ObjectDataCollector::provide(ModelData& output) {
 	output.timestamp  = dataBuffer.begin()->second.front().timestamp;
 
 	for(auto& object : dataBuffer){
+
 		if (!object.second.empty()) {
 			object.second.erase(object.second.begin());
 		}
+
+		if (!object.second.front().alive) {
+			dataBuffer.erase(object.second.front().name);
+			numberOfObjects--;
+		}
 	}
-			readyToSend = false;
 
 	return true;
 }

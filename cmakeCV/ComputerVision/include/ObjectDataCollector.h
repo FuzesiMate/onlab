@@ -24,7 +24,6 @@ private:
 	//buffer to store object data
 	std::map<std::string , std::vector<ObjectData> > dataBuffer;
 	std::atomic<uint64_t> nextFrameIndex;
-	bool readyToSend;
 	size_t numberOfObjects;
 public:
 	tbb::flow::continue_msg process(ObjectData position);
@@ -32,7 +31,7 @@ public:
 	bool provide(ModelData& output);
 
 	ObjectDataCollector(int numberOfObjects, tbb::flow::graph& g):Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing>(g ,1),
-			Provider<ModelData>(g),nextFrameIndex(0),readyToSend(false),numberOfObjects(numberOfObjects){};
+			Provider<ModelData>(g),nextFrameIndex(0),numberOfObjects(numberOfObjects){};
 	virtual ~ObjectDataCollector() = default;
 };
 
