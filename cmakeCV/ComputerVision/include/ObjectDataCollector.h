@@ -14,24 +14,36 @@
 #include "Processor.h"
 #include "Provider.h"
 #include "DataTypes.h"
+#include <tbb/flow_graph.h>
 
-class ObjectDataCollector: public Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing> ,public Provider<ModelData> {
+typedef tbb::flow::multifunction_node<ObjectData, tbb::flow::tuple<ModelData, tbb::flow::continue_msg>, tbb::flow::queueing > CollectorNode;
+
+class ObjectDataCollector/*: public Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing> ,public Provider<ModelData>*/ {
 private:
+
+	CollectorNode collectorNode;
+
 	//wait-notify pattern variables
-	std::mutex lock;
-	std::condition_variable new_data;
+	//std::mutex lock;
+	//std::condition_variable new_data;
 
 	//buffer to store object data
 	std::map<std::string , std::vector<ObjectData> > dataBuffer;
 	std::atomic<uint64_t> nextFrameIndex;
 	size_t numberOfObjects;
 public:
-	tbb::flow::continue_msg process(ObjectData position);
 
-	bool provide(ModelData& output);
+	void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_ports_type& output);
 
-	ObjectDataCollector(int numberOfObjects, tbb::flow::graph& g):Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing>(g ,1),
-			Provider<ModelData>(g),nextFrameIndex(0),numberOfObjects(numberOfObjects){};
+	//bool provide(ModelData& output);
+
+	ObjectDataCollector(int numberOfObjects, tbb::flow::graph& g)/*:Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing>(g ,1),
+			Provider<ModelData>(g),*/:collectorNode(g , 1 , std::bind(&ObjectDataCollector::process, this , std::placeholders::_1 , std::placeholders::_2)),nextFrameIndex(0),numberOfObjects(numberOfObjects){};
+
+	CollectorNode& getCollectorNode() {
+		return collectorNode;
+	}
+
 	virtual ~ObjectDataCollector() = default;
 };
 

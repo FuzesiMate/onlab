@@ -287,7 +287,7 @@ void ComputerVision::startProcessing() {
 					return;
 				}
 				make_edge(FrameBroadcaster, tbb::flow::input_port<0>(FrameModelDataJoiner));
-				make_edge(dataCollector->getProviderNode(), tbb::flow::input_port<1>(FrameModelDataJoiner));
+				make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), tbb::flow::input_port<1>(FrameModelDataJoiner));
 				make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
 			}
 			catch (std::exception& e) {
@@ -295,6 +295,7 @@ void ComputerVision::startProcessing() {
 			}
 		}
 
+		/*
 		bool started = false;
 		tbb::flow::continue_node<tbb::flow::continue_msg> dataCollectorTrigger(*this, [&](tbb::flow::continue_msg out) {
 			if (!started) {
@@ -304,6 +305,8 @@ void ComputerVision::startProcessing() {
 		});
 
 		make_edge(dataCollector->getProcessorNode(), dataCollectorTrigger);
+
+		*/
 
 		make_edge(frameProvider->getProviderNode(), FrameLimiter);
 		make_edge(FrameLimiter , FrameBroadcaster);
@@ -334,7 +337,7 @@ void ComputerVision::startProcessing() {
 			
 			make_edge(object.second->getProcessorNode(), *ObjectDataSequencers[j]);
 			make_edge(*ObjectDataSequencers[j], *objectDataBroadcasters[object.first]);
-			make_edge(*objectDataBroadcasters[object.first], dataCollector->getProcessorNode());
+			make_edge(*objectDataBroadcasters[object.first], dataCollector->getCollectorNode());
 
 			//make_edge(object.second->getProcessorNode(), *ipTriggers[object.first]);
 			//make_edge(*ipTriggers[object.first], ipLimiters[object.second->getMarkerType()]->decrement);
@@ -342,13 +345,13 @@ void ComputerVision::startProcessing() {
 			j++;
 		}
 
-		make_edge(dataCollector->getProcessorNode(), FrameLimiter.decrement);
+		make_edge(tbb::flow::output_port<1>(dataCollector->getCollectorNode()), FrameLimiter.decrement);
 
 		for (auto& sender : objectDataSenders) {
-			make_edge(dataCollector->getProviderNode(), sender->getProcessorNode());
+			make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), sender->getProcessorNode());
 		}
 
-		make_edge(dataCollector->getProviderNode() , model->getProcessorNode());
+		make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), model->getProcessorNode());
 
 		processing = true;
 
@@ -379,8 +382,8 @@ void ComputerVision::stopProcessing() {
 	std::cout << "stop processing" << std::endl;
 	processing = false;
 	frameProvider->stop();
-	dataCollector->stop();
-	this->reset();
+	//dataCollector->stop();
+	//this->reset();
 }
 
 void ComputerVision::reconfigure(std::string configFilePath) {
