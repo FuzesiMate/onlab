@@ -37,7 +37,7 @@ public:
 
 	bool provide(Frame &images);
 	bool init(int cameraType);
-	void setFPS(int fps);
+	void setFPS(int fps); 
 	void setExposure(int exposure);
 	void setGain(float gain);
 

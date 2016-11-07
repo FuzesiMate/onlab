@@ -64,7 +64,6 @@ ModelData CoordinateTransformer::process(ModelData modelData){
 					y = cord.at<float>(1,i)/w;
 					z = cord.at<float>(2,i)/w;
 				}
-
 				markerData.realPosition = cv::Point3f(x,y,z);
 			}
 		}
@@ -72,5 +71,3 @@ ModelData CoordinateTransformer::process(ModelData modelData){
 
 	return modelData;
 }
-
-

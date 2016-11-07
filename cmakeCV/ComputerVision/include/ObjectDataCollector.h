@@ -18,14 +18,11 @@
 
 typedef tbb::flow::multifunction_node<ObjectData, tbb::flow::tuple<ModelData, tbb::flow::continue_msg>, tbb::flow::queueing > CollectorNode;
 
-class ObjectDataCollector/*: public Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing> ,public Provider<ModelData>*/ {
+class ObjectDataCollector {
 private:
 
+	//Multifunction node
 	CollectorNode collectorNode;
-
-	//wait-notify pattern variables
-	//std::mutex lock;
-	//std::condition_variable new_data;
 
 	//buffer to store object data
 	std::map<std::string , std::vector<ObjectData> > dataBuffer;
@@ -37,8 +34,8 @@ public:
 
 	//bool provide(ModelData& output);
 
-	ObjectDataCollector(int numberOfObjects, tbb::flow::graph& g)/*:Processor<ObjectData , tbb::flow::continue_msg , tbb::flow::queueing>(g ,1),
-			Provider<ModelData>(g),*/:collectorNode(g , 1 , std::bind(&ObjectDataCollector::process, this , std::placeholders::_1 , std::placeholders::_2)),nextFrameIndex(0),numberOfObjects(numberOfObjects){};
+	ObjectDataCollector(int numberOfObjects, tbb::flow::graph& g)
+		:collectorNode(g , 1 , std::bind(&ObjectDataCollector::process, this , std::placeholders::_1 , std::placeholders::_2)),nextFrameIndex(0),numberOfObjects(numberOfObjects){};
 
 	CollectorNode& getCollectorNode() {
 		return collectorNode;

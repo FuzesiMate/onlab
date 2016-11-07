@@ -18,9 +18,9 @@ ImageProcessingData<CONFIG> CircleDetector<CONFIG>::process(Frame frame){
 	ipData.frameIndex = frame.frameIndex;
 	ipData.timestamp = frame.timestamp;
 
-	std::cout << "start " << std::endl;
-	std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	std::cout << "stop" << std::endl;
+	//std::cout << "start " << std::endl;
+	std::this_thread::sleep_for(std::chrono::milliseconds(20));
+	//std::cout << "stop" << std::endl;
 
 	for(auto f : frame.images){
 		std::vector<cv::Point3f> circles;

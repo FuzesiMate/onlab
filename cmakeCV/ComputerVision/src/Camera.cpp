@@ -9,11 +9,6 @@
 
 bool Camera::provide(Frame &frame) {
 	
-	if (!providing) {
-		std::cout<<"Stop recording"<<std::endl;
-		return false;
-	}
-
 	auto time = std::chrono::steady_clock::now();
 	auto currentTimestamp =
 			std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -69,7 +64,10 @@ bool Camera::provide(Frame &frame) {
 	frameCounter++;
 	lastTimestamp = currentTimestamp;
 
-	return true;
+	if (!providing) {
+		std::cout << "Stop recording" << std::endl;
+	}
+	return providing;
 }
 
 bool Camera::init(int cameraType) {

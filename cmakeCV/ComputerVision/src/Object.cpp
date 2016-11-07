@@ -20,7 +20,7 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 	objectData.name = name;
 
 		for(auto m : markers){
-			int id = m.second->getId();
+			int id = m.second;
 
 			MarkerData markerData;
 			markerData.name = m.first;
@@ -75,7 +75,7 @@ std::vector<std::string> Object<CONFIG>::getMarkerNames(){
 
 template<typename CONFIG>
 void Object<CONFIG>::addMarker(std::string name , int id){
-	markers[name] = std::shared_ptr<Marker>(new Marker(name, id));
+	markers[name] = id;
 }
 
 template <typename CONFIG>
@@ -83,19 +83,5 @@ std::string Object<CONFIG>::getMarkerType(){
 	return markerType;
 }
 
-template <typename CONFIG>
-bool Object<CONFIG>::isDone(){
-	return done;
-}
-
-template <typename CONFIG>
-void Object<CONFIG>::remove(){
-	removed = true;
-}
-
-template<typename CONFIG>
-bool Object<CONFIG>::isRemoved(){
-	return removed;
-}
 
 

@@ -9,6 +9,7 @@
 #define SIMPLEVISUALIZER_H_
 
 #include <tbb/flow_graph.h>
+#include <opencv2\highgui.hpp>
 #include "DataTypes.h"
 #include "Visualizer.h"
 
@@ -26,7 +27,7 @@ public:
 
 	SimpleVisualizer(SimpleVisualizer& vis) = delete;
 
-	virtual ~SimpleVisualizer() = default;
+	virtual ~SimpleVisualizer();
 };
 
 #endif /* VISUALIZER_H_ */

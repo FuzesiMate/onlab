@@ -66,3 +66,7 @@ tbb::flow::continue_msg SimpleVisualizer::process(tbb::flow::tuple<Frame, ModelD
 	tbb::flow::continue_msg msg;
 	return msg;
 }
+
+SimpleVisualizer::~SimpleVisualizer() {
+	cv::destroyAllWindows();
+}

@@ -16,34 +16,30 @@ void ZeroMQDataSender<INPUT>::bindAddress(std::string address){
 }
 
 template<typename INPUT>
-tbb::flow::continue_msg ZeroMQDataSender<INPUT>::process(INPUT data){
+tbb::flow::continue_msg ZeroMQDataSender<INPUT>::process(INPUT data) {
 
 	/*
 	 * Publish the topic as the first part of a multi-part message
 	 * The subscriber has to subscribe for this topic in order to receive the message
 	 */
-	zmq::message_t topic_message(topic.c_str() , topic.length());
-	publisher.send(topic_message , ZMQ_SNDMORE);
-
+	
 	/*
-	 *The template type must implement the toJSON method which returns a string 
+	 *The template type must implement the toJSON method which returns a string
 	 *containing the JSON object that will be published
 	 */
 	std::string output = data.toJSON();
 
-	zmq::message_t mesg(output.c_str() , output.length());
-	publisher.send(mesg);
+	if (!output.empty()){
+		zmq::message_t topic_message(topic.c_str(), topic.length());
+		publisher.send(topic_message, ZMQ_SNDMORE);
+
+		zmq::message_t mesg(output.c_str(), output.length());
+		publisher.send(mesg);
+	}
 
 	tbb::flow::continue_msg msg;
 	return msg;
 }
-
-/*
-template<typename INPUT>
-void ZeroMQDataSender<INPUT>::addReference(std::string reference) {
-	references.push_back(reference);
-}
-*/
 
 template<typename INPUT>
 ZeroMQDataSender<INPUT>::~ZeroMQDataSender(){

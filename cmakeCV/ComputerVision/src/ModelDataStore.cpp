@@ -7,14 +7,8 @@
 
 #include "ModelDataStore.h"
 
-#include <tbb/parallel_for_each.h>
 #include <string>
 #include "TemplateConfiguration.h"
-
-/*
- * Awful solution caused by data type refactor TODO make better
- */
-
 
 tbb::flow::continue_msg ModelDataStore::process(ModelData data){
 

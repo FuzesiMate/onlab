@@ -48,7 +48,6 @@ class ComputerVision  :public tbb::flow::graph {
 private:
 	std::shared_ptr<FrameProvider> frameProvider;
 	std::shared_ptr<ModelDataStore> model;
-	std::unique_ptr<ObjectDataCollector> dataCollector;
 
 	std::vector<std::shared_ptr<DataSender<ModelData> > > objectDataSenders;
 	tbb::concurrent_unordered_map<std::string , std::shared_ptr<DataSender<ImageProcessingData<t_cfg> > > > ipDataSenders;
@@ -59,8 +58,6 @@ private:
 	boost::property_tree::ptree config;
 	std::atomic<bool> initialized;
 	std::atomic<bool> processing;
-
-	void workflowController(tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<std::string, int>& numberOfSuccessors);
 
 public:
 	ComputerVision():initialized(false), processing(false) {};

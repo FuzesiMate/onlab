@@ -20,41 +20,6 @@
 #include "VisualizerFactory.h"
 #include "Object.cpp"
 
-/*
-void ComputerVision::workflowController(tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > >& objects, tbb::concurrent_unordered_map<std::string, int>& aliveObjects) {
-
-	while (isProcessing()) {
-
-		for (auto& object : objects) {
-			auto type = object.second->getMarkerType();
-
-			if (object.second->isDone() && !object.second->isRemoved()) {
-				aliveObjects[type]--;
-				object.second->remove();
-				std::cout << object.first << " reached it's limit" << std::endl;
-			}
-			if (aliveObjects[type] == 0) {
-				remove_edge(frameProvider->getProviderNode(),
-					imageProcessors[type]->getProcessorNode());
-			}
-		}
-
-		bool stop = true;
-		for (auto& element : aliveObjects) {
-			if (element.second > 0) {
-				stop = false;
-			}
-		}
-		if (stop) {
-			stopProcessing();
-		}
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	}
-	std::cout << "controller thread stopped!" << std::endl;
-}
-*/
-
 bool ComputerVision::initialize(std::string configFilePath) {
 
 	/*
@@ -76,7 +41,7 @@ bool ComputerVision::initialize(std::string configFilePath) {
 		return initialized;
 	}
 
-	//frameProvider.reset();
+	frameProvider.reset();
 
 	/*
 	parse frame provider configuration and create an instance
@@ -147,19 +112,8 @@ void ComputerVision::startProcessing() {
 		 //objects mapped by their name
 		tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > > objects;
 
-		//after each object there is a sequencer node, which restores the original order of the data
-		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node< ObjectData > > > ObjectDataSequencers;
-
-		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::broadcast_node<ObjectData> > > objectDataBroadcasters;
-
-		//stores the number of active successors of the image processing node
-		//mapped by markertype
-		tbb::concurrent_unordered_map<std::string, int> aliveObjects;
-
 		//limiter node limits the number of buffered frames in the system in order to reduce memory consumption
-		tbb::flow::limiter_node<Frame> FrameLimiter(*this, 10);
-
-		tbb::flow::broadcast_node<Frame> FrameBroadcaster(*this);
+		tbb::flow::limiter_node<Frame> FrameLimiter(*this, 1);
 
 		//after each imageprocessor there is a sequencer node, which restores the original order of the data
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IpDatasequencers;
@@ -167,17 +121,20 @@ void ComputerVision::startProcessing() {
 		//after each sequencer node there is a broadcaster node that broadcasts the output of the sequencer node
 		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > > > IpDataBroadcasters;
 
-		//tbb::concurrent_unordered_map<std::string, std::shared_ptr< tbb::flow::limiter_node<Frame > > > ipLimiters;
+		tbb::concurrent_unordered_map<std::string, std::shared_ptr< tbb::flow::limiter_node<Frame > > > ipLimiters;
 
 		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::limiter_node<ImageProcessingData<t_cfg> > > > objectLimiters;
 
-		tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::function_node<ObjectData, tbb::flow::continue_msg, tbb::flow::queueing> > > ipTriggers;
+		//tbb::concurrent_unordered_map<std::string, std::shared_ptr<tbb::flow::function_node<ObjectData, tbb::flow::continue_msg, tbb::flow::queueing> > > ipTriggers;
 
 		//visualizer to show the result of object tracking
 		std::unique_ptr<Visualizer> visualizer;
 
 		//transformer performs 2D-3D transformation from a stereo point
 		std::unique_ptr<CoordinateTransformer> transformer;
+
+		//data collector collects object data that corresponds to the same frame
+		std::unique_ptr<ObjectDataCollector> dataCollector;
 
 		//Local model data store to provide marker positions locally
 		model = std::unique_ptr<ModelDataStore>(new ModelDataStore(*this));
@@ -203,16 +160,6 @@ void ComputerVision::startProcessing() {
 
 					IpDataBroadcasters[type] = std::make_shared<tbb::flow::broadcast_node<ImageProcessingData<t_cfg> > >(*this);
 
-					/*IP LIMITER*/
-					//ipLimiters[type] = std::make_shared<tbb::flow::limiter_node<Frame> >(*this , 100);
-
-					
-					ipTriggers[type] = std::make_shared<tbb::flow::function_node<ObjectData, tbb::flow::continue_msg, tbb::flow::queueing> >(*this, 1, [&](ObjectData data) {
-						
-						tbb::flow::continue_msg msg;
-						return msg;
-					});
-					
 				}
 				catch (std::exception& e) {
 					std::cout << "Error while creating image processor! Error message: " << e.what() << std::endl;
@@ -230,6 +177,7 @@ void ComputerVision::startProcessing() {
 		 * Parse object configuration and instantiate objects
 		 */
 		
+		std::map<std::string, int> maxObjectLimitations;
 
 		try {
 			dataCollector = std::unique_ptr<ObjectDataCollector>(new ObjectDataCollector(config.get_child(OBJECTS).size(), *this));
@@ -239,37 +187,42 @@ void ComputerVision::startProcessing() {
 				auto limit = object.second.get<int>("limit");
 				auto type = object.second.get<std::string>("markertype");
 
+				/*
+				Find the limitation value to imageprocessors
+				They will be stopped if there is no more object
+				that needs their output
+				*/
+				if (maxObjectLimitations.find(type) == maxObjectLimitations.end()) {
+					maxObjectLimitations[type] = limit;
+				}
+				else if ((maxObjectLimitations[type] < limit || limit<0) && maxObjectLimitations[type]>0 ) {
+					maxObjectLimitations[type] = limit;
+				}
+
 				objects[name] = std::make_shared<Object <t_cfg> >(name, type, limit, *this);
 
 				if (limit != -1) {
 					objectLimiters[name] = std::make_shared<tbb::flow::limiter_node<ImageProcessingData<t_cfg> > >(*this , limit);
 				}
 
-				
-
 				for (auto& marker : object.second.get_child("markers")) {
 					objects[name]->addMarker(marker.second.get<std::string>("name"), marker.second.get<int>("id"));
 				}
-
-				auto sequencer = std::make_shared<tbb::flow::sequencer_node< ObjectData > >(*this, [](ObjectData pos)->uint64_t {
-					return pos.frameIndex;
-				});
-
-				ObjectDataSequencers.push_back(sequencer);
-
-				objectDataBroadcasters[name] = std::make_shared<tbb::flow::broadcast_node<ObjectData> >(*this);
-
 			}
 		}
 		catch (std::exception& e) {
 			std::cout << "Error while parsing objects! Error message: " << e.what() << std::endl;
 			processing = false;
-
 			return;
 		}
 
 		//build the data flow graph
-		//TODO comment more
+
+		make_edge(frameProvider->getProviderNode(), FrameLimiter);
+		
+		/*
+		Parse the configuration and instantiate visualizer module if required
+		*/
 
 		tbb::flow::join_node<tbb::flow::tuple<Frame, ModelData>, tbb::flow::queueing  > FrameModelDataJoiner(*this);
 
@@ -295,15 +248,23 @@ void ComputerVision::startProcessing() {
 			}
 		}
 
-		make_edge(frameProvider->getProviderNode(), FrameLimiter);
-		//make_edge(FrameLimiter , FrameBroadcaster);
+		/*
+		connect image processors to camera and corresponding objects
+		if all objects assigned to an image processor is limited
+		then the image processor will be also limited
+		*/
 
 		int i = 0;
 		for (auto& imageProcessor : imageProcessors) {
 
-			//make_edge(FrameLimiter, *ipLimiters[imageProcessor.first]);
-
-			make_edge(FrameLimiter, imageProcessor.second->getProcessorNode());
+			if (maxObjectLimitations[imageProcessor.first] < 0) {
+				make_edge(FrameLimiter, imageProcessor.second->getProcessorNode());
+			}
+			else {
+				ipLimiters[imageProcessor.first] = std::make_shared<tbb::flow::limiter_node<Frame> >(*this, maxObjectLimitations[imageProcessor.first]);
+				make_edge(FrameLimiter, *ipLimiters[imageProcessor.first]);
+				make_edge(*ipLimiters[imageProcessor.first], imageProcessor.second->getProcessorNode());
+			}
 			
 			make_edge(imageProcessor.second->getProcessorNode(), *IpDatasequencers[i]);
 			make_edge(*IpDatasequencers[i], *IpDataBroadcasters[imageProcessor.first]);
@@ -315,6 +276,11 @@ void ComputerVision::startProcessing() {
 			i++;
 		}
 
+		/*
+		connect the object to the object data collector module
+		if the object is limited a limiter node is applied before
+		*/
+
 		int j = 0;
 		for (auto& object : objects) {
 			if (objectLimiters.find(object.first)!=objectLimiters.end()) {
@@ -324,24 +290,23 @@ void ComputerVision::startProcessing() {
 			else {
 				make_edge(*IpDataBroadcasters[object.second->getMarkerType()], object.second->getProcessorNode());
 			}
-			
-			make_edge(object.second->getProcessorNode(), *ObjectDataSequencers[j]);
-			make_edge(*ObjectDataSequencers[j], *objectDataBroadcasters[object.first]);
-			make_edge(*objectDataBroadcasters[object.first], dataCollector->getCollectorNode());
 
-			/*IP TRIGGER*/
-			make_edge(object.second->getProcessorNode(), *ipTriggers[object.second->getMarkerType()]);
-			//make_edge(*ipTriggers[object.second->getMarkerType()], ipLimiters[object.second->getMarkerType()]->decrement);
+			make_edge(object.second->getProcessorNode(), dataCollector->getCollectorNode());
 
 			j++;
 		}
 
+		/*
+		trigger the camera when the final output is sent out
+		*/
 		make_edge(tbb::flow::output_port<1>(dataCollector->getCollectorNode()), FrameLimiter.decrement);
 
-		for (auto& sender : objectDataSenders) {
-			make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), sender->getProcessorNode());
-		}
+		
 
+		/*
+		apply 3D reconstruction
+		insert a transformer module between object data collector and modules that receive its output
+		*/
 		if (config.find(TRANSFORMER) != config.not_found()) {
 			try {
 				auto transConfig = config.get_child(TRANSFORMER);
@@ -357,17 +322,30 @@ void ComputerVision::startProcessing() {
 			make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), transformer->getProcessorNode());
 			make_edge(transformer->getProcessorNode(), model->getProcessorNode());
 
+			for (auto& sender : objectDataSenders) {
+				make_edge(transformer->getProcessorNode(), sender->getProcessorNode());
+			}
+
 		}
 		else {
 			make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), model->getProcessorNode());
+			
+			for (auto& sender : objectDataSenders) {
+				make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), sender->getProcessorNode());
+			}
 		}
 
+		/*
+		start the frame provider
+		*/
 		processing = true;
-
 		frameProvider->start();
-
+		
 		std::cout << "Flow graph has been built successfully, start processing workflow" << std::endl;
 		
+		/*
+		block until the processing workflow finishes
+		*/
 		try {
 			this->wait_for_all();
 		}
@@ -375,7 +353,6 @@ void ComputerVision::startProcessing() {
 			std::cout << "Error occured in the processing workflow!" << std::endl;
 			this->reset();
 		}
-		
 
 		std::cout << "Processing thread stopped!" << std::endl;
 	}
@@ -388,8 +365,9 @@ void ComputerVision::stopProcessing() {
 	std::cout << "stop processing" << std::endl;
 	processing = false;
 	frameProvider->stop();
-	//dataCollector->stop();
 	//this->reset();
+	//this->reset(tbb::flow::rf_clear_edges);
+	//this->reset(tbb::flow::rf_reset_bodies);
 }
 
 void ComputerVision::reconfigure(std::string configFilePath) {

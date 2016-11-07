@@ -27,20 +27,15 @@ private:
 	std::atomic<int> callCounter;
 	//detection limit provided by user in config file
 	std::atomic<int> limit;
-	//true if the object reaches it's detection limit
-	std::atomic<bool> done;
-	//true if the object was removed from the graph
-	std::atomic<bool> removed;
 	//type of the marker on the object
 	std::string markerType;
 
-	tbb::concurrent_unordered_map<std::string, std::shared_ptr<Marker> > markers;
+	tbb::concurrent_unordered_map<std::string, int> markers;
 
 public:
 	Object(std::string name, std::string type, int limit,
-			tbb::flow::graph& g) :Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >(g  , tbb::flow::unlimited), name(
-					name), callCounter(0), limit(limit), done(false), removed(
-					false), markerType(type) {};
+			tbb::flow::graph& g) :Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >(g  , tbb::flow::serial), name(
+					name), callCounter(0), limit(limit), markerType(type) {};
 
 	//Body of intel tbb function node
 	ObjectData process(ImageProcessingData<CONFIG> data);

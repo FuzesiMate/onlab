@@ -16,28 +16,31 @@ void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_p
 	bool readyToSend = true;
 
 	for (auto& object : dataBuffer) {
-		
-		 if(((object.second.front().frameIndex != nextFrameIndex) || dataBuffer.size() < numberOfObjects) && object.second.front().alive) {
+		if (object.second.empty()) {
 			readyToSend = false;
 		}
+		else {
+			if (((object.second[0].frameIndex != nextFrameIndex) || dataBuffer.size() < numberOfObjects) && object.second[0].alive) {
+				readyToSend = false;
+			}
+		}
+		
 	}
 
 	if (readyToSend) {
 		nextFrameIndex++;
 
-		//std::cout << "object data sent out" << std::endl;
-
 		tbb::concurrent_vector<ObjectData> objectPosition;
 
 		for (auto& object : dataBuffer) {
-			objectPosition.push_back(object.second.front());
+			objectPosition.push_back(object.second[0]);
 		}
 
 		ModelData modelData;
 
 		modelData.objectData = objectPosition;
-		modelData.frameIndex = dataBuffer.begin()->second.front().frameIndex;
-		modelData.timestamp = dataBuffer.begin()->second.front().timestamp;
+		modelData.frameIndex = dataBuffer.begin()->second[0].frameIndex;
+		modelData.timestamp = dataBuffer.begin()->second[0].timestamp;
 
 		std::get<0>(output).try_put(modelData);
 
@@ -52,67 +55,4 @@ void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_p
 		}
 		
 	}
-
-	//std::cout << "object data arrived: " <<objectData.name<< std::endl;
-
-	/*
-	new_data.notify_all();
-
-	tbb::flow::continue_msg msg;
-	return msg;
-	*/
 }
-
-/*
-bool ObjectDataCollector::provide(ModelData& output) {
-
-	std::unique_lock<std::mutex> l(lock);
-
-	if (!providing) {
-		std::cout << "Stop providing position data" << std::endl;
-		return false;
-	}
-
-	//wait for the corresponding object data
-	new_data.wait(l, [this]() {
-
-		bool readyToSend = true;
-
-		for (auto& object : dataBuffer) {
-					if ((object.second.front().frameIndex != nextFrameIndex) || dataBuffer.size() < numberOfObjects || object.second.empty() || !providing) {
-						readyToSend = false;
-					}
-		}
-
-		return readyToSend;
-	});
-
-	nextFrameIndex++;
-
-	//std::cout << "object data sent out" << std::endl;
-
-	tbb::concurrent_vector<ObjectData> objectPosition;
-
-	for (auto& object : dataBuffer) {
-		objectPosition.push_back(object.second.front());
-	}
-
-	output.objectData = objectPosition;
-	output.frameIndex = dataBuffer.begin()->second.front().frameIndex;
-	output.timestamp  = dataBuffer.begin()->second.front().timestamp;
-
-	for(auto& object : dataBuffer){
-
-		if (!object.second.empty()) {
-			object.second.erase(object.second.begin());
-		}
-
-		if (!object.second.front().alive) {
-			dataBuffer.erase(object.second.front().name);
-			numberOfObjects--;
-		}
-	}
-
-	return true;
-}
-*/
