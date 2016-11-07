@@ -9,21 +9,21 @@
 #ifndef DATA_TYPES_H
 #define DATA_TYPES_H
 
-struct Frame{
+struct Frame {
 	tbb::concurrent_vector<cv::Mat> images;
 	uint64_t timestamp;
 	uint64_t frameIndex;
 	int fps;
 };
 
-template <typename CONFIG> struct ImageProcessingData{
+template <typename CONFIG> struct ImageProcessingData {
 	tbb::concurrent_vector<typename CONFIG::dataType> data;
 	tbb::concurrent_vector<typename CONFIG::identifierType> identifiers;
 	uint64_t timestamp;
 	uint64_t frameIndex;
 
 	std::string toJSON() {
-		
+
 		std::stringstream json;
 
 		std::map<int, std::vector<cv::Point2f> > markerPositions;
@@ -36,17 +36,13 @@ template <typename CONFIG> struct ImageProcessingData{
 			}
 			idIndex++;
 		}
-
 		if (!markerPositions.empty()) {
-
 			json << "{ \"Markers\":[";
-
 			int markerIndex = 0;
 			for (auto& marker : markerPositions) {
 				json << "{";
 				json << "\"id\":" << marker.first << ",";
 				json << "\"positions\":[";
-
 				int posIndex = 0;
 				for (auto position : marker.second) {
 					json << "{";
@@ -67,20 +63,23 @@ template <typename CONFIG> struct ImageProcessingData{
 				markerIndex++;
 			}
 
-			json << "]}";
+			json << "],";
+			json << "\"timestamp\":" << timestamp << ",";
+			json << "\"frameindex\":" << frameIndex;
+			json << "}";
 		}
 		return json.str();
 	}
 };
 
-struct MarkerData{
+struct MarkerData {
 	std::string name;
 	tbb::concurrent_vector<bool> tracked;
 	tbb::concurrent_vector<cv::Point2f> screenPosition;
 	cv::Point3f realPosition;
 };
 
-struct ObjectData{
+struct ObjectData {
 	std::string name;
 	tbb::concurrent_vector<MarkerData> markerData;
 	uint64_t timestamp;
@@ -94,22 +93,22 @@ struct ModelData {
 	uint64_t frameIndex;
 
 	std::string toJSON() {
-		
+
 		std::stringstream json;
 
 		json << "{\"Objects\":[";
-		
+
 		int objectIndex = 0;
 		for (auto& object : objectData) {
-			json << "{\"name\":" <<"\""<< object.name<<"\""<<",";
+			json << "{\"name\":" << "\"" << object.name << "\"" << ",";
 			json << "\"markers\":[";
 
 			int markerIndex = 0;
 			for (auto& marker : object.markerData) {
 				json << "{";
-				json << "\"name\":" << "\"" << marker.name << "\""<<",";
+				json << "\"name\":" << "\"" << marker.name << "\"" << ",";
 				json << "\"realposition\":";
-				json <<"{"<<"\"x\":" << marker.realPosition.x << "," << "\"y\":" << marker.realPosition.y << "," << "\"z\":" << marker.realPosition.z << "},";
+				json << "{" << "\"x\":" << marker.realPosition.x << "," << "\"y\":" << marker.realPosition.y << "," << "\"z\":" << marker.realPosition.z << "},";
 				json << "\"screenpositions\":[";
 
 				int positionIndex = 0;
@@ -138,15 +137,17 @@ struct ModelData {
 			}
 
 			json << "]}";
-			
+
 			if (objectIndex < objectData.size() - 1) {
 				json << ",";
 			}
 			objectIndex++;
 		}
 
-		json << "]}";
-		
+		json << "],";
+		json << "\"timestamp\":" << timestamp << ",";
+		json << "\"frameindex\":" << frameIndex;
+		json << "}";
 		return json.str();
 	}
 };

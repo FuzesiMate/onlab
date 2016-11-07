@@ -7,11 +7,7 @@
 
 void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_ports_type& output){
 
-	//std::unique_lock<std::mutex> l(lock);
-
 	dataBuffer[objectData.name].push_back(objectData);
-
-	
 
 	bool readyToSend = true;
 

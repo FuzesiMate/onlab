@@ -10,23 +10,23 @@
 #include <string>
 #include "TemplateConfiguration.h"
 
-tbb::flow::continue_msg ModelDataStore::process(ModelData data){
+ModelData ModelDataStore::process(ModelData newData){
 
 	//thread safety
 	std::unique_lock<std::mutex> l(lock);
 
 	//If it is empty, initialize the data structure
 	if(modelData.objectData.empty()){
-		modelData = data;
+		modelData = newData;
 	}else{
 
 	/*
-	 * If the marker is untracked in an image, we store the last known position of the marker
-	 * with the tracked flag set to false, so the user knows that it is risky information
+	 * if the marker is untracked in an image, it stores the last known position of the marker
+	 * with the tracked flag set to false, so the user knows that this information is out of date
 	 */
 
 		size_t objIndex = 0;
-		for(auto& objectData : data.objectData){
+		for(auto& objectData : newData.objectData){
 			size_t markIndex = 0;
 			for(auto& markerData : objectData.markerData){
 				bool allTracked = true;
@@ -50,14 +50,11 @@ tbb::flow::continue_msg ModelDataStore::process(ModelData data){
 			objIndex++;
 		}
 
-		modelData.frameIndex = data.frameIndex;
-		modelData.timestamp = data.timestamp;
+		modelData.frameIndex = newData.frameIndex;
+		modelData.timestamp = newData.timestamp;
 	}
 
-	new_data.notify_one();
-
-	tbb::flow::continue_msg msg;
-	return msg;
+	return modelData;
 }
 
 
@@ -72,12 +69,6 @@ ModelData ModelDataStore::getData(){
 	 */
 
 	std::unique_lock<std::mutex> l(lock);
-
-	new_data.wait(l , [this](){
-		return providedFrameIndex != modelData.frameIndex;
-	});
-
-	providedFrameIndex = modelData.frameIndex;
 	return modelData;
 }
 

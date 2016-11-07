@@ -17,27 +17,26 @@
 #include "DataTypes.h"
 #include "TemplateConfiguration.h"
 
-class ModelDataStore:public Processor<ModelData, tbb::flow::continue_msg , tbb::flow::queueing> {
+class ModelDataStore:public Processor<ModelData, ModelData , tbb::flow::queueing> {
 private:
 
-	//wait-notify pattern variables
+	//thread safety
 	std::mutex lock;
-	std::condition_variable new_data;
 
+	/*
+	stores an up to date instance of ModelData
+	*/
 	ModelData modelData;
-	uint64_t providedFrameIndex;
 
 public:
-	ModelDataStore(tbb::flow::graph& g):Processor<ModelData, tbb::flow::continue_msg , tbb::flow::queueing>(g ,1),providedFrameIndex(0){};
+	ModelDataStore(tbb::flow::graph& g):Processor<ModelData, ModelData , tbb::flow::queueing>(g ,1){};
 
-	tbb::flow::continue_msg process(ModelData data);
+	ModelData process(ModelData data);
 
-	//get actual collected position data
 	ModelData getData();
 	ObjectData getObjectData(std::string object);
 	MarkerData getMarkerData(std::string object ,std::string marker);
 
-	//default destructor
 	virtual ~ModelDataStore() = default;
 };
 

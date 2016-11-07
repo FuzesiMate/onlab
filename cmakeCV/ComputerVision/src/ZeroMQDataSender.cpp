@@ -32,7 +32,6 @@ tbb::flow::continue_msg ZeroMQDataSender<INPUT>::process(INPUT data) {
 	if (!output.empty()){
 		zmq::message_t topic_message(topic.c_str(), topic.length());
 		publisher.send(topic_message, ZMQ_SNDMORE);
-
 		zmq::message_t mesg(output.c_str(), output.length());
 		publisher.send(mesg);
 	}

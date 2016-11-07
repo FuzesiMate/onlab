@@ -2,7 +2,7 @@
   "frameprovider": {
     "type": "ximea",
     "number": 2,
-    "exposure": 5000,
+    "exposure": 10000,
     "gain": 5,
     "fps": 20
   },

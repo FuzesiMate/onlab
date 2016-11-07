@@ -49,8 +49,6 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 				j++;
 			}
 
-		//	cv::aruco::drawDetectedMarkers(frame.images[i], corners, identifiers);
-
 			foundMarkers.data[i] = markerPosition;
 			foundMarkers.identifiers[i] = markerIdentifier;
 		});

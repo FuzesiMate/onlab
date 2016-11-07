@@ -35,10 +35,13 @@
 #define DATA_SENDERS			"datasenders"
 #define PATH_TO_MATRICES 		"path_to_matrices"
 #define SPECIFICVALUES			"specificvalues"
-#define ARUCO_IMAGE_PROCESSOR	"arucoimageprocessor"
-#define IRTD_IMAGE_PROCESSOR	"irtdimageprocessor"
-#define CIRCLE_IMAGE_PROCESSOR	"circleimageprocessor"
+#define IMAGEPROCESSOR			"imageprocessor"
 #define TRANSFORMER				"transformer"
+#define NAME					"name"
+#define LIMIT					"limit"
+#define MARKER_TYPE				"markertype"
+#define ID						"id"
+#define MARKERS					"markers"
 
 #define DEFAULT_CAMERA	0
 
