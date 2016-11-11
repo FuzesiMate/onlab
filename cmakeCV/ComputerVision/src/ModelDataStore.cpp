@@ -70,6 +70,7 @@ bool ModelDataStore::getData(ModelData& output) {
 	}
 }
 
+/*
 ObjectData ModelDataStore::getObjectData(std::string object){
 	for(auto& objectData : modelData.objectData){
 		if(objectData.name == object){
@@ -89,3 +90,4 @@ MarkerData ModelDataStore::getMarkerData(std::string object ,std::string marker)
 		}
 	}
 }
+*/

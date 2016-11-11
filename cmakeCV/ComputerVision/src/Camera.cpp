@@ -40,10 +40,10 @@ bool Camera::provide(Frame &frame) {
 		cameras[i].retrieve(frame.images[i]);
 	});
 
-	float currentFps;
+	int64_t currentFps;
 
 	if((currentTimestamp-lastTimestamp)>0){
-		currentFps = roundf(1000/(currentTimestamp-lastTimestamp));
+		currentFps = 1000/(currentTimestamp-lastTimestamp);
 	}
 
 	std::stringstream fpsstring;

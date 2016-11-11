@@ -34,8 +34,8 @@ public:
 	ModelData process(ModelData data);
 
 	bool getData(ModelData& output);
-	ObjectData getObjectData(std::string object);
-	MarkerData getMarkerData(std::string object ,std::string marker);
+	//ObjectData getObjectData(std::string object);
+	//MarkerData getMarkerData(std::string object ,std::string marker);
 
 	virtual ~ModelDataStore() = default;
 };

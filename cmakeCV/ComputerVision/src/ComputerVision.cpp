@@ -353,7 +353,7 @@ void ComputerVision::startProcessing() {
 			this->wait_for_all();
 		}
 		catch (int& ex) {
-			std::cout << "Error occured in the processing workflow!" << std::endl;
+			std::cout << "Error occured in the processing workflow! Error code: "<<ex<< std::endl;
 			this->reset();
 		}
 

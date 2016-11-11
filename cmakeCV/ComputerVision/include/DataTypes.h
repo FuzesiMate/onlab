@@ -28,9 +28,9 @@ template <typename CONFIG> struct ImageProcessingData {
 
 		std::map<int, std::vector<cv::Point2f> > markerPositions;
 
-		int idIndex = 0;
+		size_t idIndex = 0;
 		for (tbb::concurrent_vector<int> identifier : identifiers) {
-			int posIndex = 0;
+			size_t posIndex = 0;
 			for (auto& id : identifier) {
 				markerPositions[id].push_back(data[idIndex][posIndex]);
 			}
@@ -38,12 +38,12 @@ template <typename CONFIG> struct ImageProcessingData {
 		}
 		if (!markerPositions.empty()) {
 			json << "{ \"Markers\":[";
-			int markerIndex = 0;
+			size_t markerIndex = 0;
 			for (auto& marker : markerPositions) {
 				json << "{";
 				json << "\"id\":" << marker.first << ",";
 				json << "\"positions\":[";
-				int posIndex = 0;
+				size_t posIndex = 0;
 				for (auto position : marker.second) {
 					json << "{";
 					json << "\"x\":" << position.x << ",";
@@ -98,12 +98,12 @@ struct ModelData {
 
 		json << "{\"Objects\":[";
 
-		int objectIndex = 0;
+		size_t objectIndex = 0;
 		for (auto& object : objectData) {
 			json << "{\"name\":" << "\"" << object.name << "\"" << ",";
 			json << "\"markers\":[";
 
-			int markerIndex = 0;
+			size_t markerIndex = 0;
 			for (auto& marker : object.markerData) {
 				json << "{";
 				json << "\"name\":" << "\"" << marker.name << "\"" << ",";
@@ -111,7 +111,7 @@ struct ModelData {
 				json << "{" << "\"x\":" << marker.realPosition.x << "," << "\"y\":" << marker.realPosition.y << "," << "\"z\":" << marker.realPosition.z << "},";
 				json << "\"screenpositions\":[";
 
-				int positionIndex = 0;
+				size_t positionIndex = 0;
 				for (auto& screenPosition : marker.screenPosition) {
 					json << "{";
 
