@@ -26,16 +26,20 @@ tbb::flow::continue_msg SimpleVisualizer::process(tbb::flow::tuple<Frame, ModelD
 	frameBuffer.push_back(frame);
 	dataBuffer.push_back(std::get<1>(data));
 
-	if (delay > 0) {
-		auto time = std::chrono::steady_clock::now();
-		auto currentTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
+	/*
+	if (delay > 0 && lastTimestamp>0) {
 
-		auto diff = currentTimestamp - frameBuffer.begin()->timestamp;
+		auto diff = lastTimestamp - frameBuffer.begin()->timestamp;
 
-		if ((delay - diff) > 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(delay - diff));
+		if ((delay - diff) <=  delay) {
+			tbb::flow::continue_msg m;
+			return m;
 		}
 	}
+
+	auto time = std::chrono::steady_clock::now();
+	lastTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
+	*/
 
 	size_t i = 0;
 	for (auto& image : frameBuffer.begin()->images) {
@@ -51,14 +55,13 @@ tbb::flow::continue_msg SimpleVisualizer::process(tbb::flow::tuple<Frame, ModelD
 			}
 		}
 
-		cv::resize(image, image, cv::Size(800, 600));
+		cv::resize(image, image, cv::Size(640, 480));
 		std::stringstream winname;
 		winname << windowName << i;
 		cv::imshow(winname.str(), image);
-		cv::waitKey(5);
+		cv::waitKey(10);
 		i++;
 	}
-
 
 	frameBuffer.erase(frameBuffer.begin());
 	dataBuffer.erase(dataBuffer.begin());

@@ -40,8 +40,14 @@ public:
 			imageprocessor = std::make_shared<ArucoImageProcessor<CONFIG> >(g);
 			break;
 		case IRTD:
-			imageprocessor = std::make_shared<IRTDImageProcessor<CONFIG> >(g);
+		{
+			int threshold = parameters.get<int>(THRESHOLD);
+			int duration = parameters.get<int>(DURATION);
+			int setupTime = parameters.get<int>(SETUP_TIME);
+
+			imageprocessor = std::make_shared<IRTDImageProcessor<CONFIG> >(threshold, duration, setupTime, g);
 			break;
+		}
 		case CIRCLE:
 			imageprocessor = std::make_shared<CircleDetector<CONFIG> >(g);
 			break;

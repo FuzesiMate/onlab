@@ -19,9 +19,10 @@ private:
 	std::vector<Frame> frameBuffer;
 	std::string windowName;
 	int64_t delay;
+	int64_t lastTimestamp;
 public:
 	
-	SimpleVisualizer(std::string windowName, int64_t delay ,tbb::flow::graph& g):Visualizer(g),windowName(windowName),delay(delay) {};
+	SimpleVisualizer(std::string windowName, int64_t delay ,tbb::flow::graph& g):Visualizer(g),windowName(windowName),delay(delay),lastTimestamp(0) {};
 
 	tbb::flow::continue_msg process(tbb::flow::tuple<Frame, ModelData> data);
 

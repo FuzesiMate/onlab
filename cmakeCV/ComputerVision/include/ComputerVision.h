@@ -67,7 +67,7 @@ public:
 	bool initialize(std::string configFilePath);
 	void startProcessing();
 	void stopProcessing();
-	ModelData getData();
+	bool getData(ModelData& output);
 	void reconfigure(std::string configFilePath);
 	bool isProcessing();
 	virtual ~ComputerVision() = default;

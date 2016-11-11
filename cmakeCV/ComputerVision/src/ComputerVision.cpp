@@ -225,12 +225,9 @@ void ComputerVision::startProcessing() {
 		
 		/*
 		Parse the configuration and instantiate visualizer module if required
-		*/
-
-		/*
 		merge output data with the corresponding frame
 		*/
-		tbb::flow::join_node<tbb::flow::tuple<Frame, ModelData>, tbb::flow::queueing  > FrameModelDataJoiner(*this);
+		tbb::flow::join_node<tbb::flow::tuple<Frame, ModelData>, tbb::flow::queueing > FrameModelDataJoiner(*this);
 
 		if (config.find(VISUALIZER) != config.not_found()) {
 
@@ -402,13 +399,12 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 	}
 }
 
-ModelData ComputerVision::getData() {
+bool ComputerVision::getData(ModelData& output) {
 	if (processing) {
-		return model->getData();
+		return model->getData(output);
 	}
 	else {
-		ModelData dummy;
-		return dummy;
+		return false;
 	}
 }
 

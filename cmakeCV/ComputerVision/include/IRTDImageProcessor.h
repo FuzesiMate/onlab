@@ -61,7 +61,7 @@ private:
 public:
 	void startLedController();
 
-	IRTDImageProcessor(tbb::flow::graph& g):ImageProcessor<CONFIG>(g),threshold(200),duration(100),setupTime(15){
+	IRTDImageProcessor(int threshold , int duration , int setupTime, tbb::flow::graph& g):ImageProcessor<CONFIG>(g),threshold(threshold),duration(duration),setupTime(setupTime){
 		ledController.addPattern(std::vector<int>{0,255,0,50});
 		ledController.addPattern(std::vector<int>{255,0,50,0});
 

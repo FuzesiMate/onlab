@@ -3,7 +3,7 @@
 // Author      : Fuzesi MAte
 // Version     :
 // Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
+// Description : Computer Vision framework usage example in C++, Ansi-style
 //============================================================================
 
 #include <iostream>
@@ -56,18 +56,20 @@ int main(int argc , char *argv[]) {
 			break;
 		case 'g':
 		{
-			auto posdata = cvModule.getData();
-			for(auto& obj : posdata.objectData){
-				for(auto& mar : obj.markerData){
-					std::cout<<mar.name<<std::endl;
-					for(auto& pos : mar.screenPosition){
-						std::cout<<pos<<std::endl;
-					}
-					std::cout<<"real position: "<< mar.realPosition<<std::endl;
+				ModelData posdata;
+				if (cvModule.getData(posdata)) {
+					for (auto& obj : posdata.objectData) {
+						for (auto& mar : obj.markerData) {
+							std::cout << mar.name << std::endl;
+							for (auto& pos : mar.screenPosition) {
+								std::cout << pos << std::endl;
+							}
+							std::cout << "real position: " << mar.realPosition << std::endl;
 
-					std::cout<<std::endl<<std::endl;
+							std::cout << std::endl << std::endl;
+						}
+					}
 				}
-			}
 			break;
 		}
 		default:

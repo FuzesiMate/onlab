@@ -6,6 +6,9 @@
 
 #include "Camera.h"
 #include <opencv2/imgproc.hpp>
+#include <fstream>
+
+//#define LOG
 
 bool Camera::provide(Frame &frame) {
 	
@@ -15,10 +18,6 @@ bool Camera::provide(Frame &frame) {
 					time.time_since_epoch()).count();
 
 	auto delay = (1000/fps) - (currentTimestamp - lastTimestamp);
-
-	if(delay<0){
-		delay = 20;
-	}
 
 	if (delay > 0 && lastTimestamp!=0) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(delay));
@@ -41,10 +40,10 @@ bool Camera::provide(Frame &frame) {
 		cameras[i].retrieve(frame.images[i]);
 	});
 
-	uint64_t currentFps;
+	float currentFps;
 
 	if((currentTimestamp-lastTimestamp)>0){
-		currentFps = 1000/(currentTimestamp-lastTimestamp);
+		currentFps = roundf(1000/(currentTimestamp-lastTimestamp));
 	}
 
 	std::stringstream fpsstring;
@@ -52,11 +51,16 @@ bool Camera::provide(Frame &frame) {
 
 	frame.fps = (int)currentFps;
 
-
+#ifdef LOG
+	ofs << fps << ";" << currentFps << std::endl;
+#endif
+	/*
 	for(auto& i : frame.images){
-
 		cv::putText(i , fpsstring.str() , cv::Point(100,100) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2);
 	}
+	*/
+
+	/*std::cout << currentFps << std::endl;*/
 	
 	frame.frameIndex = frameCounter;
 	frame.timestamp = currentTimestamp;
@@ -65,12 +69,34 @@ bool Camera::provide(Frame &frame) {
 	lastTimestamp = currentTimestamp;
 
 	if (!providing) {
+		#ifdef LOG
+			ofs.close();
+		#endif // LOG
 		std::cout << "Stop recording" << std::endl;
 	}
+
+#ifdef LOG
+	/*ONLY FOR BENCHMARKING*/
+	if (frameCounter % 20 == 0) {
+		fps++;
+	}
+
+	if (fps == 60) {
+		return false;
+	}
+
+#endif
+
 	return providing;
 }
 
 bool Camera::init(int cameraType) {
+
+#ifdef LOG
+	ofs.open("fps_ximea2.csv");
+	ofs << "Required fps;Measured fps" << std::endl;
+#endif
+
 	cameras = std::vector<cv::VideoCapture>(numberOfCameras);
 
 	for(int i = 0 ; i<numberOfCameras ; i++){

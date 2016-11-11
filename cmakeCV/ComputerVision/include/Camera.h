@@ -15,6 +15,7 @@
 #include <chrono>
 #include <atomic>
 #include <thread>
+#include <fstream>
 #include "FrameProvider.h"
 #include "DataTypes.h"
 
@@ -24,7 +25,7 @@ class Camera: public FrameProvider {
 	float gain;
 	int fps;
 	int frameCounter ;
-
+	std::ofstream ofs;
 	int64_t lastTimestamp;
 
 	std::vector<cv::VideoCapture> cameras;

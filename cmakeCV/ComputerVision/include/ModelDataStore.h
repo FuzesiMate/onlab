@@ -22,18 +22,18 @@ private:
 
 	//thread safety
 	std::mutex lock;
-
+	uint64_t providedFrameIndex;
 	/*
 	stores an up to date instance of ModelData
 	*/
 	ModelData modelData;
 
 public:
-	ModelDataStore(tbb::flow::graph& g):Processor<ModelData, ModelData , tbb::flow::queueing>(g ,1){};
+	ModelDataStore(tbb::flow::graph& g):Processor<ModelData, ModelData , tbb::flow::queueing>(g ,1),providedFrameIndex(-1){};
 
 	ModelData process(ModelData data);
 
-	ModelData getData();
+	bool getData(ModelData& output);
 	ObjectData getObjectData(std::string object);
 	MarkerData getMarkerData(std::string object ,std::string marker);
 

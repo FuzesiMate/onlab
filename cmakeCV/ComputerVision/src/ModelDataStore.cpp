@@ -58,18 +58,16 @@ ModelData ModelDataStore::process(ModelData newData){
 }
 
 
-ModelData ModelDataStore::getData(){
-
-	/*
-	 * if the position data was provided for a frameindex, it is not provided again
-	 * this function blocks, until a new frame data arrives
-	 * so the user wont get the already known data again
-	 *
-	 * TODO maybe i should make it configurable
-	 */
-
+bool ModelDataStore::getData(ModelData& output) {
 	std::unique_lock<std::mutex> l(lock);
-	return modelData;
+	if (providedFrameIndex == modelData.frameIndex) {
+		return false;
+	}
+	else {
+		providedFrameIndex = modelData.frameIndex;
+		output = modelData;
+		return true;
+	}
 }
 
 ObjectData ModelDataStore::getObjectData(std::string object){

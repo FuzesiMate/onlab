@@ -24,6 +24,7 @@ void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_p
 	}
 
 	if (readyToSend) {
+
 		nextFrameIndex++;
 
 		tbb::concurrent_vector<ObjectData> objectPosition;
