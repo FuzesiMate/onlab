@@ -388,7 +388,7 @@ void ComputerVision::reconfigure(std::string configFilePath) {
 			for (auto& ipConfig : config.get_child(IMAGEPROCESSORS)) {
 				auto type = ipConfig.second.get<std::string>(TYPE);
 
-				imageProcessors[type]->setProcessingSpecificValues(ipConfig.second);
+				imageProcessors[type]->reconfigure(ipConfig.second);
 
 			}
 

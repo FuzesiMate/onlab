@@ -70,7 +70,7 @@ public:
 	};
 
 	ImageProcessingData<CONFIG> process(Frame frame);
-	void setProcessingSpecificValues(boost::property_tree::ptree config);
+	void reconfigure(boost::property_tree::ptree config);
 
 	virtual ~IRTDImageProcessor() = default;
 };

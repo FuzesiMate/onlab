@@ -32,7 +32,7 @@ ImageProcessingData<CONFIG> CircleDetector<CONFIG>::process(Frame frame){
 }
 
 template <typename CONFIG>
-void CircleDetector<CONFIG>::setProcessingSpecificValues(boost::property_tree::ptree config){
+void CircleDetector<CONFIG>::reconfigure(boost::property_tree::ptree config){
 
 }
 

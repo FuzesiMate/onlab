@@ -31,37 +31,42 @@ public:
 	template <typename CONFIG>
 	static std::shared_ptr<ImageProcessor<CONFIG> >createImageProcessor(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
 
-		auto ipType = res_MarkerType[parameters.get<std::string>(TYPE)];
-
 		std::shared_ptr < ImageProcessor<CONFIG> > imageprocessor;
 
-		switch (ipType) {
-		case ARUCO:
-			imageprocessor = std::make_shared<ArucoImageProcessor<CONFIG> >(g);
-			break;
-		case IRTD:
-		{
-			int threshold = parameters.get<int>(THRESHOLD);
-			int duration = parameters.get<int>(DURATION);
-			int setupTime = parameters.get<int>(SETUP_TIME);
+		try {
+			auto markerType = res_MarkerType[parameters.get<std::string>(TYPE)];
 
-			imageprocessor = std::make_shared<IRTDImageProcessor<CONFIG> >(threshold, duration, setupTime, g);
-			break;
+			switch (markerType) {
+			case ARUCO:
+				imageprocessor = std::make_shared<ArucoImageProcessor<CONFIG> >(g);
+				break;
+			case IRTD:
+			{
+				int threshold = parameters.get<int>(THRESHOLD);
+				int duration = parameters.get<int>(DURATION);
+				int setupTime = parameters.get<int>(SETUP_TIME);
+
+				imageprocessor = std::make_shared<IRTDImageProcessor<CONFIG> >(threshold, duration, setupTime, g);
+				break;
+			}
+			case CIRCLE:
+				imageprocessor = std::make_shared<CircleDetector<CONFIG> >(g);
+				break;
+			default:
+				throw std::exception("Not supported image processing method!");
+				break;
+			}
+
+			imageprocessor->reconfigure(parameters);
 		}
-		case CIRCLE:
-			imageprocessor = std::make_shared<CircleDetector<CONFIG> >(g);
-			break;
-		default:
-			throw std::exception("Not supported image processing method!");
-			break;
+		catch (std::exception& e) {
+			throw e;
 		}
-
-		imageprocessor->setProcessingSpecificValues(parameters);
-
+		
 		return imageprocessor;
 	}
 
-	virtual ~ImageProcessorFactory()=default;
+	virtual ~ImageProcessorFactory()=delete;
 };
 
 #endif //IMAGEPROCESSORFACTORY_H_

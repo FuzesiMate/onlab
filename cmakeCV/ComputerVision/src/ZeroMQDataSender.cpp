@@ -9,11 +9,12 @@
 #include <zmq_addon.hpp>
 
 #include <iostream>
-
+/*
 template<typename INPUT>
 void ZeroMQDataSender<INPUT>::bindAddress(std::string address){
 	publisher.bind(address);
 }
+*/
 
 template<typename INPUT>
 tbb::flow::continue_msg ZeroMQDataSender<INPUT>::process(INPUT data) {

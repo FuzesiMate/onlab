@@ -251,7 +251,7 @@ ImageProcessingData<CONFIG> IRTDImageProcessor<CONFIG>::process(Frame frame) {
 }
 
 template<typename CONFIG>
-void IRTDImageProcessor<CONFIG>::setProcessingSpecificValues(boost::property_tree::ptree config) {
+void IRTDImageProcessor<CONFIG>::reconfigure(boost::property_tree::ptree config) {
 	threshold = config.get<int>(THRESHOLD);
 	duration = config.get<int>(DURATION);
 	setupTime = config.get<int>(SETUP_TIME);

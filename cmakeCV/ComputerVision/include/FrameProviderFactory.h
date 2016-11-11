@@ -24,7 +24,9 @@ class FrameProviderFactory {
 public:
 	FrameProviderFactory()=delete;
 
-	static std::shared_ptr<FrameProvider> createFrameProvider(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
+	static std::unique_ptr<FrameProvider> createFrameProvider(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
+
+		std::unique_ptr<FrameProvider> frameProvider;
 
 		try {
 			auto providerType = res_FrameProviderType[parameters.get<std::string>(TYPE)];
@@ -37,11 +39,10 @@ public:
 				int expo = parameters.get<int>(EXPOSURE);
 				float gain = parameters.get<float>(GAIN);
 
-				auto cam = std::make_shared<Camera>(fps, expo, gain, numberOfCameras, g);
-				if (!cam->init(providerType)) {
+				frameProvider = std::unique_ptr<FrameProvider>( new Camera(fps, expo, gain, numberOfCameras, g));
+				if (!frameProvider->init(providerType)) {
 					throw std::exception("Camera initialization failed");
 				}
-				return cam;
 			}
 			else if (providerType == FrameProviderType::VIDEO_SOURCE) {
 				throw std::exception("This function is currently not available!");
@@ -50,6 +51,8 @@ public:
 		catch (std::exception& e) {
 			throw e;
 		}
+
+		return frameProvider;
 	}
 
 	virtual ~FrameProviderFactory()=default;

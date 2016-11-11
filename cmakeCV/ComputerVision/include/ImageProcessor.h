@@ -22,7 +22,7 @@ public:
 
 	ImageProcessor(tbb::flow::graph& g):Processor<Frame , ImageProcessingData<CONFIG>  , tbb::flow::queueing>(g , tbb::flow::unlimited){}
 
-	virtual void setProcessingSpecificValues(boost::property_tree::ptree config) = 0;
+	virtual void reconfigure(boost::property_tree::ptree config) = 0;
 
 	virtual ~ImageProcessor() = default;
 };

@@ -21,9 +21,13 @@ private:
 
 	//std::vector<std::string> references;
 public:
-	ZeroMQDataSender(std::string topic , tbb::flow::graph& g):DataSender(g,1),context(zmq::context_t(1)),publisher(zmq::socket_t(context, ZMQ_PUB)),topic(topic){};
+	ZeroMQDataSender(std::string topic ,std::vector<std::string> bindAddresses ,tbb::flow::graph& g):DataSender(g,1),context(zmq::context_t(1)),publisher(zmq::socket_t(context, ZMQ_PUB)),topic(topic){
+		for (auto address : bindAddresses) {
+			publisher.bind(address);
+		}
+	};
 
-	void bindAddress(std::string address);
+	//void bindAddress(std::string address);
 
 	//void addReference(std::string reference);
 
