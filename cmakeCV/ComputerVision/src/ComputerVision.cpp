@@ -113,7 +113,7 @@ void ComputerVision::startProcessing() {
 		tbb::concurrent_unordered_map<std::string, std::shared_ptr<Object<t_cfg> > > objects;
 
 		//limiter node limits the number of buffered frames in the system in order to reduce memory consumption
-		tbb::flow::limiter_node<Frame> FrameLimiter(*this, 10);
+		tbb::flow::limiter_node<Frame> FrameLimiter(*this, 100);
 
 		//after each imageprocessor there is a sequencer node, which restores the original order of the data
 		tbb::concurrent_vector<std::shared_ptr<tbb::flow::sequencer_node<ImageProcessingData<t_cfg> > > > IpDatasequencers;
@@ -247,7 +247,7 @@ void ComputerVision::startProcessing() {
 				forwards the merged data to the visualizer module
 				*/
 				make_edge(FrameLimiter, tbb::flow::input_port<0>(FrameModelDataJoiner));
-				make_edge(tbb::flow::output_port<0>(dataCollector->getCollectorNode()), tbb::flow::input_port<1>(FrameModelDataJoiner));
+				make_edge(model->getProcessorNode(), tbb::flow::input_port<1>(FrameModelDataJoiner));
 				make_edge(FrameModelDataJoiner, visualizer->getProcessorNode());
 			}
 			catch (std::exception& e) {

@@ -7,6 +7,8 @@
 #include "Camera.h"
 #include <opencv2/imgproc.hpp>
 #include <fstream>
+#include <cmath>
+
 
 //#define LOG
 
@@ -43,22 +45,22 @@ bool Camera::provide(Frame &frame) {
 	int64_t currentFps;
 
 	if((currentTimestamp-lastTimestamp)>0){
-		currentFps = 1000/(currentTimestamp-lastTimestamp);
+		currentFps = roundf((float)1000/(currentTimestamp-lastTimestamp));
 	}
 
 	std::stringstream fpsstring;
-	fpsstring <<currentFps;
+	fpsstring <<"Current fps: "<<currentFps;
 
 	frame.fps = (int)currentFps;
 
 #ifdef LOG
 	ofs << fps << ";" << currentFps << std::endl;
 #endif
-	/*
+	
 	for(auto& i : frame.images){
 		cv::putText(i , fpsstring.str() , cv::Point(100,100) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2);
 	}
-	*/
+	
 
 	/*std::cout << currentFps << std::endl;*/
 	
@@ -81,7 +83,8 @@ bool Camera::provide(Frame &frame) {
 		fps++;
 	}
 
-	if (fps == 60) {
+	if (fps == 31) {
+		ofs.close();
 		return false;
 	}
 

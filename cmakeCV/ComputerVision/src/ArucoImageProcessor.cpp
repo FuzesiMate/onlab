@@ -63,7 +63,8 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 
 	auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(endTime-time).count();
 
-	std::cout<<diff<<std::endl;
+	std::unique_lock<std::mutex> l(lock);
+	ofs << diff << std::endl;
 
 #endif
 

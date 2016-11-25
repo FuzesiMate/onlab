@@ -25,21 +25,17 @@ tbb::flow::continue_msg SimpleVisualizer::process(tbb::flow::tuple<Frame, ModelD
 
 	frameBuffer.push_back(frame);
 	dataBuffer.push_back(std::get<1>(data));
+	
+	if (delay > 0 ) {
+		auto time = std::chrono::steady_clock::now();
+		auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
+		auto diff = ts - frameBuffer.begin()->timestamp;
 
-	/*
-	if (delay > 0 && lastTimestamp>0) {
-
-		auto diff = lastTimestamp - frameBuffer.begin()->timestamp;
-
-		if ((delay - diff) <=  delay) {
+		if ((delay - diff) <  delay) {
 			tbb::flow::continue_msg m;
 			return m;
 		}
 	}
-
-	auto time = std::chrono::steady_clock::now();
-	lastTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count();
-	*/
 
 	size_t i = 0;
 	for (auto& image : frameBuffer.begin()->images) {
@@ -49,9 +45,9 @@ tbb::flow::continue_msg SimpleVisualizer::process(tbb::flow::tuple<Frame, ModelD
 		for (auto& objectData : modelData.objectData) {
 
 			for (auto& markerData : objectData.markerData) {
-				if (markerData.tracked[i]) {
+				//if (markerData.tracked[i]) {
 					cv::putText(image, markerData.name, cv::Point(markerData.screenPosition[i].x, markerData.screenPosition[i].y), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
-				}
+				//}
 			}
 		}
 

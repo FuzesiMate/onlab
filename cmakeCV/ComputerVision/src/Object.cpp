@@ -9,11 +9,6 @@
 #include <iostream>
 
 template<typename CONFIG>
-int Object<CONFIG>::getCallCounter(){
-	return callCounter;
-}
-
-template<typename CONFIG>
 ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 
 	ObjectData objectData;

@@ -60,12 +60,12 @@ ModelData ModelDataStore::process(ModelData newData){
 
 bool ModelDataStore::getData(ModelData& output) {
 	std::unique_lock<std::mutex> l(lock);
+	output = modelData;
 	if (providedFrameIndex == modelData.frameIndex) {
 		return false;
 	}
 	else {
 		providedFrameIndex = modelData.frameIndex;
-		output = modelData;
 		return true;
 	}
 }

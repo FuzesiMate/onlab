@@ -48,18 +48,6 @@ void LedController::flashNext(uint64_t timestamp , uint64_t nextDuration){
 		}else{
 			iteration++;
 		}
-
-		/*
-		if(history.size()>50){
-			tbb::concurrent_vector<std::tuple<uint64_t , uint64_t , int> > temp;
-
-			for(auto i = 0 ; i<history.size()-1 ; i++){
-				temp.push_back(history[i]);
-			}
-
-			history = temp;
-		}
-		*/
 }
 
 
