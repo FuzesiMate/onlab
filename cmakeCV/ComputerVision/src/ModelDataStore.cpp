@@ -31,9 +31,9 @@ ModelData ModelDataStore::process(ModelData newData){
 				
 				int positionIndex = 0;
 				for (auto& position : markerData.screenPosition) {
-					if (markerData.tracked[positionIndex]) {
-						setPosition(objectData.name, markerData.name, position , positionIndex);
-					}
+					
+					setPosition(objectData.name, markerData.name, position , positionIndex, markerData.tracked[positionIndex]);
+					
 					positionIndex++;
 				}
 			}
@@ -86,13 +86,18 @@ bool ModelDataStore::getData(ModelData& output) {
 	}
 }
 
-void ModelDataStore::setPosition(std::string objectName, std::string markerName, cv::Point2f position , int index) {
+void ModelDataStore::setPosition(std::string objectName, std::string markerName, cv::Point2f position , int index , bool tracked) {
 	for (auto& objectData : modelData.objectData) {
 		if (objectData.name == objectName) {
 			for (auto& markerData : objectData.markerData) {
 				if (markerData.name == markerName) {
-					markerData.screenPosition[index] = position;
-					markerData.tracked[index] = true;
+					if (tracked) {
+						markerData.screenPosition[index] = position;
+						markerData.tracked[index] = true;
+					}
+					else {
+						markerData.tracked[index] = false;
+					}
 				}
 			}
 		}

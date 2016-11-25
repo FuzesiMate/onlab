@@ -8,6 +8,8 @@
 
 #include <iostream>
 #include "ComputerVision.h"
+#include <iostream>
+#include <fstream>
 #include <tbb/compat/thread>
 #include <tbb/tbb.h>
 
@@ -21,6 +23,8 @@ int main(int argc , char *argv[]) {
 	}
 
 	ComputerVision cvModule;
+
+	std::ofstream out("ex.json");
 
 	char c='a';
 
@@ -54,17 +58,7 @@ int main(int argc , char *argv[]) {
 		{
 				ModelData posdata;
 				if (cvModule.getData(posdata)) {
-					for (auto& obj : posdata.objectData) {
-						for (auto& mar : obj.markerData) {
-							std::cout << mar.name << std::endl;
-							for (auto& pos : mar.screenPosition) {
-								std::cout << pos << std::endl;
-							}
-							std::cout << "real position: " << mar.realPosition << std::endl;
-
-							std::cout << std::endl << std::endl;
-						}
-					}
+					out<<posdata.toJSON();
 				}
 			break;
 		}

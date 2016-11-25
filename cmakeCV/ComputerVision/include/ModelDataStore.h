@@ -33,7 +33,7 @@ public:
 
 	ModelData process(ModelData data);
 
-	void setPosition(std::string objectName, std::string markerName, cv::Point2f position , int index);
+	void setPosition(std::string objectName, std::string markerName, cv::Point2f position , int index, bool tracked);
 
 	bool getData(ModelData& output);
 	//ObjectData getObjectData(std::string object);

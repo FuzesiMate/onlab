@@ -17,39 +17,32 @@
     },
   "objects": [
     {
-      "name": "test",
+      "name": "bottle",
       "limit": -1,
       "markertype": "aruco",
       "markers": [
         {
-          "name": "testMarker",
-          "id": 10
-        }
-      ]
-    },
-    {
-      "name": "test2",
-      "limit": -1,
-      "markertype": "aruco",
-      "markers": [
-        {
-          "name": "testMarker2",
-          "id": 7
-        }
-      ]
-    },
-    {
-      "name": "test3",
-      "limit": -1,
-      "markertype": "aruco",
-      "markers": [
-        {
-          "name": "testMarker3",
-          "id": 8
+          "name": "top",
+          "id": 1
         },
         {
-          "name": "testMarker4",
-            "id": 10
+          "name": "middle",
+          "id": 2
+        },
+        {
+          "name": "bottom",
+          "id": 3
+        }
+      ]
+    },
+    {
+      "name": "box",
+      "limit": 1,
+      "markertype": "aruco",
+      "markers": [
+        {
+          "name": "box_marker",
+          "id": 10
         }
       ]
     }
