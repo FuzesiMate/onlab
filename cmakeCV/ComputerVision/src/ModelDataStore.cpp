@@ -10,6 +10,7 @@
 #include <string>
 #include "TemplateConfiguration.h"
 
+
 ModelData ModelDataStore::process(ModelData newData){
 
 	//thread safety
@@ -25,6 +26,20 @@ ModelData ModelDataStore::process(ModelData newData){
 	 * with the tracked flag set to false, so the user knows that this information is out of date
 	 */
 
+		for (auto& objectData : newData.objectData) {
+			for (auto& markerData : objectData.markerData) {
+				
+				int positionIndex = 0;
+				for (auto& position : markerData.screenPosition) {
+					if (markerData.tracked[positionIndex]) {
+						setPosition(objectData.name, markerData.name, position , positionIndex);
+					}
+					positionIndex++;
+				}
+			}
+		}
+
+		/*
 		size_t objIndex = 0;
 		for(auto& objectData : newData.objectData){
 			size_t markIndex = 0;
@@ -49,6 +64,7 @@ ModelData ModelDataStore::process(ModelData newData){
 			}
 			objIndex++;
 		}
+		*/
 
 		modelData.frameIndex = newData.frameIndex;
 		modelData.timestamp = newData.timestamp;
@@ -67,6 +83,19 @@ bool ModelDataStore::getData(ModelData& output) {
 	else {
 		providedFrameIndex = modelData.frameIndex;
 		return true;
+	}
+}
+
+void ModelDataStore::setPosition(std::string objectName, std::string markerName, cv::Point2f position , int index) {
+	for (auto& objectData : modelData.objectData) {
+		if (objectData.name == objectName) {
+			for (auto& markerData : objectData.markerData) {
+				if (markerData.name == markerName) {
+					markerData.screenPosition[index] = position;
+					markerData.tracked[index] = true;
+				}
+			}
+		}
 	}
 }
 

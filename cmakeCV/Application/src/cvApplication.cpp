@@ -16,40 +16,36 @@ using namespace std;
 int main(int argc , char *argv[]) {
 
 	if (argc < 2) {
-		std::cout << "No command line argument provided!" << std::endl;
+		std::cout << "No command line argument!" << std::endl;
 		return -1;
 	}
 
 	ComputerVision cvModule;
 
-	bool in = false;
-
 	char c='a';
 
 	while(c!='q'){
 		cin>>c;
-
 		switch(c){
-		case 'i':
-			in = cvModule.initialize(argv[1]);
-			if (!in) {
-				std::cout << "failed to init" << std::endl;
-			}
-			else {
-				std::cout << "init successful" << std::endl;
-			}
-			break;
 		case 's':
 		{
-			cout << "start processing thread..." << endl;
+			std::cout << "Initializing ComputerVision..."<<std::endl;
 
-			tbb::tbb_thread processingThread(std::bind(&ComputerVision::startProcessing, &cvModule));
-			processingThread.detach();
+			if (!cvModule.initialize(argv[1])) {
+				std::cout << "Failed to init!" << std::endl;
+			}
+			else {
+				std::cout << "Init successful!" << std::endl;
+
+				cout << "start processing thread..." << endl;
+
+				tbb::tbb_thread processingThread(std::bind(&ComputerVision::startProcessing, &cvModule));
+				processingThread.detach();
+			}
 			break;
 		}
 		case 'x':
 			cvModule.stopProcessing();
-			in = false;
 			break;
 		case 'r':
 			cvModule.reconfigure(argv[1]);

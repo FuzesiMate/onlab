@@ -22,13 +22,9 @@ private:
 	int64_t prevFrameIdx;
 
 	std::mutex lock;
-	std::ofstream ofs;
 
 public:
-	ArucoImageProcessor(tbb::flow::graph& g) :ImageProcessor<CONFIG>(g), dictionary(cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(0))), detectorParams(cv::aruco::DetectorParameters::create()), prevFrameIdx(0) {
-		ofs.open("proc_time.csv");
-		ofs << "processing_time" << std::endl;
-	};
+	ArucoImageProcessor(tbb::flow::graph& g) :ImageProcessor<CONFIG>(g), dictionary(cv::aruco::getPredefinedDictionary(cv::aruco::PREDEFINED_DICTIONARY_NAME(0))), detectorParams(cv::aruco::DetectorParameters::create()), prevFrameIdx(0) {};
 	ImageProcessingData<CONFIG> process(Frame frame);
 
 	virtual void reconfigure(boost::property_tree::ptree config);

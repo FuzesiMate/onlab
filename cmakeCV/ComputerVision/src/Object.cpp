@@ -52,7 +52,7 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 	objectData.timestamp = ipData.timestamp;
 
 	if (!objectData.alive) {
-		std::cout << "object " << name << " is done!" << std::endl;
+		std::cout << "object " << name << " reached its detection limit!" << std::endl;
 	}
 	
 	return objectData;

@@ -80,7 +80,7 @@ bool Camera::provide(Frame &frame) {
 #ifdef LOG
 	/*ONLY FOR BENCHMARKING*/
 	if (frameCounter % 20 == 0) {
-		fps++;
+		//fps++;
 	}
 
 	if (fps == 31) {
