@@ -43,11 +43,11 @@ ModelData CoordinateTransformer::process(ModelData modelData){
 	tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point3f> > > transformed;
 
 	for(auto& objectData : modelData.objectData){
-		for(auto& markerData : objectData.markerData){
-			if(markerData.screenPosition.size()==2 && markerData.tracked[0] && markerData.tracked[1]){
+		for(auto& markerData : objectData.second.markerData){
+			if(markerData.second.screenPosition.size()==2 && markerData.second.tracked[0] && markerData.second.tracked[1]){
 
-				std::vector<cv::Point2f> p1{markerData.screenPosition[0]};
-				std::vector<cv::Point2f> p2{markerData.screenPosition[1]};
+				std::vector<cv::Point2f> p1{markerData.second.screenPosition[0]};
+				std::vector<cv::Point2f> p2{markerData.second.screenPosition[1]};
 
 				cv::undistortPoints(p1, p1 , matrices.cameraMatrix[0] , matrices.distCoeffs[0] , matrices.rectificationMatrix[0] , matrices.projectionMatrix[0]);
 				cv::undistortPoints(p2, p2 , matrices.cameraMatrix[1] , matrices.distCoeffs[1] , matrices.rectificationMatrix[1] , matrices.projectionMatrix[1]);
@@ -64,7 +64,7 @@ ModelData CoordinateTransformer::process(ModelData modelData){
 					y = cord.at<float>(1,i)/w;
 					z = cord.at<float>(2,i)/w;
 				}
-				markerData.realPosition = cv::Point3f(x,y,z);
+				markerData.second.realPosition = cv::Point3f(x,y,z);
 			}
 		}
 	}

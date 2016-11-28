@@ -61,16 +61,6 @@ int main(int argc , char *argv[]) {
 					out.open("ex.json");
 					out<<posdata.toJSON();
 					out.close();
-
-					for (auto& objectData : posdata.objectData) {
-						if (objectData.name == "box") {
-							for (auto& markerData : objectData.markerData) {
-								if (markerData.name == "box_marker") {
-									std::cout << markerData.realPosition << std::endl;
-								}
-							}
-						}	
-					}
 				}
 				
 			break;

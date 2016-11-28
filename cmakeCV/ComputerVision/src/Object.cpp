@@ -36,7 +36,7 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 				i++;
 			}
 
-			objectData.markerData.push_back(markerData);
+			objectData.markerData[m.first]=markerData;
 		}
 
 		callCounter++;

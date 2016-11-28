@@ -27,15 +27,12 @@ void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_p
 
 			nextFrameIndex++;
 
-			tbb::concurrent_vector<ObjectData> objectPosition;
-
+			ModelData modelData;
+			
 			for (auto& object : dataBuffer) {
-				objectPosition.push_back(object.second[0]);
+				modelData.objectData[object.first] = object.second[0];
 			}
 
-			ModelData modelData;
-
-			modelData.objectData = objectPosition;
 			modelData.frameIndex = dataBuffer.begin()->second[0].frameIndex;
 			modelData.timestamp = dataBuffer.begin()->second[0].timestamp;
 

@@ -27,44 +27,24 @@ ModelData ModelDataStore::process(ModelData newData){
 	 */
 
 		for (auto& objectData : newData.objectData) {
-			for (auto& markerData : objectData.markerData) {
+			for (auto& markerData : objectData.second.markerData) {
+
+				if (markerData.second.realPosition.x != 0 && markerData.second.realPosition.y != 0 && markerData.second.realPosition.z != 0) {
+					modelData.objectData[objectData.first].markerData[markerData.first].realPosition = markerData.second.realPosition;
+				}
 
 				int positionIndex = 0;
-				for (auto& position : markerData.screenPosition) {
+				for (auto& position : markerData.second.screenPosition) {
 					
-					setPosition(objectData.name, markerData.name, position  , markerData.realPosition, positionIndex, markerData.tracked[positionIndex]);
+					if (modelData.objectData[objectData.first].markerData[markerData.first].tracked[positionIndex]) {
+						modelData.objectData[objectData.first].markerData[markerData.first].screenPosition[positionIndex] = position;
+						modelData.objectData[objectData.first].markerData[markerData.first].tracked[positionIndex] = true;
+					}	
 					
 					positionIndex++;
 				}
 			}
 		}
-
-		/*
-		size_t objIndex = 0;
-		for(auto& objectData : newData.objectData){
-			size_t markIndex = 0;
-			for(auto& markerData : objectData.markerData){
-				bool allTracked = true;
-
-				size_t posIndex = 0;
-				for(auto& position : markerData.screenPosition){
-					if(markerData.tracked[posIndex]){
-						modelData.objectData[objIndex].markerData[markIndex].screenPosition[posIndex]=position;
-						modelData.objectData[objIndex].markerData[markIndex].tracked[posIndex]=true;
-					}else{
-						modelData.objectData[objIndex].markerData[markIndex].tracked[posIndex]=false;
-						allTracked = false;
-					}
-					posIndex++;
-				}
-				if(allTracked){
-					modelData.objectData[objIndex].markerData[markIndex].realPosition = markerData.realPosition;
-				}
-				markIndex++;
-			}
-			objIndex++;
-		}
-		*/
 
 		modelData.frameIndex = newData.frameIndex;
 		modelData.timestamp = newData.timestamp;
@@ -86,6 +66,7 @@ bool ModelDataStore::getData(ModelData& output) {
 	}
 }
 
+/*
 void ModelDataStore::setPosition(std::string objectName, std::string markerName, cv::Point2f position , cv::Point3f realPosition , int index , bool tracked) {
 	for (auto& objectData : modelData.objectData) {
 		if (objectData.name == objectName) {
@@ -104,3 +85,4 @@ void ModelDataStore::setPosition(std::string objectName, std::string markerName,
 		}
 	}
 }
+*/

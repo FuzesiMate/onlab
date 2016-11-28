@@ -44,9 +44,9 @@ tbb::flow::continue_msg SimpleVisualizer::process(tbb::flow::tuple<Frame, ModelD
 
 		for (auto& objectData : modelData.objectData) {
 
-			for (auto& markerData : objectData.markerData) {
-				if (markerData.tracked[i]) {
-					cv::putText(image, markerData.name, cv::Point(markerData.screenPosition[i].x, markerData.screenPosition[i].y), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
+			for (auto& markerData : objectData.second.markerData) {
+				if (markerData.second.tracked[i]) {
+					cv::putText(image, markerData.second.name, cv::Point(markerData.second.screenPosition[i].x, markerData.second.screenPosition[i].y), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
 				}
 			}
 		}

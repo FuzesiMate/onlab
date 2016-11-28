@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <tbb/concurrent_vector.h>
+#include <tbb/concurrent_unordered_map.h>
 #include <opencv2/core/types.hpp>
 
 #ifndef DATA_TYPES_H
@@ -81,14 +82,14 @@ struct MarkerData {
 
 struct ObjectData {
 	std::string name;
-	tbb::concurrent_vector<MarkerData> markerData;
+	tbb::concurrent_unordered_map<std::string , MarkerData> markerData;
 	uint64_t timestamp;
 	uint64_t frameIndex;
 	bool alive;
 };
 
 struct ModelData {
-	tbb::concurrent_vector<ObjectData> objectData;
+	tbb::concurrent_unordered_map<std::string , ObjectData> objectData;
 	uint64_t timestamp;
 	uint64_t frameIndex;
 
@@ -100,27 +101,27 @@ struct ModelData {
 
 		size_t objectIndex = 0;
 		for (auto& object : objectData) {
-			json << "{\"name\":" << "\"" << object.name << "\"" << ",";
+			json << "{\"name\":" << "\"" << object.second.name << "\"" << ",";
 			json << "\"markers\":[";
 
 			size_t markerIndex = 0;
-			for (auto& marker : object.markerData) {
+			for (auto& marker : object.second.markerData) {
 				json << "{";
-				json << "\"name\":" << "\"" << marker.name << "\"" << ",";
+				json << "\"name\":" << "\"" << marker.second.name << "\"" << ",";
 				json << "\"realposition\":";
-				json << "{" << "\"x\":" << marker.realPosition.x << "," << "\"y\":" << marker.realPosition.y << "," << "\"z\":" << marker.realPosition.z << "},";
+				json << "{" << "\"x\":" << marker.second.realPosition.x << "," << "\"y\":" << marker.second.realPosition.y << "," << "\"z\":" << marker.second.realPosition.z << "},";
 				json << "\"screenpositions\":[";
 
 				size_t positionIndex = 0;
-				for (auto& screenPosition : marker.screenPosition) {
+				for (auto& screenPosition : marker.second.screenPosition) {
 					json << "{";
 
-					std::string tracked = marker.tracked[positionIndex] ? "true" : "false";
+					std::string tracked = marker.second.tracked[positionIndex] ? "true" : "false";
 
 					json << "\"x\":" << screenPosition.x << "," << "\"y\":" << screenPosition.y << "," << "\"tracked\":" << "\"" << tracked << "\"";
 					json << "}";
 
-					if (positionIndex < marker.screenPosition.size() - 1) {
+					if (positionIndex < marker.second.screenPosition.size() - 1) {
 						json << ",";
 					}
 
@@ -129,7 +130,7 @@ struct ModelData {
 
 				json << "]}";
 
-				if (markerIndex < object.markerData.size() - 1) {
+				if (markerIndex < object.second.markerData.size() - 1) {
 					json << ",";
 				}
 
