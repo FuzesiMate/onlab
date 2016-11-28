@@ -18,7 +18,7 @@ struct Matrices{
 	tbb::concurrent_vector<cv::Mat> cameraMatrix;
 	tbb::concurrent_vector<cv::Mat> distCoeffs;
 	tbb::concurrent_vector<cv::Mat> projectionMatrix;
-	tbb::concurrent_vector<cv::Mat> rotationMatrix;
+	tbb::concurrent_vector<cv::Mat> rectificationMatrix;
 };
 
 class CoordinateTransformer: public Processor<ModelData, ModelData ,tbb::flow::queueing> {

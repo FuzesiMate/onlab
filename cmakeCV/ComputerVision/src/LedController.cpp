@@ -50,21 +50,27 @@ void LedController::flashNext(uint64_t timestamp , uint64_t nextDuration){
 		}
 }
 
+int LedController::getFrameIteration(uint64_t timestamp, int setupTime) {
+	if (timestamp > lastTimestamp + setupTime && timestamp < lastTimestamp + duration) {
+		return iteration;
+	}
+
+	for (auto& h : history) {
+		auto ts = std::get<0>(h);
+		auto durat = std::get<1>(h);
+		auto iter = std::get<2>(h);
+
+		if (timestamp > ts + setupTime && timestamp < ts + durat) {
+			return iter;
+		}
+	}
+
+	return -1;
+}
+
 
 void LedController::addPattern(std::vector<int> p){
 	pattern.push_back(p);
-}
-
-uint64_t LedController::getLastTimestamp(){
-	return lastTimestamp;
-}
-
-uint64_t LedController::getDuration(){
-	return duration;
-}
-
-int LedController::getIteration(){
-	return iteration;
 }
 
 LedController::~LedController() {

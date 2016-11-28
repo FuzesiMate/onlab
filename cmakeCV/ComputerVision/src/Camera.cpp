@@ -80,7 +80,7 @@ bool Camera::provide(Frame &frame) {
 #ifdef LOG
 	/*ONLY FOR BENCHMARKING*/
 	if (frameCounter % 20 == 0) {
-		//fps++;
+		fps++;
 	}
 
 	if (fps == 31) {
@@ -96,7 +96,7 @@ bool Camera::provide(Frame &frame) {
 bool Camera::init(int cameraType) {
 
 #ifdef LOG
-	ofs.open("fps_ximea2.csv");
+	ofs.open("fps_ximea.csv");
 	ofs << "Required fps;Measured fps" << std::endl;
 #endif
 

@@ -4,6 +4,8 @@
 
 #include <thread>
 #include <mutex>
+#include <chrono>
+
 
 void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_ports_type& output){
 
@@ -22,6 +24,7 @@ void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_p
 		}
 
 		if (readyToSend) {
+
 			nextFrameIndex++;
 
 			tbb::concurrent_vector<ObjectData> objectPosition;
@@ -52,12 +55,27 @@ void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_p
 				dataBuffer.erase(dead);
 			}
 
+#ifdef LOG
+			auto currentTime = std::chrono::steady_clock::now();
+			auto currentTimeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime.time_since_epoch()).count();
+			auto delay = currentTimeStamp - modelData.timestamp;
+
+			auto processingCurrentFps = roundf((float)1000 / (currentTimeStamp-lastTimestamp));
+
+			ofs << delay << ";" << processingCurrentFps << std::endl;
+
+			lastTimestamp = currentTimeStamp;
+#endif
+
 			std::get<0>(output).try_put(modelData);
 
 			tbb::flow::continue_msg msg;
 			std::get<1>(output).try_put(msg);
 		}
 
+	}
+	else {
+		readyToSend = false;
 	}
 
 	/*

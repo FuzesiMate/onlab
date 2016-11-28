@@ -33,11 +33,9 @@ public:
 
 	ModelData process(ModelData data);
 
-	void setPosition(std::string objectName, std::string markerName, cv::Point2f position , int index, bool tracked);
+	void setPosition(std::string objectName, std::string markerName, cv::Point2f position, cv::Point3f realPosition, int index, bool tracked);
 
 	bool getData(ModelData& output);
-	//ObjectData getObjectData(std::string object);
-	//MarkerData getMarkerData(std::string object ,std::string marker);
 
 	virtual ~ModelDataStore() = default;
 };

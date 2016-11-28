@@ -4,17 +4,16 @@
     "number": 2,
     "exposure": 10000,
     "gain": 5,
-    "fps": 20
+    "fps": 15
   },
   "transformer": {
-    "path_to_matrices": "C:/git/onlab/cmakeCV/ComputerVision/matrices.yml"
-  }, 
-  "visualizer":
-    {
-      "type": "simple",
-      "windowname": "cam",
-      "delay": 1000
-    },
+    "path_to_matrices": "C:/cv_build/StereoCalibrate/matrices.yml"
+  },
+  "visualizer": {
+    "type": "simple",
+    "windowname": "cam",
+    "delay": 300
+  },
   "objects": [
     {
       "name": "bottle",
@@ -37,7 +36,7 @@
     },
     {
       "name": "box",
-      "limit": 1,
+      "limit": -1,
       "markertype": "aruco",
       "markers": [
         {
@@ -62,7 +61,7 @@
     },
     {
       "type": "zeromq",
-      "topic": "test2_data",
+      "topic": "model_data",
       "bind_addresses": [ "tcp://*:5557" ]
     }
   ]

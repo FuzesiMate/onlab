@@ -28,11 +28,11 @@ ModelData ModelDataStore::process(ModelData newData){
 
 		for (auto& objectData : newData.objectData) {
 			for (auto& markerData : objectData.markerData) {
-				
+
 				int positionIndex = 0;
 				for (auto& position : markerData.screenPosition) {
 					
-					setPosition(objectData.name, markerData.name, position , positionIndex, markerData.tracked[positionIndex]);
+					setPosition(objectData.name, markerData.name, position  , markerData.realPosition, positionIndex, markerData.tracked[positionIndex]);
 					
 					positionIndex++;
 				}
@@ -86,13 +86,14 @@ bool ModelDataStore::getData(ModelData& output) {
 	}
 }
 
-void ModelDataStore::setPosition(std::string objectName, std::string markerName, cv::Point2f position , int index , bool tracked) {
+void ModelDataStore::setPosition(std::string objectName, std::string markerName, cv::Point2f position , cv::Point3f realPosition , int index , bool tracked) {
 	for (auto& objectData : modelData.objectData) {
 		if (objectData.name == objectName) {
 			for (auto& markerData : objectData.markerData) {
 				if (markerData.name == markerName) {
 					if (tracked) {
 						markerData.screenPosition[index] = position;
+						markerData.realPosition = realPosition;
 						markerData.tracked[index] = true;
 					}
 					else {
@@ -103,25 +104,3 @@ void ModelDataStore::setPosition(std::string objectName, std::string markerName,
 		}
 	}
 }
-
-/*
-ObjectData ModelDataStore::getObjectData(std::string object){
-	for(auto& objectData : modelData.objectData){
-		if(objectData.name == object){
-			return objectData;
-		}
-	}
-}
-
-MarkerData ModelDataStore::getMarkerData(std::string object ,std::string marker){
-	for(auto& objectData : modelData.objectData){
-		if(objectData.name == object){
-			for(auto& markerData : objectData.markerData){
-				if(markerData.name == marker){
-					return markerData;
-				}
-			}
-		}
-	}
-}
-*/

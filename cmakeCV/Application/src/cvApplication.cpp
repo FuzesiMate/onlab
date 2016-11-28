@@ -24,7 +24,7 @@ int main(int argc , char *argv[]) {
 
 	ComputerVision cvModule;
 
-	std::ofstream out("ex.json");
+	std::ofstream out;
 
 	char c='a';
 
@@ -58,8 +58,21 @@ int main(int argc , char *argv[]) {
 		{
 				ModelData posdata;
 				if (cvModule.getData(posdata)) {
+					out.open("ex.json");
 					out<<posdata.toJSON();
+					out.close();
+
+					for (auto& objectData : posdata.objectData) {
+						if (objectData.name == "box") {
+							for (auto& markerData : objectData.markerData) {
+								if (markerData.name == "box_marker") {
+									std::cout << markerData.realPosition << std::endl;
+								}
+							}
+						}	
+					}
 				}
+				
 			break;
 		}
 		default:

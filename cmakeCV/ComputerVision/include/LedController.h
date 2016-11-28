@@ -32,35 +32,7 @@ public:
 	LedController();
 	void flashNext(uint64_t timestamp , uint64_t duration);
 	void addPattern(std::vector<int> p);
-	uint64_t getLastTimestamp();
-	uint64_t getDuration();
-	int getIteration();
-
-	int getFrameIteration(uint64_t timestamp , int setupTime){
-
-		if(timestamp > lastTimestamp+setupTime && timestamp < lastTimestamp+duration){
-
-			//std::cout<<"begin: "<<lastTimestamp+setupTime<<std::endl;
-			//std::cout<<"timestamp: "<<timestamp<<std::endl;
-
-
-			//std::cout<<"end: "<<lastTimestamp+duration<<std::endl;
-
-			return iteration;
-		}
-
-		for(auto& h : history){
-			auto ts = std::get<0>(h);
-			auto durat = std::get<1>(h);
-			auto iter = std::get<2>(h);
-
-			if(timestamp > ts+setupTime && timestamp < ts+durat){
-				return iter;
-			}
-		}
-
-		return -1;
-	}
+	int getFrameIteration(uint64_t timestamp, int setupTime);
 
 	virtual ~LedController();
 };

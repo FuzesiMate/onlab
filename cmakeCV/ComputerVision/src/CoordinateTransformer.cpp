@@ -16,22 +16,22 @@ bool CoordinateTransformer::loadMatrices(std::string path){
 	}
 
 	cv::Mat temp;
-	file["left_camMatrix"]>>temp;
+	file["m1"]>>temp;
 	matrices.cameraMatrix.push_back(temp.clone());
-	file["right_camMatrix"]>>temp;
+	file["m2"]>>temp;
 	matrices.cameraMatrix.push_back(temp.clone());
-	file["left_distCoeffs"]>>temp;
+	file["d1"]>>temp;
 	matrices.distCoeffs.push_back(temp.clone());
-	file["right_distCoeffs"]>>temp;
+	file["d2"]>>temp;
 	matrices.distCoeffs.push_back(temp.clone());
 	file["p1"]>>temp;
 	matrices.projectionMatrix.push_back(temp.clone());
 	file["p2"]>>temp;
 	matrices.projectionMatrix.push_back(temp.clone());
 	file["r1"]>>temp;
-	matrices.rotationMatrix.push_back(temp.clone());
+	matrices.rectificationMatrix.push_back(temp.clone());
 	file["r2"]>>temp;
-	matrices.rotationMatrix.push_back(temp.clone());
+	matrices.rectificationMatrix.push_back(temp.clone());
 
 	file.release();
 
@@ -49,8 +49,8 @@ ModelData CoordinateTransformer::process(ModelData modelData){
 				std::vector<cv::Point2f> p1{markerData.screenPosition[0]};
 				std::vector<cv::Point2f> p2{markerData.screenPosition[1]};
 
-				cv::undistortPoints(p1, p1 , matrices.cameraMatrix[0] , matrices.distCoeffs[0] , matrices.rotationMatrix[0] , matrices.projectionMatrix[0]);
-				cv::undistortPoints(p1, p1 , matrices.cameraMatrix[1] , matrices.distCoeffs[1] , matrices.rotationMatrix[1] , matrices.projectionMatrix[1]);
+				cv::undistortPoints(p1, p1 , matrices.cameraMatrix[0] , matrices.distCoeffs[0] , matrices.rectificationMatrix[0] , matrices.projectionMatrix[0]);
+				cv::undistortPoints(p2, p2 , matrices.cameraMatrix[1] , matrices.distCoeffs[1] , matrices.rectificationMatrix[1] , matrices.projectionMatrix[1]);
 
 				cv::Mat cord;
 				cv::triangulatePoints(matrices.projectionMatrix[0] , matrices.projectionMatrix[1] , p1 , p2 , cord);
