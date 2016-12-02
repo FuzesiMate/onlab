@@ -19,7 +19,7 @@ bool Camera::provide(Frame &frame) {
 			std::chrono::duration_cast<std::chrono::milliseconds>(
 					time.time_since_epoch()).count();
 
-	auto delay = (1000/fps) - (currentTimestamp - lastTimestamp);
+	auto delay = ((1000/fps) - (currentTimestamp - lastTimestamp));
 
 	if (delay > 0 && lastTimestamp!=0) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(delay));
@@ -45,7 +45,7 @@ bool Camera::provide(Frame &frame) {
 	int64_t currentFps;
 
 	if((currentTimestamp-lastTimestamp)>0){
-		currentFps = roundf((float)1000/(currentTimestamp-lastTimestamp));
+		currentFps = (float)1000/(currentTimestamp-lastTimestamp);
 	}
 
 	std::stringstream fpsstring;
@@ -60,9 +60,6 @@ bool Camera::provide(Frame &frame) {
 	for(auto& i : frame.images){
 		cv::putText(i , fpsstring.str() , cv::Point(100,100) , cv::FONT_HERSHEY_SIMPLEX ,1.0 ,cv::Scalar(255,255,255) , 2);
 	}
-	
-
-	/*std::cout << currentFps << std::endl;*/
 	
 	frame.frameIndex = frameCounter;
 	frame.timestamp = currentTimestamp;
@@ -89,11 +86,10 @@ bool Camera::provide(Frame &frame) {
 	}
 
 #endif
-
 	return providing;
 }
 
-bool Camera::init(int cameraType) {
+bool Camera::initialize(int cameraType) {
 
 #ifdef LOG
 	ofs.open("fps_ximea.csv");
@@ -114,23 +110,15 @@ bool Camera::init(int cameraType) {
 	return true;
 }
 
-void Camera::setFPS(int fps){
+void Camera::reconfigure(boost::property_tree::ptree config) {
+	int fps = config.get<int>(FPS);
+	int expo = config.get<int>(EXPOSURE);
+	float gain = config.get<float>(GAIN);
+
 	this->fps = fps;
-}
-
-void Camera::setExposure(int exposure){
-	this->exposure = exposure;
-
-	for(auto& camera : cameras){
-		camera.set(cv::CAP_PROP_XI_EXPOSURE , exposure);
-	}
-}
-
-void Camera::setGain(float gain){
-	this->gain = gain;
-
-	for(auto& camera : cameras){
-		camera.set(cv::CAP_PROP_XI_GAIN , gain);
+	for (auto& camera : cameras) {
+		camera.set(cv::CAP_PROP_XI_EXPOSURE, exposure);
+		camera.set(cv::CAP_PROP_XI_GAIN, gain);
 	}
 }
 

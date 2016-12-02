@@ -2,14 +2,11 @@
 #define FRAMEPROVIDERFACTORY_H_
 
 #include "Camera.h"
+#include "VideoSource.h"
 #include "FrameProvider.h"
 #include "InitFailedException.h"
 #include <boost/property_tree/ptree.hpp>
 
-#define NUMBEROFCAMERAS 		"number"
-#define EXPOSURE				"exposure"
-#define GAIN					"gain"
-#define FPS						"fps"
 #define TYPE 					"type"
 
 enum FrameProviderType {
@@ -25,9 +22,8 @@ public:
 	FrameProviderFactory()=delete;
 
 	static std::unique_ptr<FrameProvider> createFrameProvider(boost::property_tree::ptree parameters, tbb::flow::graph& g) {
-
+		
 		std::unique_ptr<FrameProvider> frameProvider;
-
 		try {
 			auto providerType = res_FrameProviderType[parameters.get<std::string>(TYPE)];
 
@@ -39,13 +35,26 @@ public:
 				int expo = parameters.get<int>(EXPOSURE);
 				float gain = parameters.get<float>(GAIN);
 
-				frameProvider = std::unique_ptr<FrameProvider>( new Camera(fps, expo, gain, numberOfCameras, g));
-				if (!frameProvider->init(providerType)) {
+				auto cam = std::unique_ptr<Camera>( new Camera(fps, expo, gain, numberOfCameras, g));
+				if (!cam->initialize(providerType)) {
 					throw std::exception("Camera initialization failed");
 				}
+				frameProvider = std::move(cam);
 			}
 			else if (providerType == FrameProviderType::VIDEO_SOURCE) {
-				throw std::exception("This function is currently not available!");
+				
+				auto source_config = parameters.get_child(SOURCES);
+				auto fps = parameters.get<int>(FPS);
+				std::vector<std::string> sources;
+				for (auto& source_item : source_config) {
+					sources.push_back(source_item.second.get<std::string>(""));
+				}
+
+				auto vid = std::unique_ptr<VideoSource>(new VideoSource(fps, g));
+				if (!vid->initialize(sources)) {
+					throw std::exception("Video player initialization failed");
+				}
+				frameProvider = std::move(vid);
 			}
 		}
 		catch (std::exception& e) {

@@ -33,6 +33,7 @@ private:
 	tbb::concurrent_unordered_map<std::string, int> markers;
 
 public:
+
 	Object(std::string name, std::string type, int limit,
 			tbb::flow::graph& g) :Processor<ImageProcessingData<CONFIG> , ObjectData , tbb::flow::queueing >(g  , tbb::flow::serial), name(
 					name), callCounter(0), limit(limit), markerType(type) {};

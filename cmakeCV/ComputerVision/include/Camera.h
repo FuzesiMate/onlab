@@ -12,12 +12,18 @@
 #include <tbb/flow_graph.h>
 #include <tbb/parallel_for.h>
 #include <tbb/concurrent_vector.h>
+#include <boost/property_tree/ptree.hpp>
 #include <chrono>
 #include <atomic>
 #include <thread>
 #include <fstream>
 #include "FrameProvider.h"
 #include "DataTypes.h"
+
+#define EXPOSURE				"exposure"
+#define GAIN					"gain"
+#define FPS						"fps"
+#define NUMBEROFCAMERAS 		"number"
 
 class Camera: public FrameProvider {
 	int numberOfCameras;
@@ -36,11 +42,9 @@ public:
 			FrameProvider(g), numberOfCameras(numberOfCameras), exposure(
 					exposure), gain(gain),fps(fps),frameCounter(0),lastTimestamp(0){};
 
-	bool provide(Frame &images);
-	bool init(int cameraType);
-	void setFPS(int fps); 
-	void setExposure(int exposure);
-	void setGain(float gain);
+	bool provide(Frame &frame);
+	void reconfigure(boost::property_tree::ptree config);
+	bool initialize(int cameraType);
 
 	virtual ~Camera();
 };

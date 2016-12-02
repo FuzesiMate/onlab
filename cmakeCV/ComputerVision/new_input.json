@@ -1,42 +1,45 @@
 {
   "frameprovider": {
     "type": "ximea",
-    "number": 2,
+    "fps": 20,
     "exposure": 10000,
     "gain": 5,
-    "fps": 15
+    "number": 1
+  },
+  "visualizer": {
+    "type": "simple",
+    "windowname": "camera",
+    "delay": 0
   },
   "transformer": {
     "path_to_matrices": "C:/cv_build/StereoCalibrate/matrices.yml"
   },
-  "visualizer": {
-    "type": "simple",
-    "windowname": "cam",
-    "delay": 300
-  },
   "objects": [
     {
-      "name": "bottle",
-      "limit": -1,
+      "name": "human",
       "markertype": "aruco",
       "markers": [
         {
-          "name": "top",
+          "name": "left_hand",
           "id": 1
         },
         {
-          "name": "middle",
+          "name": "right_hand",
           "id": 2
         },
         {
-          "name": "bottom",
+          "name": "left_ankle",
           "id": 3
+        },
+        {
+          "name": "right_ankle",
+          "id": 4
         }
       ]
     },
     {
       "name": "box",
-      "limit": -1,
+      "limit": 100,
       "markertype": "aruco",
       "markers": [
         {
@@ -55,13 +58,13 @@
   "datasenders": [
     {
       "type": "zeromq",
-      "topic": "aurco_data",
+      "topic": "raw_aruco_data",
       "bind_addresses": [ "tcp://*:5556" ],
       "imageprocessor": "aruco"
     },
     {
       "type": "zeromq",
-      "topic": "model_data",
+      "topic": "human_pose",
       "bind_addresses": [ "tcp://*:5557" ]
     }
   ]

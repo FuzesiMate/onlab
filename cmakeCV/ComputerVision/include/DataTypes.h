@@ -10,6 +10,12 @@
 #ifndef DATA_TYPES_H
 #define DATA_TYPES_H
 
+template<typename T, typename V>
+using tbb_map = tbb::concurrent_unordered_map<T, V>;
+
+template<typename T>
+using tbb_vector = tbb::concurrent_vector<T>;
+
 struct Frame {
 	tbb::concurrent_vector<cv::Mat> images;
 	uint64_t timestamp;
