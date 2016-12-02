@@ -17,7 +17,6 @@ template <typename CONFIG>
 ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 
 	ImageProcessingData<CONFIG> foundMarkers;
-
 	foundMarkers.data = tbb::concurrent_vector<tbb::concurrent_vector<cv::Point2f> >(frame.images.size());
 	foundMarkers.identifiers = tbb::concurrent_vector<tbb::concurrent_vector<int> >(frame.images.size());
 
@@ -37,9 +36,7 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 			}
 			cv::Point2f center;
 			float r;
-
 			//cv::aruco::drawDetectedMarkers(frame.images[i], corners, identifiers);
-
 			tbb::concurrent_vector<cv::Point2f> markerPosition(corners.size());
 			tbb::concurrent_vector<int> 		markerIdentifier(identifiers.size());
 
@@ -50,7 +47,6 @@ ImageProcessingData< CONFIG >ArucoImageProcessor<CONFIG>::process(Frame frame){
 				markerIdentifier[j] = identifiers[j];
 				j++;
 			}
-
 			foundMarkers.data[i] = markerPosition;
 			foundMarkers.identifiers[i] = markerIdentifier;
 		});

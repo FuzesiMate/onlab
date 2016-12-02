@@ -40,7 +40,6 @@ bool ComputerVision::initialize(const std::string configFilePath) {
 			initialized = false;
 			return initialized;
 		}
-
 		frameProvider.reset();
 		try {
 			auto cameraConfig = config.get_child(FRAME_PROVIDER);
@@ -106,16 +105,16 @@ void ComputerVision::startProcessing() {
 		frame_limiter frameLimiter(*this, 10);
 
 		//after each imageprocessor there is a sequencer node, which restores the original order of the data
-		std::vector<std::shared_ptr<ip_data_sequencer> > IpDataSequencers;
+		std::vector<std::unique_ptr<ip_data_sequencer> > IpDataSequencers;
 
 		//after each sequencer node there is a broadcaster node that broadcasts the output of the sequencer node
-		std::map<std::string, std::shared_ptr<ip_data_broadcaster> > IpDataBroadcasters;
+		std::map<std::string, std::unique_ptr<ip_data_broadcaster> > IpDataBroadcasters;
 
 		//if all corresponding objects are limited the image processor will be also limited
-		std::map<std::string, std::shared_ptr<frame_limiter> > ipLimiters;
+		std::map<std::string, std::unique_ptr<frame_limiter> > ipLimiters;
 
 		//if an object has a detection limit a limiter node will be applied before
-		std::map<std::string, std::shared_ptr<object_limiter> > objectLimiters;
+		std::map<std::string, std::unique_ptr<object_limiter> > objectLimiters;
 
 		//visualizer to show the result of object tracking
 		std::unique_ptr<Visualizer> visualizer;
@@ -135,13 +134,11 @@ void ComputerVision::startProcessing() {
 				auto type = imageProcessor.second.get<std::string>(TYPE);
 				try {
 					imageProcessors[type] = ImageProcessorFactory::createImageProcessor<t_cfg>(imageProcessor.second, *this);
-
-					auto sequencer = std::make_shared<ip_data_sequencer>
-						(*this, [](ImageProcessingData<t_cfg> data)->uint64_t {
-						return data.frameIndex;
-					});
-					IpDataSequencers.push_back(sequencer);
-					IpDataBroadcasters[type] = std::make_shared<ip_data_broadcaster>(*this);
+					IpDataSequencers.emplace_back(std::make_unique<ip_data_sequencer>(*this, 
+						[](ImageProcessingData<t_cfg> data)->uint64_t {
+							return data.frameIndex;
+						}));
+					IpDataBroadcasters.emplace(type , std::make_unique<ip_data_broadcaster>(*this));
 				}
 				catch (std::exception& e) {
 					std::cout << "Error while creating image processor! Error message: " << e.what() << std::endl;
@@ -174,14 +171,13 @@ void ComputerVision::startProcessing() {
 				object.second.find(LIMIT) != object.second.not_found() ? limit = object.second.get<int>(LIMIT) : limit = -1;
 
 				objects.emplace(std::make_pair(name, std::unique_ptr<Object<t_cfg> >(new Object<t_cfg>(name, type, limit, *this))));
+				
 				for (auto& marker : object.second.get_child(MARKERS)) {
 					objects[name]->addMarker(marker.second.get<std::string>(NAME), marker.second.get<int>(ID));
 				}
-
 				if (limit != -1) {
-					objectLimiters[name] = std::make_shared<object_limiter>(*this, limit);
+					objectLimiters.emplace(name, std::make_unique<object_limiter>(*this, limit));
 				}
-
 				if (imageProcessorLimits.find(type) == imageProcessorLimits.end() || (imageProcessorLimits[type] < limit && imageProcessorLimits[type] != -1) || limit == -1) {
 					imageProcessorLimits[type] = limit;
 				}
@@ -235,9 +231,8 @@ void ComputerVision::startProcessing() {
 		*/
 		int i = 0;
 		for (auto& imageProcessor : imageProcessors) {
-
 			if (imageProcessorLimits[imageProcessor.first] != -1) {
-				ipLimiters[imageProcessor.first] = std::make_shared<frame_limiter>(*this, imageProcessorLimits[imageProcessor.first]);
+				ipLimiters.emplace(imageProcessor.first, std::make_unique<frame_limiter>(*this, imageProcessorLimits[imageProcessor.first]));
 				make_edge(frameLimiter, *ipLimiters[imageProcessor.first]);
 				make_edge(*ipLimiters[imageProcessor.first], imageProcessor.second->getProcessorNode());
 			}
@@ -252,7 +247,6 @@ void ComputerVision::startProcessing() {
 			}
 			i++;
 		}
-
 		/*
 		connect the object to the object data collector module
 		if the object is limited a limiter node is applied before

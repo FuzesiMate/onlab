@@ -15,8 +15,8 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 	objectData.name = name;
 
 		for(auto m : markers){
+			
 			int id = m.second;
-
 			MarkerData markerData;
 			markerData.name = m.first;
 			markerData.screenPosition = tbb::concurrent_vector<cv::Point2f>(ipData.data.size());
@@ -32,13 +32,10 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 				}else{
 					markerData.tracked.push_back(false);
 				}
-
 				i++;
 			}
-
 			objectData.markerData[m.first]=markerData;
 		}
-
 		callCounter++;
 
 		if (limit == -1) {
@@ -47,14 +44,12 @@ ObjectData Object<CONFIG>::process(ImageProcessingData<CONFIG> ipData){
 		else {
 			objectData.alive = callCounter < (limit);
 		}
-
 	objectData.frameIndex = ipData.frameIndex;
 	objectData.timestamp = ipData.timestamp;
 
 	if (!objectData.alive) {
 		std::cout << "object " << name << " reached its detection limit!" << std::endl;
 	}
-	
 	return objectData;
 }
 

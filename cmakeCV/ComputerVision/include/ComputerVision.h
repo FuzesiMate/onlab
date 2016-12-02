@@ -47,17 +47,17 @@
 
 #define DEFAULT_CAMERA	0
 
-using t_cfg = TEMPLATE_CONFIG<tbb_vector<cv::Point2f>, tbb_vector<int > >;
+using t_cfg					= TEMPLATE_CONFIG<tbb_vector<cv::Point2f>, tbb_vector<int > >;
 
-using ip_data_sequencer = tbb::flow::sequencer_node<ImageProcessingData<t_cfg> >;
-using ip_data_broadcaster = tbb::flow::broadcast_node<ImageProcessingData<t_cfg> >;
-using frame_limiter = tbb::flow::limiter_node<Frame >;
-using object_limiter = tbb::flow::limiter_node<ImageProcessingData<t_cfg> >;
+using ip_data_sequencer		= tbb::flow::sequencer_node<ImageProcessingData<t_cfg> >;
+using ip_data_broadcaster	= tbb::flow::broadcast_node<ImageProcessingData<t_cfg> >;
+using frame_limiter			= tbb::flow::limiter_node<Frame >;
+using object_limiter		= tbb::flow::limiter_node<ImageProcessingData<t_cfg> >;
 
 class ComputerVision  :public tbb::flow::graph {
 private:
 	std::unique_ptr<FrameProvider> frameProvider;
-	std::shared_ptr<ModelDataStore> model;
+	std::unique_ptr<ModelDataStore> model;
 	std::vector<std::shared_ptr<DataSender<ModelData> > > objectDataSenders;
 	//raw image processing data senders mapped by markertype
 	std::map < std::string, std::shared_ptr<DataSender<ImageProcessingData<t_cfg> > > > ipDataSenders;
@@ -69,7 +69,7 @@ private:
 	std::atomic<bool> processing;
 
 public:
-	ComputerVision():initialized(false), processing(false),model(new ModelDataStore(*this)) {};
+	ComputerVision():initialized(false), processing(false),model(std::make_unique<ModelDataStore>(*this)) {};
 	bool initialize(const std::string configFilePath);
 	void startProcessing();
 	void stopProcessing();

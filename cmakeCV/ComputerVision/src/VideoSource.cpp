@@ -17,9 +17,6 @@ bool VideoSource::initialize(std::vector<std::string> sources) {
 			return false;
 		}
 	}
-
-	std::cout << "Video sources initialized!" << std::endl;
-
 	return true;
 }
 
@@ -43,28 +40,23 @@ bool VideoSource::provide(Frame& frame) {
 	int i;
 	for (auto& stream : streams) {
 		if (!stream.read(frame.images[i])) {
-			std::cout << "Failed to read video!" << std::endl;
+			std::cout << "Failed to read the next image!" << std::endl;
 			providing = false;
 			return false;
 		}
 		i++;
 	}
-
 	int64_t currentFps;
-
 	if ((currentTimestamp - lastTimestamp)>0) {
 		currentFps = roundf((float)1000 / (currentTimestamp - lastTimestamp));
 	}
-
 	std::stringstream fpsstring;
 	fpsstring << "Current fps: " << currentFps;
-
 	frame.fps = (int)currentFps;
 
 	for (auto& i : frame.images) {
 		cv::putText(i, fpsstring.str(), cv::Point(100, 100), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
 	}
-
 	frame.frameIndex = frameIndex;
 	frame.timestamp = currentTimestamp;
 
@@ -76,7 +68,6 @@ bool VideoSource::provide(Frame& frame) {
 			stream.release();
 		}
 	}
-
 	return providing;
 }
 

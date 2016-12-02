@@ -17,16 +17,14 @@
 #include "DataTypes.h"
 #include <tbb/flow_graph.h>
 
-typedef tbb::flow::multifunction_node<ObjectData, tbb::flow::tuple<ModelData, tbb::flow::continue_msg>, tbb::flow::queueing > CollectorNode;
+using collector_node =  tbb::flow::multifunction_node<ObjectData, tbb::flow::tuple<ModelData, tbb::flow::continue_msg>, tbb::flow::queueing >;
 
 //#define LOG
 
 class ObjectDataCollector {
 private:
-
 	//Multifunction node
-	CollectorNode collectorNode;
-
+	collector_node node;
 	//buffer to store object data
 	std::map<std::string , std::vector<ObjectData> > dataBuffer;
 	std::atomic<uint64_t> nextFrameIndex;
@@ -37,25 +35,22 @@ private:
 	std::ofstream ofs;
 #endif // LOG
 
-	
 public:
-
-	void ObjectDataCollector::process(ObjectData objectData, CollectorNode::output_ports_type& output);
-
-	//bool provide(ModelData& output);
-
+	void ObjectDataCollector::process(ObjectData objectData, collector_node::output_ports_type& output);
 	ObjectDataCollector(int numberOfObjects, tbb::flow::graph& g)
-		:collectorNode(g , 1 , std::bind(&ObjectDataCollector::process, this , std::placeholders::_1 , std::placeholders::_2)),nextFrameIndex(0),numberOfObjects(numberOfObjects), lastTimestamp(0){
+		:node(g , 1 , std::bind(&ObjectDataCollector::process, this , std::placeholders::_1 , std::placeholders::_2)),
+		nextFrameIndex(0),
+		numberOfObjects(numberOfObjects), 
+		lastTimestamp(0){
 #ifdef LOG
 		ofs.open("process.csv");
 		ofs << "delay;current fps" << std::endl;
 #endif
 	};
 
-	CollectorNode& getCollectorNode() {
-		return collectorNode;
+	collector_node& getCollectorNode() {
+		return node;
 	}
-
 	virtual ~ObjectDataCollector() = default;
 };
 

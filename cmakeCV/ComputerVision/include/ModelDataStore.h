@@ -19,24 +19,15 @@
 
 class ModelDataStore:public Processor<ModelData, ModelData , tbb::flow::queueing> {
 private:
-
 	//thread safety
 	std::mutex lock;
 	uint64_t providedFrameIndex;
-	/*
-	stores an up to date instance of ModelData
-	*/
+	//stores an up to date instance of ModelData
 	ModelData modelData;
-
 public:
 	ModelDataStore(tbb::flow::graph& g):Processor<ModelData, ModelData , tbb::flow::queueing>(g ,1),providedFrameIndex(-1){};
-
-	ModelData process(ModelData data);
-
-	//void setPosition(std::string objectName, std::string markerName, cv::Point2f position, cv::Point3f realPosition, int index, bool tracked);
-
+	ModelData process(ModelData newData);
 	bool getData(ModelData& output);
-
 	virtual ~ModelDataStore() = default;
 };
 

@@ -11,63 +11,79 @@
 
 bool CoordinateTransformer::loadMatrices(std::string path){
 	cv::FileStorage file;
-	if(!file.open(path , cv::FileStorage::READ)){
+	try {
+		if (!file.open(path, cv::FileStorage::READ)) {
+			std::cout << "The file containing the matrices is missing!" << std::endl;
+			canTransform = false;
+			return false;
+		}
+	}
+	catch (std::exception& e) {
+		std::cout << "The file containing the matrices is invalid! Error message: " <<e.what()<< std::endl;
+		file.release();
+		canTransform = false;
 		return false;
 	}
+	try {
+		cv::Mat matrix;
+		file["m1"] >> matrix;
+		matrices.cameraMatrix.push_back(matrix.clone());
+		file["m2"] >> matrix;
+		matrices.cameraMatrix.push_back(matrix.clone());
+		file["d1"] >> matrix;
+		matrices.distCoeffs.push_back(matrix.clone());
+		file["d2"] >> matrix;
+		matrices.distCoeffs.push_back(matrix.clone());
+		file["p1"] >> matrix;
+		matrices.projectionMatrix.push_back(matrix.clone());
+		file["p2"] >> matrix;
+		matrices.projectionMatrix.push_back(matrix.clone());
+		file["r1"] >> matrix;
+		matrices.rectificationMatrix.push_back(matrix.clone());
+		file["r2"] >> matrix;
+		matrices.rectificationMatrix.push_back(matrix.clone());
 
-	cv::Mat temp;
-	file["m1"]>>temp;
-	matrices.cameraMatrix.push_back(temp.clone());
-	file["m2"]>>temp;
-	matrices.cameraMatrix.push_back(temp.clone());
-	file["d1"]>>temp;
-	matrices.distCoeffs.push_back(temp.clone());
-	file["d2"]>>temp;
-	matrices.distCoeffs.push_back(temp.clone());
-	file["p1"]>>temp;
-	matrices.projectionMatrix.push_back(temp.clone());
-	file["p2"]>>temp;
-	matrices.projectionMatrix.push_back(temp.clone());
-	file["r1"]>>temp;
-	matrices.rectificationMatrix.push_back(temp.clone());
-	file["r2"]>>temp;
-	matrices.rectificationMatrix.push_back(temp.clone());
-
-	file.release();
-
+		file.release();
+	}
+	catch (std::exception& e) {
+		std::cout << "An error occured while loading camera matrices! "
+				  << "The transformer is not able to reconstruct 3D positions!"
+				  <<"Error message: " << e.what() << std::endl;
+		canTransform = false;
+		return false;
+	}
 	canTransform = true;
 	return true;
 }
 
 ModelData CoordinateTransformer::process(ModelData modelData){
-	tbb::concurrent_unordered_map<std::string , tbb::concurrent_unordered_map<std::string , tbb::concurrent_vector<cv::Point3f> > > transformed;
+	if (canTransform) {
+		for (auto& objectData : modelData.objectData) {
+			for (auto& markerData : objectData.second.markerData) {
+				if (markerData.second.screenPosition.size() == 2 && markerData.second.tracked[0] && markerData.second.tracked[1]) {
 
-	for(auto& objectData : modelData.objectData){
-		for(auto& markerData : objectData.second.markerData){
-			if(markerData.second.screenPosition.size()==2 && markerData.second.tracked[0] && markerData.second.tracked[1]){
+					std::vector<cv::Point2f> p1{ markerData.second.screenPosition[0] };
+					std::vector<cv::Point2f> p2{ markerData.second.screenPosition[1] };
 
-				std::vector<cv::Point2f> p1{markerData.second.screenPosition[0]};
-				std::vector<cv::Point2f> p2{markerData.second.screenPosition[1]};
+					cv::undistortPoints(p1, p1, matrices.cameraMatrix[0], matrices.distCoeffs[0], matrices.rectificationMatrix[0], matrices.projectionMatrix[0]);
+					cv::undistortPoints(p2, p2, matrices.cameraMatrix[1], matrices.distCoeffs[1], matrices.rectificationMatrix[1], matrices.projectionMatrix[1]);
 
-				cv::undistortPoints(p1, p1 , matrices.cameraMatrix[0] , matrices.distCoeffs[0] , matrices.rectificationMatrix[0] , matrices.projectionMatrix[0]);
-				cv::undistortPoints(p2, p2 , matrices.cameraMatrix[1] , matrices.distCoeffs[1] , matrices.rectificationMatrix[1] , matrices.projectionMatrix[1]);
+					cv::Mat cord;
+					cv::triangulatePoints(matrices.projectionMatrix[0], matrices.projectionMatrix[1], p1, p2, cord);
 
-				cv::Mat cord;
-				cv::triangulatePoints(matrices.projectionMatrix[0] , matrices.projectionMatrix[1] , p1 , p2 , cord);
+					float x, y, z;
 
-				float x,y,z;
+					for (int i = 0; i<cord.cols; i++) {
 
-				for(int i = 0 ; i<cord.cols ; i++){
-
-					float w = cord.at<float>(3,i);
-					x = cord.at<float>(0,i)/w;
-					y = cord.at<float>(1,i)/w;
-					z = cord.at<float>(2,i)/w;
+						float w = cord.at<float>(3, i);
+						x = cord.at<float>(0, i) / w;
+						y = cord.at<float>(1, i) / w;
+						z = cord.at<float>(2, i) / w;
+					}
+					markerData.second.realPosition = cv::Point3f(x, y, z);
 				}
-				markerData.second.realPosition = cv::Point3f(x,y,z);
 			}
 		}
 	}
-
 	return modelData;
 }
